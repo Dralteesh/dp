@@ -1,0 +1,79 @@
+import { useEffect, useMemo } from "react";
+import { AppState } from "react-native";
+import { useAgendaInput } from "@/hooks/useAgenda";
+import { syncAlarms } from "@/lib/alarm";
+import {
+  ensureNotificationPermission,
+  setupNotifications,
+  syncNotifications,
+} from "@/lib/notifications";
+import { useAlarms } from "@/store/useAlarms";
+import { usePlanner } from "@/store/usePlanner";
+import { useSettings } from "@/store/useSettings";
+import { refreshWidgets } from "@/widgets/updateWidgets";
+import type { Settings } from "@/types";
+
+/**
+ * مكوّن بلا واجهة: يربط البيانات بالإشعارات والمنبّه والودجت.
+ * كلما تغيّرت الأحداث أو المهام أو المنبّهات أو الإعدادات (بعد مهلة قصيرة)
+ * يعيد الجدولة ويحدّث الودجت. ويفعل الشيء نفسه عند عودة التطبيق للواجهة.
+ */
+export function AppSync() {
+  const agenda = useAgendaInput();
+  const tasks = usePlanner((s) => s.tasks);
+  const alarms = useAlarms((s) => s.alarms);
+
+  const doctorName = useSettings((s) => s.doctorName);
+  const prayerMethod = useSettings((s) => s.prayerMethod);
+  const madhab = useSettings((s) => s.madhab);
+  const prayerAdjust = useSettings((s) => s.prayerAdjust);
+  const prayerNotify = useSettings((s) => s.prayerNotify);
+  const defaultReminder = useSettings((s) => s.defaultReminder);
+  const appointmentReminder = useSettings((s) => s.appointmentReminder);
+  const currency = useSettings((s) => s.currency);
+
+  const settings: Settings = useMemo(
+    () => ({
+      doctorName,
+      prayerMethod,
+      madhab,
+      prayerAdjust,
+      prayerNotify,
+      defaultReminder,
+      appointmentReminder,
+      currency,
+    }),
+    [doctorName, prayerMethod, madhab, prayerAdjust, prayerNotify, defaultReminder, appointmentReminder, currency],
+  );
+
+  // إعداد القنوات وطلب الإذن مرة واحدة
+  useEffect(() => {
+    (async () => {
+      await setupNotifications();
+      await ensureNotificationPermission();
+    })();
+  }, []);
+
+  const run = useMemo(
+    () => async () => {
+      await syncNotifications({ agenda, tasks, settings });
+      await syncAlarms(alarms, agenda.events);
+      await refreshWidgets();
+    },
+    [agenda, tasks, settings, alarms],
+  );
+
+  useEffect(() => {
+    const t = setTimeout(run, 1500);
+    return () => clearTimeout(t);
+  }, [run]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") run();
+    });
+    return () => sub.remove();
+  }, [run]);
+
+  return null;
+}
