@@ -1,3 +1,5 @@
+import { useTheme } from "@/hooks/useTheme";
+import { TYPE_META } from "@/constants/shiftTypes";
 import { useState } from "react";
 import { Alert, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -9,9 +11,9 @@ import { Screen } from "@/components/ui/Screen";
 import { toWesternDigits } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
 
-const GREEN = "#16A34A";
 
 export default function PatientFormScreen() {
+  useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const patients = useClinic((s) => s.patients);
@@ -67,14 +69,14 @@ export default function PatientFormScreen() {
         />
         <FieldRow label="الجنس">
           <View className="flex-row gap-2">
-            <Chip label="ذكر" selected={gender === "male"} color={GREEN} onPress={() => setGender(gender === "male" ? undefined : "male")} />
-            <Chip label="أنثى" selected={gender === "female"} color={GREEN} onPress={() => setGender(gender === "female" ? undefined : "female")} />
+            <Chip label="ذكر" selected={gender === "male"} color={TYPE_META.private.hex} onPress={() => setGender(gender === "male" ? undefined : "male")} />
+            <Chip label="أنثى" selected={gender === "female"} color={TYPE_META.private.hex} onPress={() => setGender(gender === "female" ? undefined : "female")} />
           </View>
         </FieldRow>
         <Field label="سنة الميلاد" value={birthYear} onChangeText={setBirthYear} placeholder="1990" keyboardType="number-pad" maxLength={4} />
         <FieldRow label="حالة العلاج">
           <View className="flex-row gap-2">
-            <Chip label="قيد المعالجة" selected={status === "active"} color={GREEN} onPress={() => setStatus("active")} />
+            <Chip label="قيد المعالجة" selected={status === "active"} color={TYPE_META.private.hex} onPress={() => setStatus("active")} />
             <Chip label="أنهى العلاج" selected={status === "finished"} color="#64748B" onPress={() => setStatus("finished")} />
           </View>
         </FieldRow>

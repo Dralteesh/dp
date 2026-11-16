@@ -164,3 +164,26 @@ export async function scheduleTestAlarm(): Promise<boolean> {
   });
   return true;
 }
+
+
+/** أقرب موعد رنين بين المنبّهات الفعّالة (خلال 8 أيام)، أو null */
+export function nextAlarmFire(
+  alarms: { id: string; label: string; time: string; days: number[]; onceDate?: string; enabled: boolean }[],
+  now: Date,
+): { at: Date; label: string } | null {
+  let best: { at: Date; label: string } | null = null;
+  for (const a of alarms) {
+    if (!a.enabled) continue;
+    for (let i = 0; i < 8; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      const iso = toISO(d);
+      const ok = a.days.length === 0 ? a.onceDate === iso : a.days.includes(d.getDay());
+      if (!ok) continue;
+      const at = combine(iso, a.time);
+      if (at.getTime() <= now.getTime()) continue;
+      if (!best || at < best.at) best = { at, label: a.label };
+      break;
+    }
+  }
+  return best;
+}

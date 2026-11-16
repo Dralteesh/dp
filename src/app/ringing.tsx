@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
+import { StarField } from "@/components/prayer/StarField";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Text } from "@/components/ui/Text";
 import { useNow } from "@/hooks/useNow";
@@ -53,6 +54,7 @@ export default function RingingScreen() {
 
   return (
     <View className="flex-1 items-center justify-between bg-red-600 px-6 py-16">
+      <StarField count={22} />
       <View className="items-center">
         <Text w="bold" className="text-white text-6xl leading-[72px]" style={{ fontVariant: ["tabular-nums"] }}>
           {fmtTimeDate(now)}

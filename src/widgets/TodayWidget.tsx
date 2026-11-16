@@ -31,7 +31,7 @@ export function TodayWidget({ data }: { data: WidgetData }) {
         />
         <TextWidget
           text={`${data.prayer.label} ${data.prayer.time}`}
-          style={{ fontSize: 12, color: "#16A34A", fontWeight: "600" }}
+          style={{ fontSize: 12, color: TYPE_META.private.hex as `#${string}`, fontWeight: "600" }}
         />
       </FlexWidget>
 

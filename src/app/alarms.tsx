@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Pressable, Switch, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { AlarmStats } from "@/components/AlarmStats";
 import { TimeField } from "@/components/pickers";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -12,8 +13,9 @@ import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { DAYS, DAYS_SHORT, WEEK_ORDER } from "@/constants/arabic";
-import { alarmSupported, ensureAlarmPermissions, scheduleTestAlarm } from "@/lib/alarm";
-import { addDays, combine, fmtTime, toISO } from "@/lib/dates";
+import { alarmSupported, ensureAlarmPermissions, nextAlarmFire, scheduleTestAlarm } from "@/lib/alarm";
+import { useNow } from "@/hooks/useNow";
+import { addDays, combine, fmtTime, fmtTimeDate, toISO } from "@/lib/dates";
 import { useAlarms } from "@/store/useAlarms";
 import type { AlarmItem } from "@/types";
 
@@ -32,6 +34,8 @@ export default function AlarmsScreen() {
   const toggleAlarm = useAlarms((s) => s.toggleAlarm);
   const removeAlarm = useAlarms((s) => s.removeAlarm);
 
+  const now = useNow(30000);
+  const upcoming = nextAlarmFire(alarms, now);
   const supported = alarmSupported();
   const [permOk, setPermOk] = useState<boolean | null>(null);
   const [editing, setEditing] = useState<{ open: boolean; alarm?: AlarmItem }>({ open: false });
@@ -111,11 +115,20 @@ export default function AlarmsScreen() {
             الصلاحيات ناقصة
           </Text>
           <Text className="text-red-900 text-sm mt-1">
-            فعّل الإشعارات و«المنبّهات والتذكيرات» لتطبيق DoctorPlanner من إعدادات الهاتف. وعلى Xiaomi اسمح بالتشغيل
+            فعّل الإشعارات و«المنبّهات والتذكيرات» لتطبيق Dentist Planner من إعدادات الهاتف. وعلى Xiaomi اسمح بالتشغيل
             التلقائي وبدون قيود بطارية.
           </Text>
         </Card>
       ) : null}
+
+      <AlarmStats
+        nextAt={upcoming?.at ?? null}
+        now={now}
+        active={alarms.filter((a) => a.enabled).length}
+        total={alarms.length}
+        nextLabel={upcoming?.label}
+        nextTimeText={upcoming ? fmtTimeDate(upcoming.at) : undefined}
+      />
 
       {alarms.length === 0 ? (
         <EmptyState icon="alarm-outline" title="لا منبّهات" hint="اضغط + لإضافة منبّه. ويمكنك ربط منبّه بأي مناوبة من شاشة الحدث." />

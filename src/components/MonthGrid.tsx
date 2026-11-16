@@ -6,6 +6,7 @@ import { DAYS_SHORT, MONTHS, WEEK_ORDER } from "@/constants/arabic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { monthCells, todayISO } from "@/lib/dates";
 import type { ShiftType } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 type Props = {
   year: number;
@@ -23,6 +24,7 @@ type Props = {
  * - السحب يمينًا/يسارًا لتبديل الشهر
  */
 export function MonthGrid({ year, month, selected, onSelect, onMonthChange, dotsFor }: Props) {
+  useTheme();
   const today = todayISO();
   const cells = useMemo(() => monthCells(year, month), [year, month]);
   const weeks = useMemo(() => Array.from({ length: 6 }, (_, i) => cells.slice(i * 7, i * 7 + 7)), [cells]);

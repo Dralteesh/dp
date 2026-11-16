@@ -63,8 +63,8 @@ export default function AccountScreen() {
   };
 
   const submit = async (mode: "in" | "up") => {
-    if (!email.trim() || password.length < 6) {
-      Alert.alert("بيانات ناقصة", "أدخل بريدًا صحيحًا وكلمة مرور من 6 أحرف على الأقل.");
+    if (!email.trim() || password.length < 8) {
+      Alert.alert("بيانات ناقصة", "أدخل بريدًا صحيحًا وكلمة مرور من 8 أحرف على الأقل (بيانات المرضى حساسة).");
       return;
     }
     setBusy(true);

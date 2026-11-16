@@ -157,4 +157,14 @@ export type Settings = {
   /** تذكير مواعيد العيادة قبل الموعد (دقائق) */
   appointmentReminder: number;
   currency: string;
+  /** ألوان مخصّصة للأنواع الأربعة (hex)، والفراغ = الافتراضي */
+  typeColors: Partial<Record<ShiftType, string>>;
+  /** اسم التطبيق الظاهر في الرأسية (فارغ = Dentist Planner) */
+  appName: string;
+  /** شعار التطبيق كنص data:image (فارغ = الأيقونة الافتراضية) */
+  logo: string;
+  /** اسم العيادة الخاصة (للرأسية ورسائل واتساب) */
+  clinicName: string;
+  /** شعار العيادة الخاصة كنص data:image */
+  clinicLogo: string;
 };

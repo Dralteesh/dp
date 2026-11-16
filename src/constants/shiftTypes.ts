@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 import type { Ionicons } from "@expo/vector-icons";
+import { resolveTypeColors } from "@/constants/palette";
 import type { Priority, ShiftType } from "@/types";
 
 export type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -104,6 +105,22 @@ export const TYPE_META: Record<ShiftType, TypeMeta> = {
     defaults: { start: "18:00", end: "19:00", endsNextDay: false },
   },
 };
+
+/**
+ * يطبّق الألوان المخصّصة على TYPE_META مباشرة (تعديل في المكان).
+ * المكوّنات التي تقرأ TYPE_META تشترك في useTheme() لتُعاد رسمها عند التغيير،
+ * أما الأصناف (bg-hospital …) فتتبع متغيرات CSS من ThemeRoot.
+ */
+export function applyTypeColors(colors: Partial<Record<ShiftType, string>> | undefined) {
+  for (const t of SHIFT_TYPES) {
+    const c = resolveTypeColors(t, colors?.[t]);
+    const m = TYPE_META[t];
+    m.hex = c.hex;
+    m.soft = c.soft;
+    m.inkHex = c.inkHex;
+    m.onSolid = c.onSolid;
+  }
+}
 
 export const PRIORITY_META: Record<Priority, { label: string; hex: string }> = {
   low: { label: "منخفضة", hex: "#94A3B8" },

@@ -1,10 +1,11 @@
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/hooks/useTheme";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
-import type { IconName } from "@/constants/shiftTypes";
+import { TYPE_META, type IconName } from "@/constants/shiftTypes";
 
 type Item = {
   title: string;
@@ -20,8 +21,8 @@ const ITEMS: Item[] = [
     title: "العيادة الخاصة",
     hint: "المرضى والمواعيد والجلسات والحسابات",
     icon: "storefront",
-    hex: "#16A34A",
-    soft: "#DCFCE7",
+    hex: "",
+    soft: "",
     href: "/clinic",
   },
   {
@@ -49,6 +50,14 @@ const ITEMS: Item[] = [
     href: "/account",
   },
   {
+    title: "المظهر والشعارات",
+    hint: "ألوان الأنواع، اسم التطبيق وشعار العيادة",
+    icon: "color-palette",
+    hex: "#DB2777",
+    soft: "#FCE7F3",
+    href: "/appearance",
+  },
+  {
     title: "الإعدادات",
     hint: "الصلاة، التذكيرات، العملة، إدارة البيانات",
     icon: "settings",
@@ -60,9 +69,12 @@ const ITEMS: Item[] = [
 
 export default function MoreScreen() {
   const router = useRouter();
+  useTheme();
   return (
     <Screen title="المزيد">
-      {ITEMS.map((it) => (
+      {ITEMS.map((raw) => {
+        const it = raw.href === "/clinic" ? { ...raw, hex: TYPE_META.private.hex, soft: TYPE_META.private.soft } : raw;
+        return (
         <PressableScale
           key={it.href}
           className="flex-row items-center gap-4 bg-surface border border-line rounded-2xl p-4 mb-3"
@@ -82,7 +94,8 @@ export default function MoreScreen() {
           </View>
           <Ionicons name="chevron-back" size={20} color="#94A3B8" />
         </PressableScale>
-      ))}
+        );
+      })}
     </Screen>
   );
 }

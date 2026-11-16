@@ -1,3 +1,5 @@
+import { useTheme } from "@/hooks/useTheme";
+import { TYPE_META } from "@/constants/shiftTypes";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -17,9 +19,9 @@ import { initial } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
 import type { AppointmentStatus } from "@/types";
 
-const GREEN = "#16A34A";
 
 export default function AppointmentFormScreen() {
+  useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
     id?: string;
@@ -145,7 +147,7 @@ export default function AppointmentFormScreen() {
         <FieldRow label="المدة بالدقائق">
           <View className="flex-row flex-wrap gap-2">
             {DURATIONS.map((d) => (
-              <Chip key={d} label={`${d}`} selected={duration === d} color={GREEN} onPress={() => setDuration(d)} />
+              <Chip key={d} label={`${d}`} selected={duration === d} color={TYPE_META.private.hex} onPress={() => setDuration(d)} />
             ))}
           </View>
         </FieldRow>
@@ -159,7 +161,7 @@ export default function AppointmentFormScreen() {
                 key={p.name}
                 label={p.name}
                 selected={procedure === p.name}
-                color={GREEN}
+                color={TYPE_META.private.hex}
                 onPress={() => {
                   setProcedure(p.name);
                   setDuration(p.minutes);
@@ -210,7 +212,7 @@ export default function AppointmentFormScreen() {
               <Text w="semi" className="flex-1">
                 {p.name}
               </Text>
-              {patientId === p.id ? <Ionicons name="checkmark-circle" size={20} color={GREEN} /> : null}
+              {patientId === p.id ? <Ionicons name="checkmark-circle" size={20} color={TYPE_META.private.hex} /> : null}
             </Pressable>
           ))
         )}

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { agendaFor, type AgendaItem } from "@/lib/agenda";
 import { fmtDateLong, fmtTime, fmtTimeDate, toISO } from "@/lib/dates";
 import { PRAYER_LABELS, nextPrayer } from "@/lib/prayer";
+import { applyTypeColors } from "@/constants/shiftTypes";
 import { DEFAULT_SETTINGS } from "@/store/useSettings";
 import { STORAGE_KEYS } from "@/lib/storage";
 import type { Appointment, Patient, PlannerEvent, Settings } from "@/types";
@@ -34,6 +35,8 @@ export async function loadWidgetData(maxItems = 4): Promise<WidgetData> {
   );
   const stored = await readPersisted<Settings>(STORAGE_KEYS.settings);
   const settings: Settings = { ...DEFAULT_SETTINGS, ...stored };
+  // الودجت قد يعمل والتطبيق مغلق: طبّق الألوان المحفوظة
+  applyTypeColors(settings.typeColors);
 
   const now = new Date();
   const iso = toISO(now);

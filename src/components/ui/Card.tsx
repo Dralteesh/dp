@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 import { TYPE_META } from "@/constants/shiftTypes";
 import type { ShiftType } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 type Props = {
   children: ReactNode;
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function Card({ children, className = "", accent }: Props) {
+  useTheme();
   return (
     <View
       className={`bg-surface rounded-2xl border border-line p-4 overflow-hidden ${className}`}

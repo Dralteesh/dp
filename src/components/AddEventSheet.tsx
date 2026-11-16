@@ -6,6 +6,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { SHIFT_TYPES, TYPE_META } from "@/constants/shiftTypes";
 import { fmtDateLong } from "@/lib/dates";
+import { useTheme } from "@/hooks/useTheme";
 
 type Props = {
   visible: boolean;
@@ -15,6 +16,7 @@ type Props = {
 
 /** نافذة اختيار نوع الحدث الجديد (أربعة أزرار كبيرة بألوان الأنواع) */
 export function AddEventSheet({ visible, date, onClose }: Props) {
+  useTheme();
   const router = useRouter();
   return (
     <Sheet visible={visible} onClose={onClose} title={`إضافة في ${fmtDateLong(date)}`}>

@@ -1,4 +1,4 @@
-# DoctorPlanner — دليل التشغيل
+# Dentist Planner — دليل التشغيل
 
 تطبيق أندرويد: React Native + Expo (Expo Router داخل `src/app`) + TypeScript + NativeWind، عربي RTL بالكامل.
 التخزين: AsyncStorage (Supabase لاحقًا، الخطوة 8).
@@ -96,7 +96,7 @@ eas build --profile development --platform android
 ## 6) خطوات ضرورية على Xiaomi / HyperOS
 
 وإلا قد تُقتل التنبيهات في الخلفية:
-1. الإعدادات ← التطبيقات ← DoctorPlanner ← **التشغيل التلقائي**: مفعّل.
+1. الإعدادات ← التطبيقات ← Dentist Planner ← **التشغيل التلقائي**: مفعّل.
 2. توفير البطارية: **بدون قيود**.
 3. الإشعارات: فعّل القنوات الثلاث، وسمح بالظهور على شاشة القفل.
 4. «المنبّهات والتذكيرات»: السماح.

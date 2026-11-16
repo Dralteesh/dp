@@ -13,6 +13,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/cairo";
 import { AppSync } from "@/components/AppSync";
+import { ThemeRoot } from "@/components/ThemeRoot";
 import { CloudSync } from "@/components/CloudSync";
 import { Text } from "@/components/ui/Text";
 import { getAlarmModule } from "@/lib/alarm";
@@ -55,6 +56,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeRoot>
       <StatusBar style="dark" />
       <AppSync />
       <CloudSync />
@@ -73,6 +75,7 @@ export default function RootLayout() {
           </Text>
         </View>
       )}
+      </ThemeRoot>
     </GestureHandlerRootView>
   );
 }

@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/Text";
 import { PRIORITY_META, TYPE_META } from "@/constants/shiftTypes";
 import { relativeDay, todayISO } from "@/lib/dates";
 import type { Task } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 type Props = {
   task: Task;
@@ -22,6 +23,7 @@ type Props = {
 
 /** مهمة: مربّع إكمال متحرّك + عنوان + موعد + أولوية */
 export function TaskItem({ task, onToggle, onPress }: Props) {
+  useTheme();
   const pop = useSharedValue(1);
   const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
   const overdue = !!task.dueDate && !task.done && task.dueDate < todayISO();

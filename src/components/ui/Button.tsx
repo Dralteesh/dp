@@ -4,6 +4,7 @@ import { PressableScale } from "@/components/ui/PressableScale";
 import { Text } from "@/components/ui/Text";
 import { TYPE_META, type IconName } from "@/constants/shiftTypes";
 import type { ShiftType } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 type Props = {
   label: string;
@@ -27,6 +28,7 @@ export function Button({
   small,
   className = "",
 }: Props) {
+  useTheme();
   const meta = type ? TYPE_META[type] : null;
 
   let bg = "bg-ink";

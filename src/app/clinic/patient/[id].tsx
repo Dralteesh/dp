@@ -1,3 +1,5 @@
+import { useTheme } from "@/hooks/useTheme";
+import { TYPE_META } from "@/constants/shiftTypes";
 import { useMemo, useState } from "react";
 import { Alert, Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -21,9 +23,9 @@ import { useSettings } from "@/store/useSettings";
 import type { ToothStatus } from "@/types";
 
 type Section = "overview" | "teeth" | "sessions" | "payments";
-const GREEN = "#16A34A";
 
 export default function PatientScreen() {
+  useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const currency = useSettings((s) => s.currency);
@@ -237,7 +239,7 @@ export default function PatientScreen() {
                 label={patient.status === "active" ? "قيد المعالجة — اضغط لإنهاء العلاج" : "أنهى العلاج — اضغط لإعادة التفعيل"}
                 icon="swap-horizontal"
                 selected={patient.status === "active"}
-                color={GREEN}
+                color={TYPE_META.private.hex}
                 onPress={() => updatePatient(patient.id, { status: patient.status === "active" ? "finished" : "active" })}
               />
             </View>
@@ -436,7 +438,7 @@ export default function PatientScreen() {
         <FieldRow label="الإجراء">
           <View className="flex-row flex-wrap gap-2">
             {PROCEDURES.map((p) => (
-              <Chip key={p.name} label={p.name} selected={sProc === p.name} color={GREEN} onPress={() => setSProc(p.name)} />
+              <Chip key={p.name} label={p.name} selected={sProc === p.name} color={TYPE_META.private.hex} onPress={() => setSProc(p.name)} />
             ))}
           </View>
         </FieldRow>

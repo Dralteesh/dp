@@ -7,6 +7,7 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import type { AgendaItem } from "@/lib/agenda";
 import { fmtTime } from "@/lib/dates";
 import type { AppointmentStatus } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 type Props = {
   item: AgendaItem;
@@ -17,6 +18,7 @@ type Props = {
 
 /** صف في جدول اليوم: وقت + بطاقة ملوّنة بلون النوع */
 export function AgendaRow({ item, onPress, live }: Props) {
+  useTheme();
   const m = TYPE_META[item.type];
   const status = item.status ? STATUS_META[item.status as AppointmentStatus] : null;
   const dim = item.status === "no_show" || item.status === "done";

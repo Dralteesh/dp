@@ -15,6 +15,7 @@ import { todayISO } from "@/lib/dates";
 import { inputAlign } from "@/lib/rtl";
 import { usePlanner } from "@/store/usePlanner";
 import type { Note, Task } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 type Mode = "tasks" | "notes";
 type Filter = "open" | "today" | "high" | "done";
@@ -27,6 +28,7 @@ const FILTERS: { value: Filter; label: string }[] = [
 ];
 
 export default function TasksScreen() {
+  useTheme();
   const tasks = usePlanner((s) => s.tasks);
   const notes = usePlanner((s) => s.notes);
   const addTask = usePlanner((s) => s.addTask);

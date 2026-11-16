@@ -14,8 +14,10 @@ import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
 import { typesOn } from "@/lib/agenda";
 import { fmtDateLong, monthCells, todayISO } from "@/lib/dates";
 import type { ShiftType } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function CalendarScreen() {
+  useTheme();
   const input = useAgendaInput();
   const open = useOpenAgendaItem();
 

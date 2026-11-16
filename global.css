@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* القيم الافتراضية لألوان الأنواع (تُستبدل من ThemeRoot عند التخصيص) */
+:root {
+  --c-hospital: 37 99 235;
+  --c-hospital-soft: 219 234 254;
+  --c-hospital-ink: 30 58 138;
+  --c-maxillo: 234 179 8;
+  --c-maxillo-soft: 254 243 199;
+  --c-maxillo-ink: 113 63 18;
+  --c-private: 22 163 74;
+  --c-private-soft: 220 252 231;
+  --c-private-ink: 20 83 45;
+  --c-personal: 124 58 237;
+  --c-personal-soft: 237 233 254;
+  --c-personal-ink: 76 29 149;
+}

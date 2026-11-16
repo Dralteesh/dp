@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/Text";
 import { TYPE_META, SHIFT_TYPES, type IconName } from "@/constants/shiftTypes";
 import type { ShiftType } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 type ChipProps = {
   label: string;
@@ -34,6 +35,7 @@ export function Chip({ label, selected, onPress, icon, color = "#0F172A", textCo
 
 /** شارة صغيرة بلون النوع */
 export function TypeBadge({ type, short }: { type: ShiftType; short?: boolean }) {
+  useTheme();
   const m = TYPE_META[type];
   return (
     <View
@@ -59,6 +61,7 @@ export function TypeSelector({
   /** يسمح بإلغاء الاختيار بالضغط ثانيةً */
   allowNone?: boolean;
 }) {
+  useTheme();
   return (
     <View className="flex-row flex-wrap gap-2">
       {SHIFT_TYPES.map((t) => {

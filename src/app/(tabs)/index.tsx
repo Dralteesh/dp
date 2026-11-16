@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Logo } from "@/components/Logo";
+import { PrayerCard } from "@/components/PrayerCard";
 import { AgendaRow } from "@/components/AgendaRow";
 import { TaskItem } from "@/components/TaskItem";
 import { Card } from "@/components/ui/Card";
@@ -13,19 +15,23 @@ import { SHIFT_TYPES, TYPE_META } from "@/constants/shiftTypes";
 import { useAgenda } from "@/hooks/useAgenda";
 import { useNow } from "@/hooks/useNow";
 import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
-import { fmtCountdown, fmtDateFull, fmtTimeDate, toISO, toMinutes } from "@/lib/dates";
-import { PRAYER_LABELS, nextPrayer } from "@/lib/prayer";
+import { fmtDateFull, toISO, toMinutes } from "@/lib/dates";
+import { nextPrayer } from "@/lib/prayer";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
 import type { Task } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function HomeScreen() {
+  useTheme();
   const router = useRouter();
   const now = useNow(1000);
   const today = toISO(now);
   const minuteKey = Math.floor(now.getTime() / 60000);
 
   const doctorName = useSettings((s) => s.doctorName);
+  const logo = useSettings((s) => s.logo);
+  const appName = useSettings((s) => s.appName);
   const prayerMethod = useSettings((s) => s.prayerMethod);
   const madhab = useSettings((s) => s.madhab);
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
@@ -69,7 +75,7 @@ export default function HomeScreen() {
   return (
     <Screen
       title={doctorName ? `${greeting} د. ${doctorName}` : greeting}
-      subtitle={fmtDateFull(today)}
+      subtitle={`${appName || "Dentist Planner"} • ${fmtDateFull(today)}`}
       right={
         <Pressable
           onPress={() => router.push("/settings")}
@@ -78,32 +84,10 @@ export default function HomeScreen() {
           <Ionicons name="settings-outline" size={20} color="#0F172A" />
         </Pressable>
       }
+      logo={<Logo uri={logo} size={44} app />}
     >
       {/* الصلاة القادمة */}
-      <PressableScale
-        onPress={() => router.push("/prayer")}
-        className="rounded-3xl p-4 mb-4"
-        style={{ backgroundColor: "#14532D" }}
-      >
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-green-200 text-xs">الصلاة القادمة • حماه</Text>
-            <Text w="bold" className="text-white text-3xl leading-10">
-              {PRAYER_LABELS[np.key]}
-            </Text>
-            <Text className="text-green-100">{fmtTimeDate(np.time)}</Text>
-          </View>
-          <View className="items-end">
-            <Text className="text-green-200 text-xs">المتبقي</Text>
-            <Text w="bold" className="text-white text-2xl" style={{ fontVariant: ["tabular-nums"] }}>
-              {fmtCountdown(remaining)}
-            </Text>
-          </View>
-        </View>
-        <View className="h-1.5 rounded-full bg-green-900 mt-3 overflow-hidden">
-          <View style={{ width: `${progress * 100}%`, height: 6, backgroundColor: "#4ADE80" }} />
-        </View>
-      </PressableScale>
+      <PrayerCard next={np} now={now} onPress={() => router.push("/prayer")} />
 
       {/* إضافة سريعة */}
       <Text w="bold" className="text-lg mb-2">

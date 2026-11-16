@@ -1,33 +1,37 @@
-import { useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
+import { Pressable, View, useWindowDimensions } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui/Card";
-import { Screen } from "@/components/ui/Screen";
+import { PrayerScene, SkyGradient } from "@/components/prayer/PrayerScene";
+import { StarField } from "@/components/prayer/StarField";
 import { Text } from "@/components/ui/Text";
+import { PRAYER_THEMES, skyKey } from "@/constants/prayerThemes";
 import { useNow } from "@/hooks/useNow";
 import { addDays, combine, fmtCountdown, fmtDateFull, fmtTimeDate, todayISO } from "@/lib/dates";
 import { CITY, PRAYER_LABELS, PRAYER_METHODS, PRAYER_ORDER, getPrayerTimes, nextPrayer } from "@/lib/prayer";
 import { useSettings } from "@/store/useSettings";
-import type { PrayerKey } from "@/types";
-
-const ICONS: Record<PrayerKey, keyof typeof Ionicons.glyphMap> = {
-  fajr: "partly-sunny-outline",
-  sunrise: "sunny-outline",
-  dhuhr: "sunny",
-  asr: "cloudy-outline",
-  maghrib: "moon-outline",
-  isha: "moon",
-};
 
 export default function PrayerScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const now = useNow(1000);
   const prayerMethod = useSettings((s) => s.prayerMethod);
   const madhab = useSettings((s) => s.madhab);
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
   const prayerNotify = useSettings((s) => s.prayerNotify);
   const toggleNotify = useSettings((s) => s.toggleNotify);
+
+  // الشاشة داكنة: نجعل أيقونات شريط الحالة فاتحة وهي ظاهرة فقط
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
 
   const [iso, setIso] = useState(todayISO());
   const isToday = iso === todayISO();
@@ -43,85 +47,143 @@ export default function PrayerScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [minuteKey, prayerMethod, madhab, prayerAdjust],
   );
+  const sky = useMemo(
+    () => skyKey(new Date(), { prayerMethod, madhab, prayerAdjust }, next.key),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [minuteKey, prayerMethod, madhab, prayerAdjust, next.key],
+  );
+  const theme = PRAYER_THEMES[sky];
+
+  const remaining = next.time.getTime() - now.getTime();
+  const span = next.time.getTime() - next.previous.getTime();
+  const progress = Math.min(1, Math.max(0, 1 - remaining / span));
+
+  // اللوح السفلي يتحدد ارتفاعه بمحتواه، والمشهد يستند إليه ويدخل تحته قليلًا
+  const [panelH, setPanelH] = useState(340);
+  const sceneH = (width * 300) / 360;
 
   return (
-    <Screen title="أوقات الصلاة" subtitle={`${CITY.name} • ${PRAYER_METHODS[prayerMethod].label}`}>
-      {/* بطاقة الصلاة القادمة */}
-      <View className="rounded-3xl p-5 mb-4" style={{ backgroundColor: "#14532D" }}>
-        <Text className="text-green-200 text-sm">الصلاة القادمة</Text>
-        <View className="flex-row items-end justify-between">
-          <Text w="bold" className="text-white text-4xl leading-[52px]">
-            {PRAYER_LABELS[next.key]}
-          </Text>
-          <Text w="bold" className="text-white text-3xl mb-1" style={{ fontVariant: ["tabular-nums"] }}>
-            {fmtCountdown(next.time.getTime() - now.getTime())}
-          </Text>
+    <View style={{ flex: 1 }}>
+      {focused ? <StatusBar style="light" /> : null}
+      <SkyGradient colors={theme.sky} />
+      {theme.night ? <StarField /> : null}
+
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", left: 0, right: 0, bottom: panelH - 40, height: sceneH }}
+      >
+        <PrayerScene sky={sky} progress={progress} />
+      </View>
+
+      {/* الترويسة */}
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16 }}>
+        <View className="flex-row items-center justify-between">
+          <View style={{ width: 36 }} />
+          <View className="items-center">
+            <Text w="semi" className="text-white">
+              الصلاة القادمة
+            </Text>
+            <Text className="text-white text-xs" style={{ opacity: 0.8 }}>
+              {CITY.name} • {PRAYER_METHODS[prayerMethod].label}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            hitSlop={8}
+            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+          >
+            <Ionicons name="settings-outline" size={18} color="#FFFFFF" />
+          </Pressable>
         </View>
-        <Text className="text-green-100">{fmtTimeDate(next.time)}</Text>
+
+        <Text
+          w="bold"
+          className="text-white text-center"
+          style={{ fontSize: 50, lineHeight: 64, marginTop: 6, fontVariant: ["tabular-nums"] }}
+        >
+          {fmtCountdown(remaining)}
+        </Text>
+        <Text className="text-white text-center" style={{ opacity: 0.92 }}>
+          {PRAYER_LABELS[next.key]} • {fmtTimeDate(next.time)}
+        </Text>
       </View>
 
-      {/* تنقّل بين الأيام */}
-      <View className="flex-row items-center justify-between mb-3">
-        <Pressable
-          onPress={() => setIso(addDays(iso, -1))}
-          className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
-        >
-          <Ionicons name="chevron-forward" size={20} color="#0F172A" />
-        </Pressable>
-        <Pressable onPress={() => setIso(todayISO())} className="items-center">
-          <Text w="bold">{fmtDateFull(iso)}</Text>
-          {!isToday ? <Text className="text-hospital text-xs">العودة لليوم</Text> : null}
-        </Pressable>
-        <Pressable
-          onPress={() => setIso(addDays(iso, 1))}
-          className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
-        >
-          <Ionicons name="chevron-back" size={20} color="#0F172A" />
-        </Pressable>
-      </View>
+      <View style={{ flex: 1 }} />
 
-      <Card className="p-2">
-        {PRAYER_ORDER.map((k, i) => {
+      {/* اللوح السفلي: التاريخ + الصلوات */}
+      <View
+        onLayout={(e) => setPanelH(e.nativeEvent.layout.height)}
+        style={{
+          backgroundColor: theme.glass,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          paddingTop: 14,
+          paddingHorizontal: 14,
+          paddingBottom: 12,
+        }}
+      >
+        <View className="flex-row items-center justify-between px-1 mb-1.5">
+          <Pressable hitSlop={10} onPress={() => setIso(addDays(iso, -1))}>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </Pressable>
+          <Pressable onPress={() => setIso(todayISO())} className="items-center">
+            <Text w="bold" className="text-white">
+              {fmtDateFull(iso)}
+            </Text>
+            {!isToday ? (
+              <Text className="text-white text-xs" style={{ opacity: 0.85 }}>
+                العودة لليوم
+              </Text>
+            ) : null}
+          </Pressable>
+          <Pressable hitSlop={10} onPress={() => setIso(addDays(iso, 1))}>
+            <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+          </Pressable>
+        </View>
+
+        {PRAYER_ORDER.map((k) => {
           const isNext = isToday && next.key === k && next.time.getTime() === times[k].getTime();
-          const notifyOn = prayerNotify[k];
+          const on = prayerNotify[k];
           return (
             <View
               key={k}
-              className={`flex-row items-center gap-3 px-3 py-3 rounded-xl ${isNext ? "bg-private-soft" : ""} ${
-                i > 0 && !isNext ? "" : ""
-              }`}
+              className="flex-row items-center justify-between px-4 rounded-2xl"
+              style={{
+                height: isNext ? 50 : 44,
+                backgroundColor: isNext ? "rgba(255,255,255,0.2)" : "transparent",
+                opacity: isNext ? 1 : 0.8,
+              }}
             >
-              <View
-                className="w-10 h-10 rounded-full items-center justify-center"
-                style={{ backgroundColor: isNext ? "#16A34A" : "#F1F5F9" }}
-              >
-                <Ionicons name={ICONS[k]} size={20} color={isNext ? "#FFFFFF" : "#475569"} />
-              </View>
-              <Text w={isNext ? "bold" : "semi"} className="flex-1 text-base">
+              <Text w={isNext ? "bold" : "semi"} className="text-white text-base">
                 {PRAYER_LABELS[k]}
               </Text>
-              <Text w="bold" className="text-base" style={{ fontVariant: ["tabular-nums"] }}>
-                {fmtTimeDate(times[k])}
-              </Text>
-              <Pressable onPress={() => toggleNotify(k)} hitSlop={10}>
-                <Ionicons
-                  name={notifyOn ? "notifications" : "notifications-off-outline"}
-                  size={22}
-                  color={notifyOn ? "#16A34A" : "#94A3B8"}
-                />
-              </Pressable>
+              <View className="flex-row items-center gap-3">
+                <Text w="bold" className="text-white text-base" style={{ fontVariant: ["tabular-nums"] }}>
+                  {fmtTimeDate(times[k])}
+                </Text>
+                <Pressable onPress={() => toggleNotify(k)} hitSlop={10}>
+                  <Ionicons
+                    name={on ? "notifications" : "notifications-off-outline"}
+                    size={20}
+                    color="#FFFFFF"
+                    style={{ opacity: on ? 1 : 0.55 }}
+                  />
+                </Pressable>
+              </View>
             </View>
           );
         })}
-      </Card>
 
-      <Text className="text-xs text-muted mt-3 leading-5">
-        قارن الأوقات بتقويم الأوقاف أو مسجدك. إن اختلفت بدقائق غيّر طريقة الحساب أو اضبط التعديل اليدوي لكل صلاة من
-        الإعدادات.
-      </Text>
-      <Text w="semi" className="text-hospital mt-2" onPress={() => router.push("/settings")}>
-        فتح إعدادات الصلاة
-      </Text>
-    </Screen>
+        <Text
+          w="semi"
+          className="text-white text-xs text-center mt-2"
+          style={{ opacity: 0.85 }}
+          onPress={() => router.push("/settings")}
+        >
+          قارن الأوقات بمسجدك، وعدّل طريقة الحساب من إعدادات الصلاة
+        </Text>
+      </View>
+    </View>
   );
 }

@@ -168,7 +168,7 @@ export async function syncNotifications({ agenda, tasks, settings }: SyncInput):
 export async function sendTestNotification(seconds = 5): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: "DoctorPlanner",
+      title: "Dentist Planner",
       body: "إشعار تجريبي — إن وصل إلى ساعتك فالإعداد سليم ✅",
       sound: true,
     },

@@ -14,6 +14,7 @@ import { todayISO, weekdayOf } from "@/lib/dates";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
 import type { PlannerEvent, ShiftType } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 
 const REMINDERS: { value: number | null; label: string }[] = [
   { value: null, label: "بدون" },
@@ -33,6 +34,7 @@ const ALARMS: { value: number | null; label: string }[] = [
 ];
 
 export default function EventFormScreen() {
+  useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; type?: string; date?: string }>();
   const isNew = params.id === "new";

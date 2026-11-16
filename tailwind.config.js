@@ -6,10 +6,26 @@ module.exports = {
     extend: {
       colors: {
         // الأنواع الأربعة: DEFAULT للّون الكامل، soft للخلفية الفاتحة، ink للنص الغامق
-        hospital: { DEFAULT: "#2563EB", soft: "#DBEAFE", ink: "#1E3A8A" },
-        maxillo: { DEFAULT: "#EAB308", soft: "#FEF3C7", ink: "#713F12" },
-        private: { DEFAULT: "#16A34A", soft: "#DCFCE7", ink: "#14532D" },
-        personal: { DEFAULT: "#7C3AED", soft: "#EDE9FE", ink: "#4C1D95" },
+        hospital: {
+          DEFAULT: "rgb(var(--c-hospital) / <alpha-value>)",
+          soft: "rgb(var(--c-hospital-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-hospital-ink) / <alpha-value>)",
+        },
+        maxillo: {
+          DEFAULT: "rgb(var(--c-maxillo) / <alpha-value>)",
+          soft: "rgb(var(--c-maxillo-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-maxillo-ink) / <alpha-value>)",
+        },
+        private: {
+          DEFAULT: "rgb(var(--c-private) / <alpha-value>)",
+          soft: "rgb(var(--c-private-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-private-ink) / <alpha-value>)",
+        },
+        personal: {
+          DEFAULT: "rgb(var(--c-personal) / <alpha-value>)",
+          soft: "rgb(var(--c-personal-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-personal-ink) / <alpha-value>)",
+        },
         bg: "#F5F7FB",
         surface: "#FFFFFF",
         line: "#E5E9F2",

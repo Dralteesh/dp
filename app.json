@@ -1,6 +1,7 @@
 {
   "expo": {
-    "name": "DoctorPlanner",
+    "name": "Dentist Planner",
+    "icon": "./assets/icon.png",
     "slug": "doctor-planner",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,6 +11,10 @@
     "android": {
       "package": "com.doctorplanner.app",
       "supportsRtl": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": [
         "POST_NOTIFICATIONS",
         "SCHEDULE_EXACT_ALARM",
@@ -22,10 +27,13 @@
     },
     "plugins": [
       "expo-router",
+      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 200, "resizeMode": "contain", "backgroundColor": "#FFFFFF" }],
+      ["expo-image-picker", { "photosPermission": "للسماح باختيار شعار التطبيق أو العيادة من الصور." }],
       [
         "expo-notifications",
         {
           "color": "#2563EB",
+          "icon": "./assets/notification-icon.png",
           "defaultChannel": "events"
         }
       ],

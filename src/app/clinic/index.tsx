@@ -1,3 +1,6 @@
+import { Logo } from "@/components/Logo";
+import { useTheme } from "@/hooks/useTheme";
+import { TYPE_META } from "@/constants/shiftTypes";
 import { useMemo, useState } from "react";
 import { Linking, Pressable, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -23,9 +26,11 @@ import type { Appointment, AppointmentStatus, Patient } from "@/types";
 type Tab = "day" | "patients" | "money";
 type PFilter = "active" | "finished" | "all";
 
-const GREEN = "#16A34A";
 
 export default function ClinicScreen() {
+  useTheme();
+  const clinicName = useSettings((x) => x.clinicName);
+  const clinicLogo = useSettings((x) => x.clinicLogo);
   const router = useRouter();
   const currency = useSettings((s) => s.currency);
 
@@ -113,15 +118,16 @@ export default function ClinicScreen() {
 
   return (
     <Screen
-      title="العيادة الخاصة"
+      title={clinicName || "العيادة الخاصة"}
       subtitle="مرضى • مواعيد • حسابات"
+      logo={clinicLogo ? <Logo uri={clinicLogo} size={40} icon="storefront" bg={TYPE_META.private.hex} /> : undefined}
       back
-      overlay={<Fab onPress={() => setFabOpen(true)} color={GREEN} />}
+      overlay={<Fab onPress={() => setFabOpen(true)} color={TYPE_META.private.hex} />}
     >
       {/* ملخص */}
       <View className="flex-row gap-2.5 mb-4">
         {[
-          { label: "مواعيد اليوم", value: String(todayCount), hex: "#16A34A", soft: "#DCFCE7" },
+          { label: "مواعيد اليوم", value: String(todayCount), hex: TYPE_META.private.inkHex, soft: TYPE_META.private.soft },
           { label: "قيد المعالجة", value: String(activeCount), hex: "#2563EB", soft: "#DBEAFE" },
           { label: "ذمم المرضى", value: fmtMoney(totalDebt, currency), hex: "#DC2626", soft: "#FEE2E2", small: true },
         ].map((c) => (
@@ -267,9 +273,9 @@ export default function ClinicScreen() {
             />
           </View>
           <View className="flex-row gap-2 mb-3">
-            <Chip label="قيد المعالجة" selected={pFilter === "active"} color={GREEN} onPress={() => setPFilter("active")} />
-            <Chip label="أنهى العلاج" selected={pFilter === "finished"} color={GREEN} onPress={() => setPFilter("finished")} />
-            <Chip label="الكل" selected={pFilter === "all"} color={GREEN} onPress={() => setPFilter("all")} />
+            <Chip label="قيد المعالجة" selected={pFilter === "active"} color={TYPE_META.private.hex} onPress={() => setPFilter("active")} />
+            <Chip label="أنهى العلاج" selected={pFilter === "finished"} color={TYPE_META.private.hex} onPress={() => setPFilter("finished")} />
+            <Chip label="الكل" selected={pFilter === "all"} color={TYPE_META.private.hex} onPress={() => setPFilter("all")} />
           </View>
 
           {filteredPatients.length === 0 ? (

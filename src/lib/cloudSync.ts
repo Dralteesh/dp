@@ -16,6 +16,8 @@ type Slice = {
   table: string;
   get: () => Item[];
   merge: (upserts: Item[], removeIds: string[]) => void;
+  /** سجل وحيد لكل مستخدم (الإعدادات): في أول مزامنة بجهاز جديد تتغلّب نسخة السحابة */
+  singleton?: boolean;
 };
 
 function listSlice<S>(
@@ -43,6 +45,7 @@ const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS);
 
 const settingsSlice: Slice = {
   table: "user_settings",
+  singleton: true,
   get: () => {
     const s = useSettings.getState() as any;
     const data: Item = { id: "main" };
@@ -141,8 +144,14 @@ async function pull(userId: string, snap: Snap) {
 
     for (const r of rows) {
       const mine = local.get(r.id);
-      // عنصر محلي معدَّل ولم يُرفع بعد: نُبقي النسخة المحلية
-      const dirty = mine ? stable(mine) !== tableSnap[r.id] : false;
+      const known = tableSnap[r.id];
+      // تغيير محلي لم يُرفع بعد يتغلّب على السحابة:
+      //  - عنصر معدَّل: يختلف عن آخر نسخة مرفوعة
+      //  - عنصر محذوف محليًا: كان مرفوعًا سابقًا (له لقطة) وغاب الآن
+      //    (بدون هذا الشرط يعود العنصر المحذوف من السحابة)
+      let dirty = mine ? stable(mine) !== known : known !== undefined;
+      // الإعدادات في جهاز جديد: القيم الافتراضية المحلية ليست «تعديلًا»، فنأخذ ما في السحابة
+      if (slice.singleton && known === undefined) dirty = false;
       if (dirty) continue;
       if (r.deleted) {
         if (mine) rm.push(r.id);

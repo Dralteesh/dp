@@ -17,9 +17,11 @@ type Props = {
   scroll?: boolean;
   /** زر عائم أو عناصر مطلقة الموضع */
   overlay?: ReactNode;
+  /** شعار يظهر قبل العنوان */
+  logo?: ReactNode;
 };
 
-export function Screen({ title, subtitle, back, right, children, scroll = true, overlay }: Props) {
+export function Screen({ title, subtitle, back, right, children, scroll = true, overlay, logo }: Props) {
   const router = useRouter();
 
   return (
@@ -35,6 +37,7 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
               <Ionicons name="arrow-forward" size={20} color="#0F172A" />
             </Pressable>
           )}
+          {logo}
           <View className="flex-1">
             {title ? (
               <Text w="bold" className="text-2xl leading-8">
