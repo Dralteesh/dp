@@ -84,7 +84,7 @@ export function Odontogram({ teeth, selected, onSelect }: Props) {
             الفك العلوي
           </Text>
           <Arch codes={UPPER_TEETH} teeth={teeth} selected={selected} onSelect={onSelect} />
-          <View style={{ height: 1, backgroundColor: "#E5E9F2", marginVertical: 10 }} />
+          <View style={{ height: 1, backgroundColor: "#E3E1D8", marginVertical: 10 }} />
           <Arch codes={LOWER_TEETH} teeth={teeth} selected={selected} onSelect={onSelect} />
           <Text className="text-xs text-muted mt-1.5" style={{ textAlign: "center" }}>
             الفك السفلي
