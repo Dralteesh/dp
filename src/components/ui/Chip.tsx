@@ -22,7 +22,7 @@ export function Chip({ label, selected, onPress, icon, color = "#0F172A", textCo
       className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2 border"
       style={{
         backgroundColor: selected ? color : "#FFFFFF",
-        borderColor: selected ? color : "#E5E9F2",
+        borderColor: selected ? color : "#E3E1D8",
       }}
     >
       {icon ? <Ionicons name={icon} size={14} color={selected ? textColor : "#475569"} /> : null}
@@ -82,7 +82,7 @@ export function TypeSelector({
   );
 }
 
-/** تبويب مقسّم (Segmented) */
+/** تبويبات أقراص: الفعّال أسود والباقي أبيض بإطار (من تصميم Today / Calendar) */
 export function Segmented<T extends string>({
   value,
   options,
@@ -93,16 +93,17 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <View className="flex-row bg-slate-200/70 rounded-xl p-1">
+    <View className="flex-row gap-2">
       {options.map((o) => {
         const active = o.value === value;
         return (
           <Pressable
             key={o.value}
             onPress={() => onChange(o.value)}
-            className={`flex-1 items-center rounded-lg py-2 ${active ? "bg-surface" : ""}`}
+            className="flex-1 items-center rounded-full py-2.5 border"
+            style={{ backgroundColor: active ? "#111418" : "#FFFFFF", borderColor: active ? "#111418" : "#D9D6CC" }}
           >
-            <Text w={active ? "bold" : "regular"} className={active ? "text-ink" : "text-muted"}>
+            <Text w={active ? "bold" : "semi"} style={{ color: active ? "#FFFFFF" : "#475569" }}>
               {o.label}
             </Text>
           </Pressable>
