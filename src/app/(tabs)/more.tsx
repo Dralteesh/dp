@@ -50,6 +50,14 @@ const ITEMS: Item[] = [
     href: "/account",
   },
   {
+    title: "الأمان والنسخ الاحتياطي",
+    hint: "قفل التطبيق، تصدير واستعادة بياناتك",
+    icon: "shield-checkmark",
+    hex: "#0F766E",
+    soft: "#CCFBF1",
+    href: "/security",
+  },
+  {
     title: "المظهر والشعارات",
     hint: "ألوان الأنواع، اسم التطبيق وشعار العيادة",
     icon: "color-palette",
