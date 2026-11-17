@@ -124,6 +124,24 @@ export default function ClinicScreen() {
       back
       overlay={<Fab onPress={() => setFabOpen(true)} color={TYPE_META.private.hex} />}
     >
+      <View className="mb-2.5">
+        <Button label="التذكير والمتابعة (واتساب)" icon="logo-whatsapp" type="private" onPress={() => router.push("/clinic/followups" as never)} />
+      </View>
+      <View className="flex-row gap-2.5 mb-3">
+        <View className="flex-1">
+          <Button label="دليل الأدوية" icon="medkit" variant="soft" small onPress={() => router.push("/clinic/drugs" as never)} />
+        </View>
+        <View className="flex-1">
+          <Button label="المصاريف" icon="wallet" variant="soft" small onPress={() => router.push("/clinic/expenses" as never)} />
+        </View>
+        <View className="flex-1">
+          <Button label="التقارير" icon="stats-chart" variant="soft" small onPress={() => router.push("/clinic/reports" as never)} />
+        </View>
+        <View className="flex-1">
+          <Button label="المخزون" icon="cube" variant="soft" small onPress={() => router.push("/clinic/inventory" as never)} />
+        </View>
+      </View>
+
       {/* ملخص */}
       <View className="flex-row gap-2.5 mb-4">
         {[
