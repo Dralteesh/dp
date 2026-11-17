@@ -27,6 +27,7 @@
     },
     "plugins": [
       "expo-router",
+      ["expo-local-authentication", { "faceIDPermission": "للسماح بفتح التطبيق بالبصمة." }],
       ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 200, "resizeMode": "contain", "backgroundColor": "#FFFFFF" }],
       ["expo-image-picker", { "photosPermission": "للسماح باختيار شعار التطبيق أو العيادة من الصور." }],
       [
