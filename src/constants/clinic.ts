@@ -50,3 +50,13 @@ export const LOWER_TEETH = [
   "48", "47", "46", "45", "44", "43", "42", "41",
   "31", "32", "33", "34", "35", "36", "37", "38",
 ];
+
+export const EXPENSE_CATEGORIES: Record<import("@/types").ExpenseCategory, string> = {
+  rent: "إيجار",
+  materials: "مواد",
+  lab: "مخبر",
+  salary: "رواتب",
+  utilities: "كهرباء وماء",
+  maintenance: "صيانة",
+  other: "أخرى",
+};
