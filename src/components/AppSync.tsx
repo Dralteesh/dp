@@ -42,7 +42,7 @@ export function AppSync() {
       defaultReminder,
       appointmentReminder,
       currency,
-    }),
+    } as Settings),
     [doctorName, prayerMethod, madhab, prayerAdjust, prayerNotify, defaultReminder, appointmentReminder, currency],
   );
 
