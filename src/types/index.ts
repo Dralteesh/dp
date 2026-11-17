@@ -89,6 +89,8 @@ export type Patient = {
   /** رمز السن (FDI) -> الحالة. غير المذكور = سليم */
   teeth: Record<string, ToothStatus>;
   createdAt: number;
+  /** آخر مرة أُرسلت له رسالة استدعاء (متابعة) */
+  recalledAt?: number;
 };
 
 export type AppointmentStatus =
@@ -110,6 +112,8 @@ export type Appointment = {
   status: AppointmentStatus;
   notes?: string;
   createdAt: number;
+  /** وقت إرسال تذكير الموعد للمريض */
+  remindedAt?: number;
 };
 
 /** جلسة علاجية مع تكلفتها */
@@ -129,6 +133,92 @@ export type Payment = {
   patientId: string;
   date: string;
   amount: number;
+  note?: string;
+  createdAt: number;
+};
+
+export type ExpenseCategory = "rent" | "materials" | "lab" | "salary" | "utilities" | "maintenance" | "other";
+
+/** مصروف للعيادة (يُطرح من المقبوض لحساب الربح الصافي في التقارير) */
+export type Expense = {
+  id: string;
+  date: string;
+  category: ExpenseCategory;
+  amount: number;
+  note?: string;
+  createdAt: number;
+};
+
+export type PlanItem = {
+  id: string;
+  procedure: string;
+  tooth?: string;
+  cost: number;
+  done: boolean;
+  /** الجلسة التي أُنشئت عند إنجاز البند (للتراجع) */
+  sessionId?: string;
+};
+
+/** خطة علاج: بنود مرتّبة بتكلفة تقديرية، وإنجاز البند ينشئ جلسة تلقائيًا */
+export type TreatmentPlan = {
+  id: string;
+  patientId: string;
+  title: string;
+  items: PlanItem[];
+  createdAt: number;
+};
+
+export type DrugForm =
+  | "tablet" | "capsule" | "ampoule" | "syrup" | "suspension" | "gel"
+  | "ointment" | "spray" | "mouthwash" | "toothpaste" | "powder";
+
+/** دواء في دليل الأدوية: يولّد نص الجرعة تلقائيًا في الوصفة */
+export type Drug = {
+  id: string;
+  name: string;
+  doseMg?: number;
+  timesPerDay: number;
+  unitsPerTime: number;
+  form: DrugForm;
+  notes?: string;
+  active: boolean;
+  createdAt: number;
+};
+
+export type PrescriptionLine = { drug: string; dosage: string };
+
+/** وصفة واحدة بعدة أدوية */
+export type Prescription = {
+  id: string;
+  patientId: string;
+  date: string;
+  lines: PrescriptionLine[];
+  notes?: string;
+  createdAt: number;
+};
+
+export type InventoryItem = {
+  id: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  /** عند هذه الكمية أو أقل يظهر تنبيه نقص */
+  minQuantity: number;
+  unitCost: number;
+  active: boolean;
+  createdAt: number;
+};
+
+export type StockMoveKind = "in" | "out" | "adjust";
+
+export type StockMove = {
+  id: string;
+  itemId: string;
+  kind: StockMoveKind;
+  /** وارد/صرف: الكمية المتحركة. جرد: الكمية الفعلية الجديدة */
+  quantity: number;
+  /** الكمية بعد الحركة (للسجل) */
+  after: number;
   note?: string;
   createdAt: number;
 };
