@@ -21,7 +21,7 @@ export default function TabsLayout() {
           paddingTop: 6,
           paddingBottom: 8,
           backgroundColor: "#FFFFFF",
-          borderTopColor: "#E5E9F2",
+          borderTopColor: "#E3E1D8",
         },
       }}
     >

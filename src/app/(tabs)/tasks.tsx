@@ -3,6 +3,7 @@ import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NoteSheet } from "@/components/NoteSheet";
 import { TaskItem } from "@/components/TaskItem";
+import { TypeRail } from "@/components/TypeRail";
 import { TaskSheet } from "@/components/TaskSheet";
 import { Chip, Segmented } from "@/components/ui/Chip";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -14,7 +15,7 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import { todayISO } from "@/lib/dates";
 import { inputAlign } from "@/lib/rtl";
 import { usePlanner } from "@/store/usePlanner";
-import type { Note, Task } from "@/types";
+import type { Note, ShiftType, Task } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
 
 type Mode = "tasks" | "notes";
@@ -38,6 +39,7 @@ export default function TasksScreen() {
 
   const [mode, setMode] = useState<Mode>("tasks");
   const [filter, setFilter] = useState<Filter>("open");
+  const [typeFilter, setTypeFilter] = useState<ShiftType | "all">("all");
   const [quick, setQuick] = useState("");
   const [taskSheet, setTaskSheet] = useState<{ open: boolean; task?: Task }>({ open: false });
   const [noteSheet, setNoteSheet] = useState<{ open: boolean; note?: Note }>({ open: false });
@@ -47,6 +49,7 @@ export default function TasksScreen() {
   const visible = useMemo(() => {
     const order = { high: 0, normal: 1, low: 2 } as const;
     const list = tasks.filter((t) => {
+      if (typeFilter !== "all" && t.type !== typeFilter) return false;
       if (filter === "done") return t.done;
       if (t.done) return false;
       if (filter === "today") return t.dueDate === today || (!!t.dueDate && t.dueDate < today);
@@ -54,7 +57,7 @@ export default function TasksScreen() {
       return true;
     });
     return list.sort((a, b) => order[a.priority] - order[b.priority] || b.createdAt - a.createdAt);
-  }, [tasks, filter, today]);
+  }, [tasks, filter, today, typeFilter]);
 
   const doneCount = tasks.filter((t) => t.done).length;
   const openCount = tasks.length - doneCount;
@@ -69,7 +72,7 @@ export default function TasksScreen() {
   const submitQuick = () => {
     const t = quick.trim();
     if (!t) return;
-    addTask({ title: t, dueDate: filter === "today" ? today : undefined });
+    addTask({ title: t, dueDate: filter === "today" ? today : undefined, type: typeFilter === "all" ? undefined : typeFilter });
     setQuick("");
   };
 
@@ -156,6 +159,8 @@ export default function TasksScreen() {
             </View>
           </ScrollView>
 
+          <View className="flex-row gap-3">
+          <View className="flex-1">
           {visible.length === 0 ? (
             <EmptyState
               icon="checkmark-done-outline"
@@ -172,6 +177,10 @@ export default function TasksScreen() {
               />
             ))
           )}
+
+          </View>
+          <TypeRail value={typeFilter} onChange={setTypeFilter} />
+          </View>
 
           {filter === "done" && doneCount > 0 ? (
             <Text w="semi" className="text-danger text-center mt-2" onPress={clearDone}>

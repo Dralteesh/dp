@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { AddEventSheet } from "@/components/AddEventSheet";
 import { AgendaRow } from "@/components/AgendaRow";
+import { DayCards } from "@/components/calendar/DayCards";
+import { WeekSchedule } from "@/components/calendar/WeekSchedule";
+import { Segmented } from "@/components/ui/Chip";
 import { MonthGrid } from "@/components/MonthGrid";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
@@ -12,7 +15,7 @@ import { SHIFT_TYPES, TYPE_META } from "@/constants/shiftTypes";
 import { useAgenda, useAgendaInput } from "@/hooks/useAgenda";
 import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
 import { typesOn } from "@/lib/agenda";
-import { fmtDateLong, monthCells, todayISO } from "@/lib/dates";
+import { addDays, fmtDateLong, monthCells, todayISO } from "@/lib/dates";
 import type { ShiftType } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -27,6 +30,9 @@ export default function CalendarScreen() {
   });
   const [selected, setSelected] = useState(todayISO());
   const [addOpen, setAddOpen] = useState(false);
+  const [addDate, setAddDate] = useState<string | null>(null);
+  const [mode, setMode] = useState<"month" | "days" | "week">("month");
+  const [weekStart, setWeekStart] = useState(todayISO());
 
   const dayAgenda = useAgenda(selected);
 
@@ -49,6 +55,7 @@ export default function CalendarScreen() {
     const d = new Date();
     setYm({ y: d.getFullYear(), m: d.getMonth() });
     setSelected(todayISO());
+    setWeekStart(todayISO());
   };
 
   return (
@@ -61,6 +68,41 @@ export default function CalendarScreen() {
       }
       overlay={<Fab onPress={() => setAddOpen(true)} />}
     >
+      <Segmented
+        value={mode}
+        onChange={(m) => {
+          setMode(m);
+          if (m !== "month") setWeekStart(selected);
+        }}
+        options={[
+          { value: "month", label: "الشهر" },
+          { value: "days", label: "أيام" },
+          { value: "week", label: "أسبوع" },
+        ]}
+      />
+      <View className="h-4" />
+
+      {mode === "days" ? (
+        <>
+          <View className="flex-row items-center justify-between mb-3">
+            <Text w="semi" className="text-muted" onPress={() => setWeekStart(addDays(weekStart, -10))}>
+              ‹ السابقة
+            </Text>
+            <Text w="semi" className="text-muted" onPress={() => setWeekStart(addDays(weekStart, 10))}>
+              التالية ›
+            </Text>
+          </View>
+          <DayCards start={weekStart} input={input} onOpen={open} onAdd={(iso) => setAddDate(iso)} />
+        </>
+      ) : mode === "week" ? (
+        <WeekSchedule
+          start={weekStart}
+          input={input}
+          onShift={(d) => setWeekStart(addDays(weekStart, d))}
+          onOpen={open}
+        />
+      ) : (
+        <>
       <MonthGrid
         year={ym.y}
         month={ym.m}
@@ -104,7 +146,17 @@ export default function CalendarScreen() {
         dayAgenda.map((it) => <AgendaRow key={it.key} item={it} onPress={() => open(it)} />)
       )}
 
-      <AddEventSheet visible={addOpen} date={selected} onClose={() => setAddOpen(false)} />
+        </>
+      )}
+
+      <AddEventSheet
+        visible={addOpen || !!addDate}
+        date={addDate ?? selected}
+        onClose={() => {
+          setAddOpen(false);
+          setAddDate(null);
+        }}
+      />
     </Screen>
   );
 }

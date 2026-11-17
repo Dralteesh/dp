@@ -2,6 +2,9 @@ import { useMemo } from "react";
 import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { DateHero } from "@/components/home/DateHero";
+import { NextUpCard } from "@/components/home/NextUpCard";
+import { RiverCard } from "@/components/home/RiverCard";
 import { Logo } from "@/components/Logo";
 import { PrayerCard } from "@/components/PrayerCard";
 import { AgendaRow } from "@/components/AgendaRow";
@@ -69,13 +72,36 @@ export default function HomeScreen() {
     [tasks, today],
   );
 
+  // رحلة اليوم: أحداث انتهت + مهام أُنجزت اليوم، من إجمالي أحداث اليوم ومهامه
+  const journey = useMemo(() => {
+    const evs = agenda.filter((a) => !a.continuation);
+    const evDone = evs.filter((a) => {
+      const e = toMinutes(a.endTime);
+      return !a.endsNextDay && nowMin >= (e || 24 * 60);
+    }).length;
+    const due = tasks.filter((t) => (t.done ? toISO(new Date(t.doneAt ?? 0)) === today : !t.dueDate || t.dueDate <= today));
+    const tDone = due.filter((t) => t.done).length;
+    const total = evs.length + due.length;
+    const done = evDone + tDone;
+    return { total, done, progress: total ? done / total : 0 };
+  }, [agenda, tasks, today, nowMin]);
+
+  // الحدث الجاري أو أقرب حدث قادم
+  const nextUp = useMemo(() => {
+    const live = agenda.find((a) => isLive(a.startTime, a.endTime, a.endsNextDay, a.continuation));
+    if (live) return { item: live, live: true };
+    const upcoming = agenda.find((a) => !a.continuation && toMinutes(a.startTime) > nowMin);
+    return upcoming ? { item: upcoming, live: false } : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agenda, nowMin]);
+
   const hour = now.getHours();
   const greeting = hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء النور";
 
   return (
     <Screen
       title={doctorName ? `${greeting} د. ${doctorName}` : greeting}
-      subtitle={`${appName || "Dentist Planner"} • ${fmtDateFull(today)}`}
+      subtitle={appName || "Dentist Planner"}
       right={
         <Pressable
           onPress={() => router.push("/settings")}
@@ -86,6 +112,12 @@ export default function HomeScreen() {
       }
       logo={<Logo uri={logo} size={44} app />}
     >
+      <DateHero now={now} next={np} />
+
+      {nextUp ? <NextUpCard item={nextUp.item} live={nextUp.live} onPress={() => open(nextUp.item)} /> : null}
+
+      <RiverCard progress={journey.progress} total={journey.total} done={journey.done} />
+
       {/* الصلاة القادمة */}
       <PrayerCard next={np} now={now} onPress={() => router.push("/prayer")} />
 
