@@ -69,6 +69,12 @@ const SLICES: Slice[] = [
   listSlice("clinic_appointments", useClinic as any, "appointments" as any),
   listSlice("clinic_sessions", useClinic as any, "sessions" as any),
   listSlice("clinic_payments", useClinic as any, "payments" as any),
+  listSlice("clinic_drugs", useClinic as any, "drugs" as any),
+  listSlice("clinic_prescriptions", useClinic as any, "prescriptions" as any),
+  listSlice("clinic_inventory", useClinic as any, "inventory" as any),
+  listSlice("clinic_stock_moves", useClinic as any, "stockMoves" as any),
+  listSlice("clinic_treatment_plans", useClinic as any, "plans" as any),
+  listSlice("clinic_expenses", useClinic as any, "expenses" as any),
   settingsSlice,
 ];
 
@@ -118,12 +124,18 @@ export function wipeLocal() {
   useSettings.getState().reset();
 }
 
+/** جدول لم يُنشأ بعد في قاعدة البيانات (ترحيل لم يُنفَّذ): نتخطاه بدل إيقاف كل المزامنة */
+function isMissingTable(error: { code?: string; message?: string }): boolean {
+  return error.code === "PGRST205" || error.code === "42P01" || /could not find the table/i.test(error.message ?? "");
+}
+
 async function pull(userId: string, snap: Snap) {
   const pullMap = await readJSON<PullMap>(K.pull(userId), {});
 
   for (const slice of SLICES) {
     const last = pullMap[slice.table] ?? "1970-01-01T00:00:00Z";
     const rows: { id: string; data: Item; deleted: boolean; updated_at: string }[] = [];
+    let missing = false;
     for (let from = 0; ; from += 1000) {
       const { data, error } = await supabase
         .from(slice.table)
@@ -131,11 +143,17 @@ async function pull(userId: string, snap: Snap) {
         .gte("updated_at", last)
         .order("updated_at", { ascending: true })
         .range(from, from + 999);
-      if (error) throw error;
+      if (error) {
+        if (isMissingTable(error)) {
+          missing = true;
+          break;
+        }
+        throw error;
+      }
       rows.push(...(data as any));
       if (!data || data.length < 1000) break;
     }
-    if (!rows.length) continue;
+    if (missing || !rows.length) continue;
 
     const local = new Map(slice.get().map((i) => [i.id, i]));
     const tableSnap = (snap[slice.table] ??= {});
@@ -186,12 +204,20 @@ async function push(userId: string, snap: Snap) {
     }
     if (!rows.length) continue;
 
+    let failed = false;
     for (let i = 0; i < rows.length; i += 200) {
       const { error } = await supabase
         .from(slice.table)
         .upsert(rows.slice(i, i + 200), { onConflict: "user_id,id" });
-      if (error) throw error;
+      if (error) {
+        if (isMissingTable(error)) {
+          failed = true;
+          break;
+        }
+        throw error;
+      }
     }
+    if (failed) continue;
     snap[slice.table] = newSnap;
   }
 }
