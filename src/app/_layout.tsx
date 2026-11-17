@@ -14,6 +14,7 @@ import {
 } from "@expo-google-fonts/cairo";
 import { AppSync } from "@/components/AppSync";
 import { ThemeRoot } from "@/components/ThemeRoot";
+import { LockGate } from "@/components/LockGate";
 import { CloudSync } from "@/components/CloudSync";
 import { Text } from "@/components/ui/Text";
 import { getAlarmModule } from "@/lib/alarm";
@@ -21,6 +22,7 @@ import { useHydrated } from "@/lib/hydration";
 import { setupRTL } from "@/lib/rtl";
 import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
+import { useDevice } from "@/store/useDevice";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
 
@@ -32,7 +34,7 @@ const RTL_OK = setupRTL();
 export default function RootLayout() {
   const router = useRouter();
   const [fontsLoaded] = useFonts({ Cairo_400Regular, Cairo_600SemiBold, Cairo_700Bold });
-  const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms]);
+  const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms, useDevice]);
   const ready = fontsLoaded && hydrated;
 
   useEffect(() => {
@@ -75,6 +77,7 @@ export default function RootLayout() {
           </Text>
         </View>
       )}
+      <LockGate />
       </ThemeRoot>
     </GestureHandlerRootView>
   );
