@@ -1,7 +1,7 @@
 import { useTheme } from "@/hooks/useTheme";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useMemo, useState } from "react";
-import { Alert, Linking, Pressable, View } from "react-native";
+import { Alert, Linking, Pressable, Share, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Odontogram } from "@/components/Odontogram";
@@ -22,7 +22,7 @@ import { patientBalance, useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
 import type { ToothStatus } from "@/types";
 
-type Section = "overview" | "teeth" | "sessions" | "payments";
+type Section = "overview" | "teeth" | "sessions" | "rx" | "payments";
 
 export default function PatientScreen() {
   useTheme();
@@ -41,6 +41,10 @@ export default function PatientScreen() {
   const removeSession = useClinic((s) => s.removeSession);
   const addPayment = useClinic((s) => s.addPayment);
   const removePayment = useClinic((s) => s.removePayment);
+  const allRx = useClinic((s) => s.prescriptions);
+  const removePrescription = useClinic((s) => s.removePrescription);
+  const allPlans = useClinic((s) => s.plans);
+  const clinicName = useSettings((s) => s.clinicName);
 
   const patient = patients.find((p) => p.id === id);
 
@@ -73,6 +77,11 @@ export default function PatientScreen() {
     [appointments, id],
   );
   const money = patientBalance(id ?? "", allSessions, allPayments);
+  const patientPlans = useMemo(() => allPlans.filter((p) => p.patientId === id), [allPlans, id]);
+  const prescriptions = useMemo(
+    () => allRx.filter((r) => r.patientId === id).sort((a, b) => (a.date < b.date ? 1 : -1)),
+    [allRx, id],
+  );
 
   if (!patient) {
     return (
@@ -81,6 +90,44 @@ export default function PatientScreen() {
       </Screen>
     );
   }
+
+  /** كشف حساب نصي: الجلسات والدفعات والرصيد، للإرسال عبر واتساب */
+  const shareStatement = () => {
+    const f = (n: number) => fmtMoney(n, currency);
+    const text = [
+      clinicName ? `*${clinicName}*` : "*كشف حساب*",
+      `المريض: ${patient.name}`,
+      "",
+      "الجلسات:",
+      ...(sessions.length ? [...sessions].reverse().map((x) => `• ${x.date} — ${x.procedure}${x.tooth ? ` (سن ${x.tooth})` : ""}: ${f(x.cost)}`) : ["—"]),
+      "",
+      "الدفعات:",
+      ...(payments.length ? [...payments].reverse().map((x) => `• ${x.date}: ${f(x.amount)}`) : ["—"]),
+      "",
+      `المستحق: ${f(money.charged)}`,
+      `المدفوع: ${f(money.paid)}`,
+      money.balance > 0 ? `*المتبقي: ${f(money.balance)}*` : "*الحساب مسدّد*",
+    ].join("\n");
+    Share.share({ message: text });
+  };
+
+  const shareRx = (rxId: string) => {
+    const rx = prescriptions.find((r) => r.id === rxId);
+    if (!rx) return;
+    const text = [
+      clinicName ? `*${clinicName}*` : "*وصفة طبية*",
+      `المريض: ${patient.name}`,
+      `التاريخ: ${rx.date}`,
+      "",
+      ...rx.lines.map((l, n) => `${n + 1}. ${l.drug}${l.dosage ? `\n   ${l.dosage}` : ""}`),
+      rx.notes ? `\nملاحظات: ${rx.notes}` : "",
+      "\nمع تمنياتنا بالشفاء العاجل",
+    ]
+      .filter((x) => x !== "")
+      .join("\n");
+    Share.share({ message: text });
+  };
+
 
   const today = toISO(new Date());
   const nextAppt = [...appts]
@@ -192,6 +239,7 @@ export default function PatientScreen() {
           { value: "overview", label: "نظرة" },
           { value: "teeth", label: "الأسنان" },
           { value: "sessions", label: "الجلسات" },
+          { value: "rx", label: "الوصفات" },
           { value: "payments", label: "الدفعات" },
         ]}
       />
@@ -254,6 +302,23 @@ export default function PatientScreen() {
               </Text>
             </Card>
           ) : null}
+          <Pressable
+            onPress={() => router.push({ pathname: "/clinic/plan", params: { patientId: patient.id } })}
+            className="flex-row items-center justify-between bg-surface border border-line rounded-2xl px-4 py-3 mb-3"
+          >
+            <View className="flex-row items-center gap-3">
+              <Ionicons name="clipboard" size={22} color={TYPE_META.private.hex} />
+              <View>
+                <Text w="semi">خطط العلاج</Text>
+                <Text className="text-xs text-muted">
+                  {patientPlans.length === 0
+                    ? "لا خطط بعد"
+                    : `${patientPlans.length} خطة • ${patientPlans.reduce((a, p) => a + p.items.filter((i) => i.done).length, 0)}/${patientPlans.reduce((a, p) => a + p.items.length, 0)} بند منجز`}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-back" size={18} color="#94A3B8" />
+          </Pressable>
           {appts.length === 0 ? (
             <EmptyState icon="calendar-outline" title="لا مواعيد" />
           ) : (
@@ -386,8 +451,55 @@ export default function PatientScreen() {
       )}
 
       {/* ---------------- الدفعات ---------------- */}
+      {/* ---------------- الوصفات ---------------- */}
+      {section === "rx" && (
+        <View className="mt-4">
+          <Button
+            label="وصفة جديدة"
+            icon="document-text"
+            type="private"
+            onPress={() => router.push({ pathname: "/clinic/prescription-form", params: { patientId: patient.id } })}
+          />
+          <View className="mt-3">
+            {prescriptions.length === 0 ? (
+              <EmptyState icon="document-text-outline" title="لا وصفات" hint="أضف وصفة وشاركها مع المريض" />
+            ) : (
+              prescriptions.map((rx) => (
+                <Card key={rx.id} className="mb-3">
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text w="bold">{fmtDateShort(rx.date)}</Text>
+                    <View className="flex-row gap-1">
+                      <IconButton icon="share-social" onPress={() => shareRx(rx.id)} />
+                      <IconButton
+                        icon="trash-outline"
+                        onPress={() =>
+                          Alert.alert("حذف الوصفة", "سيتم حذف هذه الوصفة.", [
+                            { text: "إلغاء", style: "cancel" },
+                            { text: "حذف", style: "destructive", onPress: () => removePrescription(rx.id) },
+                          ])
+                        }
+                      />
+                    </View>
+                  </View>
+                  {rx.lines.map((l, i) => (
+                    <View key={i} className="mb-1.5">
+                      <Text w="semi">{i + 1}. {l.drug}</Text>
+                      {l.dosage ? <Text className="text-sm text-muted">{l.dosage}</Text> : null}
+                    </View>
+                  ))}
+                  {rx.notes ? <Text className="text-sm mt-1">ملاحظات: {rx.notes}</Text> : null}
+                </Card>
+              ))
+            )}
+          </View>
+        </View>
+      )}
+
       {section === "payments" && (
         <View className="mt-4">
+          <View className="mb-3">
+            <Button label="مشاركة كشف الحساب" icon="share-social" variant="soft" small onPress={shareStatement} />
+          </View>
           <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: money.balance > 0 ? "#FEE2E2" : "#DCFCE7" }}>
             <Text className="text-sm" style={{ color: money.balance > 0 ? "#DC2626" : "#14532D" }}>
               {money.balance > 0 ? "المتبقي على المريض" : "الحساب مسدّد"}
