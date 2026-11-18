@@ -1,7 +1,8 @@
 import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/Text";
-import { TYPE_META, SHIFT_TYPES, type IconName } from "@/constants/shiftTypes";
+import { TYPE_META, type IconName } from "@/constants/shiftTypes";
+import { useActiveTypes } from "@/hooks/useActiveTypes";
 import type { ShiftType } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -62,9 +63,10 @@ export function TypeSelector({
   allowNone?: boolean;
 }) {
   useTheme();
+  const types = useActiveTypes();
   return (
     <View className="flex-row flex-wrap gap-2">
-      {SHIFT_TYPES.map((t) => {
+      {types.map((t) => {
         const m = TYPE_META[t];
         return (
           <Chip

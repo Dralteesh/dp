@@ -1,6 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { SHIFT_TYPES, TYPE_META } from "@/constants/shiftTypes";
+import { TYPE_META } from "@/constants/shiftTypes";
+import { useActiveTypes } from "@/hooks/useActiveTypes";
 import { useTheme } from "@/hooks/useTheme";
 import type { ShiftType } from "@/types";
 
@@ -15,6 +16,7 @@ export function TypeRail({
   counts?: Partial<Record<ShiftType, number>>;
 }) {
   useTheme();
+  const types = useActiveTypes();
   return (
     <View className="rounded-3xl items-center py-3 gap-2.5" style={{ backgroundColor: "#1E2229", width: 54, alignSelf: "flex-start" }}>
       <Pressable
@@ -24,7 +26,7 @@ export function TypeRail({
       >
         <Ionicons name="apps" size={18} color={value === "all" ? "#1E2229" : "#9AA3AF"} />
       </Pressable>
-      {SHIFT_TYPES.map((t) => {
+      {types.map((t) => {
         const m = TYPE_META[t];
         const on = value === t;
         return (

@@ -9,7 +9,8 @@ import { Screen } from "@/components/ui/Screen";
 import { SectionHeader } from "@/components/ui/EmptyState";
 import { Text } from "@/components/ui/Text";
 import { DEFAULT_TYPE_COLORS, PRESETS, SWATCHES, resolveTypeColors } from "@/constants/palette";
-import { SHIFT_TYPES, TYPE_META } from "@/constants/shiftTypes";
+import { BUILTIN_TYPES, TYPE_META } from "@/constants/shiftTypes";
+import { useActiveTypes } from "@/hooks/useActiveTypes";
 import { useTheme } from "@/hooks/useTheme";
 import { normalizeHex } from "@/lib/color";
 import { pickLogo } from "@/lib/logo";
@@ -148,6 +149,7 @@ export default function AppearanceScreen() {
   useTheme();
   const s = useSettings();
   const typeColors = useSettings((x) => x.typeColors);
+  const types = useActiveTypes();
 
   return (
     <Screen title="المظهر والشعارات" back>
@@ -162,7 +164,7 @@ export default function AppearanceScreen() {
               className="rounded-xl border border-line px-3 py-2"
             >
               <View className="flex-row gap-1 mb-1">
-                {SHIFT_TYPES.map((t) => (
+                {BUILTIN_TYPES.map((t) => (
                   <View key={t} style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: p.colors[t] }} />
                 ))}
               </View>
@@ -174,7 +176,7 @@ export default function AppearanceScreen() {
         </View>
       </Card>
       <Card>
-        {SHIFT_TYPES.map((t) => (
+        {types.map((t) => (
           <ColorRow key={`${t}:${typeColors[t] ?? ""}`} type={t} />
         ))}
       </Card>

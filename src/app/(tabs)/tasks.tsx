@@ -105,6 +105,7 @@ export default function TasksScreen() {
   return (
     <Screen
       title="المهام والملاحظات"
+      back
       subtitle={mode === "tasks" ? `${openCount} مفتوحة • ${doneCount} منجزة` : `${notes.length} ملاحظة`}
       overlay={
         <Fab

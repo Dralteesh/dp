@@ -26,6 +26,46 @@ module.exports = {
           soft: "rgb(var(--c-personal-soft) / <alpha-value>)",
           ink: "rgb(var(--c-personal-ink) / <alpha-value>)",
         },
+        w1: {
+          DEFAULT: "rgb(var(--c-w1) / <alpha-value>)",
+          soft: "rgb(var(--c-w1-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-w1-ink) / <alpha-value>)",
+        },
+        w2: {
+          DEFAULT: "rgb(var(--c-w2) / <alpha-value>)",
+          soft: "rgb(var(--c-w2-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-w2-ink) / <alpha-value>)",
+        },
+        w3: {
+          DEFAULT: "rgb(var(--c-w3) / <alpha-value>)",
+          soft: "rgb(var(--c-w3-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-w3-ink) / <alpha-value>)",
+        },
+        w4: {
+          DEFAULT: "rgb(var(--c-w4) / <alpha-value>)",
+          soft: "rgb(var(--c-w4-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-w4-ink) / <alpha-value>)",
+        },
+        w5: {
+          DEFAULT: "rgb(var(--c-w5) / <alpha-value>)",
+          soft: "rgb(var(--c-w5-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-w5-ink) / <alpha-value>)",
+        },
+        w6: {
+          DEFAULT: "rgb(var(--c-w6) / <alpha-value>)",
+          soft: "rgb(var(--c-w6-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-w6-ink) / <alpha-value>)",
+        },
+        w7: {
+          DEFAULT: "rgb(var(--c-w7) / <alpha-value>)",
+          soft: "rgb(var(--c-w7-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-w7-ink) / <alpha-value>)",
+        },
+        w8: {
+          DEFAULT: "rgb(var(--c-w8) / <alpha-value>)",
+          soft: "rgb(var(--c-w8-soft) / <alpha-value>)",
+          ink: "rgb(var(--c-w8-ink) / <alpha-value>)",
+        },
         bg: "#F0EFEA",
         surface: "#FFFFFF",
         line: "#E3E1D8",

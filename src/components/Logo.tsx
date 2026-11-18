@@ -4,6 +4,8 @@ import type { IconName } from "@/constants/shiftTypes";
 
 /** شعار التطبيق الافتراضي (Dentist Planner) */
 export const APP_LOGO = require("../../assets/logo.png");
+/** شعار العيادة الافتراضي (فك وأدوات) */
+export const CLINIC_LOGO = require("../../assets/clinic-logo.png");
 
 /** شعار مربع: الصورة المخصّصة إن وُجدت وإلا أيقونة افتراضية */
 export function Logo({
@@ -12,6 +14,7 @@ export function Logo({
   icon = "medkit",
   bg = "#0F172A",
   app,
+  clinic,
 }: {
   uri?: string;
   size?: number;
@@ -19,8 +22,13 @@ export function Logo({
   bg?: string;
   /** true: يستعمل شعار التطبيق الافتراضي إن لم يوجد uri */
   app?: boolean;
+  /** true: يستعمل شعار العيادة الافتراضي إن لم يوجد uri */
+  clinic?: boolean;
 }) {
   const r = size * 0.28;
+  if (!uri && clinic) {
+    return <Image source={CLINIC_LOGO} style={{ width: size, height: size }} resizeMode="contain" />;
+  }
   if (!uri && app) {
     return <Image source={APP_LOGO} style={{ width: size, height: size }} resizeMode="contain" />;
   }

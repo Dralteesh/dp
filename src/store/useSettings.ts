@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { applyTypeColors } from "@/constants/shiftTypes";
+import { DEFAULT_PLACE, applyTypeSettings } from "@/constants/shiftTypes";
 import { STORAGE_KEYS, storage } from "@/lib/storage";
 import type { PrayerKey, Settings } from "@/types";
 
@@ -21,6 +21,10 @@ export const DEFAULT_SETTINGS: Settings = {
   appointmentReminder: 30,
   currency: "ل.س",
   typeColors: {},
+  workplaces: {},
+  places: [DEFAULT_PLACE],
+  homeShowTasks: true,
+  defaultAlarmChallenge: "math",
   appName: "",
   logo: "",
   clinicName: "",
@@ -58,22 +62,28 @@ export const useSettings = create<SettingsState>()(
         appointmentReminder: s.appointmentReminder,
         currency: s.currency,
         typeColors: s.typeColors,
+        workplaces: s.workplaces,
+        places: s.places,
+        homeShowTasks: s.homeShowTasks,
+        defaultAlarmChallenge: s.defaultAlarmChallenge,
         appName: s.appName,
         logo: s.logo,
         clinicName: s.clinicName,
         clinicLogo: s.clinicLogo,
       }),
       // بعد قراءة التخزين: طبّق الألوان المحفوظة قبل أول رسم
-      onRehydrateStorage: () => (state) => applyTypeColors(state?.typeColors),
+      onRehydrateStorage: () => (state) => applyTypeSettings(state?.typeColors, state?.workplaces),
     },
   ),
 );
 
-// أي تغيير في الألوان (تعديل، مزامنة، استعادة) يُطبَّق فورًا
+// أي تغيير في الألوان أو أماكن العمل (تعديل، مزامنة، استعادة) يُطبَّق فورًا
 let lastColors: unknown = useSettings.getState().typeColors;
+let lastPlaces: unknown = useSettings.getState().workplaces;
 useSettings.subscribe((s) => {
-  if (s.typeColors !== lastColors) {
+  if (s.typeColors !== lastColors || s.workplaces !== lastPlaces) {
     lastColors = s.typeColors;
-    applyTypeColors(s.typeColors);
+    lastPlaces = s.workplaces;
+    applyTypeSettings(s.typeColors, s.workplaces);
   }
 });

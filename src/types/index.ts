@@ -1,5 +1,25 @@
-// الأنواع الأربعة: ازرق / أصفر / أخضر / بنفسجي
-export type ShiftType = "hospital" | "maxillo" | "private" | "personal";
+// الأنواع الأربعة الأساسية + حتى 8 أماكن عمل مخصّصة (w1..w8) يضيفها المستخدم من الإعدادات
+export type CustomSlot = "w1" | "w2" | "w3" | "w4" | "w5" | "w6" | "w7" | "w8";
+export type ShiftType = "hospital" | "maxillo" | "private" | "personal" | CustomSlot;
+
+/** إعدادات نوع/مكان عمل قابلة للتعديل (تُدمج فوق القيم الافتراضية) */
+export type WorkplaceConfig = {
+  label: string;
+  short: string;
+  icon: string;
+  defaultTitle: string;
+  start: string;
+  end: string;
+  endsNextDay: boolean;
+  /** المكان الافتراضي الذي يُملأ تلقائيًا عند إنشاء حدث من هذا النوع */
+  place: string;
+  /** منبّه إجباري افتراضي قبل البداية بالدقائق، أو null */
+  alarmMinutes: number | null;
+  /** إخفاء النوع الأساسي من القوائم */
+  hidden: boolean;
+  /** نوع مضاف من المستخدم (وليس أحد الأربعة الأساسية) */
+  custom: boolean;
+};
 
 export type Priority = "low" | "normal" | "high";
 
@@ -43,6 +63,9 @@ export type Task = {
 
 export type Note = {
   id: string;
+  title?: string;
+  /** لون البطاقة (hex) أو فارغ للافتراضي */
+  color?: string;
   text: string;
   pinned: boolean;
   type?: ShiftType;
@@ -62,7 +85,13 @@ export type AlarmItem = {
   onceDate?: string;
   enabled: boolean;
   snoozeMinutes: number;
+  /** تحدٍّ يجب إتمامه قبل إيقاف الرنين (الافتراضي: بدون) */
+  challenge?: AlarmChallenge;
+  /** أقصى عدد غفوات مسموح (الافتراضي 2) */
+  maxSnoozes?: number;
 };
+
+export type AlarmChallenge = "none" | "math" | "hold" | "phrase";
 
 // ---------- العيادة الخاصة ----------
 
@@ -83,6 +112,10 @@ export type Patient = {
   gender?: "male" | "female";
   /** قيد المعالجة أم أنهى العلاج */
   status: "active" | "finished";
+  /** رقم الملف الورقي/القديم (من البرنامج السابق) */
+  fileNumber?: string;
+  /** معرّف المريض في البرنامج السابق (لمنع التكرار عند إعادة الاستيراد) */
+  legacyId?: string;
   /** تنبيهات طبية (حساسية، سكري، سيولة...) */
   medicalAlerts?: string;
   notes?: string;
@@ -249,6 +282,14 @@ export type Settings = {
   currency: string;
   /** ألوان مخصّصة للأنواع الأربعة (hex)، والفراغ = الافتراضي */
   typeColors: Partial<Record<ShiftType, string>>;
+  /** تخصيص أنواع/أماكن العمل (الاسم، الأيقونة، الساعات، المكان الافتراضي) */
+  workplaces: Partial<Record<ShiftType, Partial<WorkplaceConfig>>>;
+  /** قائمة أماكن العمل المعروفة (تظهر كخيارات سريعة في الحدث) */
+  places: string[];
+  /** إظهار مهام اليوم في الشاشة الرئيسية */
+  homeShowTasks: boolean;
+  /** تحدٍّ الإيقاف الافتراضي لمنبّهات الأحداث (المناوبات) */
+  defaultAlarmChallenge: AlarmChallenge;
   /** اسم التطبيق الظاهر في الرأسية (فارغ = Dentist Planner) */
   appName: string;
   /** شعار التطبيق كنص data:image (فارغ = الأيقونة الافتراضية) */

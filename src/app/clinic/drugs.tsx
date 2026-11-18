@@ -64,7 +64,7 @@ export default function DrugsScreen() {
   };
 
   return (
-    <Screen title="دليل الأدوية" subtitle="للوصفات: اختر دواءً فتُملأ الجرعة تلقائيًا" back overlay={<Fab onPress={() => open()} color={green} />}>
+    <Screen title="دليل الأدوية" subtitle="للوصفات: اختر دواءً فتُملأ الجرعة تلقائيًا" back overlay={<Fab onPress={() => open()} color={green} bottom={20} />}>
       {drugs.length === 0 ? (
         <EmptyState icon="medkit-outline" title="لا أدوية بعد" hint="اضغط + لإضافة أول دواء (مثلًا أموكسيسيلين 500 ملغ)" />
       ) : (

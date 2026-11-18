@@ -1,11 +1,11 @@
-import { Pressable, ScrollView, View } from "react-native";
+import { useState } from "react";
+import { type LayoutChangeEvent, View } from "react-native";
+import Svg, { G, Line, Rect, Text as SvgText } from "react-native-svg";
 import { Text } from "@/components/ui/Text";
 import { LOWER_TEETH, TOOTH_STATUS, UPPER_TEETH } from "@/constants/clinic";
+import { TYPE_META } from "@/constants/shiftTypes";
+import { useTheme } from "@/hooks/useTheme";
 import type { ToothStatus } from "@/types";
-
-const TOOTH_W = 34;
-const GAP = 4;
-const MID_GAP = 14;
 
 type Props = {
   teeth: Record<string, ToothStatus>;
@@ -13,84 +13,100 @@ type Props = {
   onSelect: (tooth: string) => void;
 };
 
-function Tooth({
-  code,
-  status,
-  active,
-  onPress,
-}: {
-  code: string;
-  status?: ToothStatus;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const meta = status ? TOOTH_STATUS[status] : null;
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        width: TOOTH_W,
-        height: 50,
-        borderRadius: 12,
-        marginHorizontal: GAP / 2,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: meta ? meta.soft : "#FFFFFF",
-        borderWidth: active ? 3 : 1.5,
-        borderColor: active ? "#0F172A" : meta ? meta.hex : "#CBD5E1",
-        opacity: status === "missing" ? 0.55 : 1,
-      }}
-    >
-      <Text
-        w="bold"
-        className="text-xs"
-        style={{
-          color: meta ? meta.hex : "#475569",
-          textDecorationLine: status === "missing" || status === "extraction" ? "line-through" : "none",
-        }}
-      >
-        {code}
-      </Text>
-      {meta ? <View style={{ width: 14, height: 4, borderRadius: 2, backgroundColor: meta.hex, marginTop: 3 }} /> : null}
-    </Pressable>
-  );
+const HEIGHT = 340;
+const SELECT = "#2DD4BF";
+
+/** أبعاد السن حسب نوعه (آخر رقم في FDI): قواطع، ناب، ضواحك، أرحاء */
+function toothSize(code: string): { w: number; h: number } {
+  const n = Number(code[1]);
+  if (n >= 6) return { w: 27, h: 25 };
+  if (n >= 4) return { w: 23, h: 23 };
+  if (n === 3) return { w: 20, h: 25 };
+  return { w: 17, h: 24 };
 }
 
-function Arch({
-  codes,
-  teeth,
-  selected,
-  onSelect,
-}: Props & { codes: string[] }) {
-  return (
-    // direction ltr: الأرقام تُعرض كما في المخطط السريري القياسي (يمين المريض على يسار الشاشة)
-    <View style={{ flexDirection: "row", direction: "ltr" }}>
-      {codes.map((c, i) => (
-        <View key={c} style={{ marginRight: i === 7 ? MID_GAP : 0 }}>
-          <Tooth code={c} status={teeth[c]} active={selected === c} onPress={() => onSelect(c)} />
-        </View>
-      ))}
-    </View>
-  );
+type Placed = { code: string; x: number; y: number; rot: number; lx: number; ly: number };
+
+function placeArch(codes: string[], W: number, upper: boolean): Placed[] {
+  const cx = W / 2;
+  const rx = W / 2 - 30;
+  const ry = 122;
+  const cy = upper ? 150 : 190;
+  const anchorY = upper ? cy + ry * 0.55 : cy - ry * 0.55;
+  return codes.map((code, i) => {
+    const phi = (Math.PI * (i + 0.5)) / codes.length;
+    const x = cx - rx * Math.cos(phi);
+    const y = upper ? cy - ry * Math.sin(phi) : cy + ry * Math.sin(phi);
+    const dx = x - cx;
+    const dy = y - anchorY;
+    const rot = upper ? (Math.atan2(dx, -dy) * 180) / Math.PI : (Math.atan2(-dx, dy) * 180) / Math.PI;
+    const len = Math.hypot(dx, dy) || 1;
+    return { code, x, y, rot, lx: x + (dx / len) * 25, ly: y + (dy / len) * 25 };
+  });
 }
 
-/** مخطط الأسنان الدائمة (FDI) — اضغط سنًا لاختياره ثم حدّد حالته */
+/** مخطط الأسنان (FDI) على قوسين داخل بطاقة ملوّنة — من تصميم Dental. اضغط سنًا لتحديده */
 export function Odontogram({ teeth, selected, onSelect }: Props) {
+  useTheme();
+  const [W, setW] = useState(340);
+  const base = TYPE_META.private;
+  const bg = base.inkHex === "#0A3A5A" ? "#0B5F8F" : base.hex;
+
+  const upper = placeArch(UPPER_TEETH, W, true);
+  const lower = placeArch(LOWER_TEETH, W, false);
+
+  const draw = (p: Placed) => {
+    const st = teeth[p.code];
+    const meta = st ? TOOTH_STATUS[st] : null;
+    const size = toothSize(p.code);
+    const active = selected === p.code;
+    const gone = st === "missing" || st === "extraction";
+    return (
+      <G key={p.code} onPress={() => onSelect(p.code)}>
+        <G transform={`translate(${p.x} ${p.y}) rotate(${p.rot})`}>
+          <Rect x={-size.w / 2 - 6} y={-size.h / 2 - 6} width={size.w + 12} height={size.h + 12} fill="transparent" />
+          {active ? (
+            <Rect x={-size.w / 2 - 4} y={-size.h / 2 - 4} width={size.w + 8} height={size.h + 8} rx={11} fill="none" stroke={SELECT} strokeWidth={3} />
+          ) : null}
+          <Rect
+            x={-size.w / 2}
+            y={-size.h / 2}
+            width={size.w}
+            height={size.h}
+            rx={size.w * 0.42}
+            fill={meta ? meta.hex : "#E7F0F7"}
+            fillOpacity={gone ? 0.35 : 1}
+            stroke={active ? SELECT : "#FFFFFF"}
+            strokeWidth={1.5}
+            strokeDasharray={gone ? "3,2" : undefined}
+          />
+        </G>
+        <SvgText x={p.lx} y={p.ly + 3.5} fontSize={9.5} fill="#FFFFFF" fillOpacity={active ? 1 : 0.75} fontWeight={active ? "bold" : "normal"} textAnchor="middle">
+          {p.code}
+        </SvgText>
+      </G>
+    );
+  };
+
   return (
-    <View className="bg-surface rounded-2xl border border-line py-3">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 10 }}>
-        <View style={{ direction: "ltr" }}>
-          <Text className="text-xs text-muted mb-1.5" style={{ textAlign: "center" }}>
-            الفك العلوي
-          </Text>
-          <Arch codes={UPPER_TEETH} teeth={teeth} selected={selected} onSelect={onSelect} />
-          <View style={{ height: 1, backgroundColor: "#E3E1D8", marginVertical: 10 }} />
-          <Arch codes={LOWER_TEETH} teeth={teeth} selected={selected} onSelect={onSelect} />
-          <Text className="text-xs text-muted mt-1.5" style={{ textAlign: "center" }}>
-            الفك السفلي
-          </Text>
-        </View>
-      </ScrollView>
+    <View
+      onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}
+      style={{ backgroundColor: bg, borderRadius: 28, paddingTop: 14, overflow: "hidden" }}
+    >
+      <View style={{ paddingHorizontal: 18, flexDirection: "row", justifyContent: "space-between" }}>
+        <Text w="bold" style={{ color: "#FFFFFF", fontSize: 16 }}>
+          مخطط الأسنان
+        </Text>
+        <Text style={{ color: "#FFFFFF", opacity: 0.7, fontSize: 11 }}>يمين المريض على اليسار</Text>
+      </View>
+      <View style={{ direction: "ltr" }}>
+        <Svg width={W} height={HEIGHT}>
+          <Line x1={W * 0.12} y1={170} x2={W * 0.88} y2={170} stroke="#FFFFFF" strokeOpacity={0.25} strokeWidth={1} strokeDasharray="4,4" />
+          <Line x1={W / 2} y1={60} x2={W / 2} y2={280} stroke="#FFFFFF" strokeOpacity={0.12} strokeWidth={1} />
+          {upper.map(draw)}
+          {lower.map(draw)}
+        </Svg>
+      </View>
     </View>
   );
 }

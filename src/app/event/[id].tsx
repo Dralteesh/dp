@@ -44,6 +44,7 @@ export default function EventFormScreen() {
   const updateEvent = usePlanner((s) => s.updateEvent);
   const removeEvent = usePlanner((s) => s.removeEvent);
   const defaultReminder = useSettings((s) => s.defaultReminder);
+  const places = useSettings((s) => s.places);
 
   const existing: PlannerEvent | undefined = isNew ? undefined : events.find((e) => e.id === params.id);
   const initialType = (existing?.type ?? (params.type as ShiftType) ?? "hospital") as ShiftType;
@@ -57,7 +58,8 @@ export default function EventFormScreen() {
   const [startTime, setStartTime] = useState(existing?.startTime ?? d0.start);
   const [endTime, setEndTime] = useState(existing?.endTime ?? d0.end);
   const [endsNextDay, setEndsNextDay] = useState(existing?.endsNextDay ?? d0.endsNextDay);
-  const [location, setLocation] = useState(existing?.location ?? "");
+  const [location, setLocation] = useState(existing?.location ?? TYPE_META[initialType].place);
+  const [locTouched, setLocTouched] = useState(!!existing);
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [repeat, setRepeat] = useState<"none" | "weekly">(existing?.repeat ?? "none");
   const [weekdays, setWeekdays] = useState<number[]>(existing?.weekdays ?? [weekdayOf(initialDate)]);
@@ -65,7 +67,7 @@ export default function EventFormScreen() {
   const [reminder, setReminder] = useState<number | null>(
     existing ? existing.reminderMinutes : defaultReminder,
   );
-  const [alarm, setAlarm] = useState<number | null>(existing ? existing.alarmMinutes : null);
+  const [alarm, setAlarm] = useState<number | null>(existing ? existing.alarmMinutes : TYPE_META[initialType].defaults.alarmMinutes);
 
   const meta = TYPE_META[type];
 
@@ -78,8 +80,9 @@ export default function EventFormScreen() {
       setEndTime(d.end);
       setEndsNextDay(d.endsNextDay);
       if (!titleTouched) setTitle(TYPE_META[t].defaultTitle);
-      // المناوبة: منبّه إجباري افتراضي قبل ساعة
-      setAlarm(t === "maxillo" ? 60 : null);
+      // منبّه إجباري افتراضي حسب إعدادات مكان العمل (المناوبة: قبل ساعة)
+      setAlarm(d.alarmMinutes);
+      if (!locTouched) setLocation(TYPE_META[t].place);
     }
   };
 
@@ -111,6 +114,10 @@ export default function EventFormScreen() {
       reminderMinutes: reminder,
       alarmMinutes: alarm,
     };
+    // مكان جديد يُكتب يدويًا يُضاف لقائمة الأماكن المعروفة
+    if (payload.location && !places.includes(payload.location)) {
+      useSettings.getState().update({ places: [...places, payload.location] });
+    }
     if (existing) updateEvent(existing.id, payload);
     else addEvent(payload);
     router.back();
@@ -255,7 +262,35 @@ export default function EventFormScreen() {
       </Card>
 
       <Card className="mt-3">
-        <Field label="المكان (اختياري)" value={location} onChangeText={setLocation} placeholder="مثال: مشفى حماه الوطني" />
+        {places.length ? (
+          <FieldRow label="المكان">
+            <View className="flex-row flex-wrap gap-2">
+              {places.map((p) => (
+                <Chip
+                  key={p}
+                  label={p}
+                  icon="location-outline"
+                  selected={location === p}
+                  color={meta.hex}
+                  textColor={meta.onSolid}
+                  onPress={() => {
+                    setLocation(location === p ? "" : p);
+                    setLocTouched(true);
+                  }}
+                />
+              ))}
+            </View>
+          </FieldRow>
+        ) : null}
+        <Field
+          label="أو اكتب مكانًا آخر"
+          value={location}
+          onChangeText={(v) => {
+            setLocation(v);
+            setLocTouched(true);
+          }}
+          placeholder="مثال: مشفى حماه الوطني"
+        />
         <Field label="ملاحظات" value={notes} onChangeText={setNotes} multiline placeholder="أي تفاصيل إضافية" />
       </Card>
 

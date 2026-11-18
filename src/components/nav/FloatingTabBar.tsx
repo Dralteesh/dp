@@ -1,0 +1,153 @@
+import { useEffect, useState } from "react";
+import { Image, Keyboard, Pressable, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { Text } from "@/components/ui/Text";
+import { useQuickAdd } from "@/store/useQuickAdd";
+
+const CLINIC_LOGO = require("../../../assets/clinic-logo.png");
+
+type Route = { key: string; name: string; params?: object };
+type BarProps = {
+  state: { index: number; routes: Route[] };
+  navigation: {
+    emit: (e: { type: "tabPress"; target: string; canPreventDefault: true }) => { defaultPrevented: boolean };
+    navigate: (name: string, params?: object) => void;
+  };
+};
+
+/** ترتيب الأزرار من اليمين إلى اليسار (واجهة RTL): المنبّه، العيادة، الرئيسية، الصلاة، المزيد */
+const ORDER = ["alarms", "clinic", "index", "prayer", "more"] as const;
+type Name = (typeof ORDER)[number];
+
+const META: Record<Name, { label: string; icon: keyof typeof Ionicons.glyphMap; iconOn: keyof typeof Ionicons.glyphMap }> = {
+  alarms: { label: "المنبّه", icon: "alarm-outline", iconOn: "alarm" },
+  clinic: { label: "العيادة", icon: "medkit-outline", iconOn: "medkit" },
+  index: { label: "الرئيسية", icon: "home-outline", iconOn: "home" },
+  prayer: { label: "الصلاة", icon: "moon-outline", iconOn: "moon" },
+  more: { label: "المزيد", icon: "grid-outline", iconOn: "grid" },
+};
+
+/** الشاشات المخفية من الشريط تُحسب تحت زرٍّ قريب منها ليبقى الزر مضاءً */
+const OWNER: Record<string, Name> = { calendar: "index", tasks: "index" };
+
+const BLUE = "#0E6FA5";
+const INK = "#0F172A";
+const MUTED = "#94A3B8";
+
+/** شريط تنقل عائم: الرئيسية كبيرة في المنتصف، والعيادة بشعارها، والضغط المطوّل على الرئيسية = إضافة سريعة */
+export function FloatingTabBar({ state, navigation }: BarProps) {
+  const insets = useSafeAreaInsets();
+  const showQuickAdd = useQuickAdd((s) => s.show);
+  const [kb, setKb] = useState(false);
+
+  useEffect(() => {
+    const a = Keyboard.addListener("keyboardDidShow", () => setKb(true));
+    const b = Keyboard.addListener("keyboardDidHide", () => setKb(false));
+    return () => {
+      a.remove();
+      b.remove();
+    };
+  }, []);
+
+  if (kb) return null;
+
+  const current = state.routes[state.index]?.name ?? "index";
+  const active: Name = (OWNER[current] ?? current) as Name;
+
+  const press = (name: Name) => {
+    const route = state.routes.find((r) => r.name === name);
+    if (!route) return;
+    const ev = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+    if (!ev.defaultPrevented) navigation.navigate(route.name, route.params);
+  };
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingBottom: Math.max(insets.bottom, 10) + 4, paddingHorizontal: 14 }}
+    >
+      <View
+        style={{
+          height: 66,
+          borderRadius: 33,
+          backgroundColor: "#FFFFFF",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 8,
+          elevation: 12,
+          shadowColor: "#0F172A",
+          shadowOpacity: 0.14,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 6 },
+          borderWidth: 1,
+          borderColor: "#E8E6DE",
+        }}
+      >
+        {ORDER.map((name) => {
+          const m = META[name];
+          const on = active === name;
+
+          if (name === "index") {
+            return (
+              <View key={name} style={{ width: 76, alignItems: "center" }}>
+                <Pressable
+                  onPress={() => press(name)}
+                  onLongPress={() => showQuickAdd()}
+                  delayLongPress={350}
+                  accessibilityLabel="الرئيسية (اضغط مطوّلًا للإضافة السريعة)"
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
+                    marginTop: -26,
+                    backgroundColor: BLUE,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 5,
+                    borderColor: "#F0EFEA",
+                    elevation: 8,
+                    shadowColor: BLUE,
+                    shadowOpacity: 0.35,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 4 },
+                  }}
+                >
+                  <Ionicons name={on ? m.iconOn : m.icon} size={28} color="#FFFFFF" />
+                </Pressable>
+                <Text w="semi" style={{ fontSize: 10.5, color: on ? BLUE : MUTED, marginTop: 1 }}>
+                  {m.label}
+                </Text>
+              </View>
+            );
+          }
+
+          return (
+            <Pressable key={name} onPress={() => press(name)} style={{ flex: 1, alignItems: "center", paddingVertical: 6 }}>
+              <View
+                style={{
+                  width: 46,
+                  height: 30,
+                  borderRadius: 15,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: on ? "#DCEEF8" : "transparent",
+                }}
+              >
+                {name === "clinic" ? (
+                  <Image source={CLINIC_LOGO} style={{ width: 30, height: 30, opacity: on ? 1 : 0.85 }} resizeMode="contain" />
+                ) : (
+                  <Ionicons name={on ? m.iconOn : m.icon} size={23} color={on ? BLUE : MUTED} />
+                )}
+              </View>
+              <Text w={on ? "bold" : "semi"} style={{ fontSize: 10.5, color: on ? INK : MUTED }}>
+                {m.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}

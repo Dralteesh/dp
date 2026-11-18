@@ -5,8 +5,16 @@ import type { ShiftType } from "@/types";
 export const DEFAULT_TYPE_COLORS: Record<ShiftType, string> = {
   hospital: "#2563EB",
   maxillo: "#EAB308",
-  private: "#16A34A",
+  private: "#0E6FA5",
   personal: "#7C3AED",
+  w1: "#0891B2",
+  w2: "#DB2777",
+  w3: "#EA580C",
+  w4: "#65A30D",
+  w5: "#4F46E5",
+  w6: "#0D9488",
+  w7: "#B45309",
+  w8: "#64748B",
 };
 
 export type TypeColors = {
@@ -21,10 +29,10 @@ export type TypeColors = {
 };
 
 // قيم مضبوطة يدويًا للألوان الافتراضية (تحافظ على التصميم الأصلي)
-const TUNED: Record<ShiftType, Omit<TypeColors, "hex">> = {
+const TUNED: Partial<Record<ShiftType, Omit<TypeColors, "hex">>> = {
   hospital: { soft: "#DBEAFE", inkHex: "#1E3A8A", onSolid: "#FFFFFF" },
   maxillo: { soft: "#FEF3C7", inkHex: "#713F12", onSolid: "#422006" },
-  private: { soft: "#DCFCE7", inkHex: "#14532D", onSolid: "#FFFFFF" },
+  private: { soft: "#D6EBF7", inkHex: "#0A3A5A", onSolid: "#FFFFFF" },
   personal: { soft: "#EDE9FE", inkHex: "#4C1D95", onSolid: "#FFFFFF" },
 };
 
@@ -38,8 +46,9 @@ export function resolveTypeColors(type: ShiftType, input: string | undefined): T
   if (hit) return hit;
 
   let out: TypeColors;
-  if (hex === DEFAULT_TYPE_COLORS[type]) {
-    out = { hex, ...TUNED[type] };
+  const tuned = TUNED[type];
+  if (hex === DEFAULT_TYPE_COLORS[type] && tuned) {
+    out = { hex, ...tuned };
   } else {
     const inkHex = mix(hex, "#000000", 0.62);
     out = {
@@ -60,23 +69,23 @@ export const SWATCHES = [
   "#F59E0B", "#F97316", "#EF4444", "#DB2777", "#7C3AED", "#6366F1", "#64748B",
 ];
 
-export type Preset = { id: string; label: string; colors: Record<ShiftType, string> };
+export type Preset = { id: string; label: string; colors: Partial<Record<ShiftType, string>> };
 
 export const PRESETS: Preset[] = [
   { id: "default", label: "الافتراضي", colors: { ...DEFAULT_TYPE_COLORS } },
   {
     id: "calm",
     label: "هادئ",
-    colors: { hospital: "#4F86C6", maxillo: "#E3B341", private: "#4C9A6A", personal: "#8B6FC0" },
+    colors: { hospital: "#4F86C6", maxillo: "#E3B341", private: "#3C8DB8", personal: "#8B6FC0" },
   },
   {
     id: "vivid",
     label: "نابض",
-    colors: { hospital: "#0066FF", maxillo: "#FFC800", private: "#00B050", personal: "#A020F0" },
+    colors: { hospital: "#0066FF", maxillo: "#FFC800", private: "#0A84C6", personal: "#A020F0" },
   },
   {
     id: "contrast",
     label: "تباين عالٍ",
-    colors: { hospital: "#1D4ED8", maxillo: "#CA8A04", private: "#15803D", personal: "#6D28D9" },
+    colors: { hospital: "#1D4ED8", maxillo: "#CA8A04", private: "#0B5F8F", personal: "#6D28D9" },
   },
 ];

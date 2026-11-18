@@ -91,7 +91,7 @@ export default function InventoryScreen() {
   const name_of = (id: string) => inventory.find((i) => i.id === id);
 
   return (
-    <Screen title="المخزون" subtitle="مواد العيادة وتنبيه النقص" back overlay={<Fab onPress={() => openItem()} color={green} />}>
+    <Screen title="المخزون" subtitle="مواد العيادة وتنبيه النقص" back overlay={<Fab onPress={() => openItem()} color={green} bottom={20} />}>
       <View className="flex-row gap-2.5 mb-4">
         <View className="flex-1 rounded-2xl p-3" style={{ backgroundColor: TYPE_META.private.soft }}>
           <Text className="text-xs" style={{ color: TYPE_META.private.inkHex }}>

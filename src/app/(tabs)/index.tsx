@@ -1,29 +1,29 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { DateHero } from "@/components/home/DateHero";
-import { NextUpCard } from "@/components/home/NextUpCard";
-import { RiverCard } from "@/components/home/RiverCard";
 import { Logo } from "@/components/Logo";
 import { PrayerCard } from "@/components/PrayerCard";
-import { AgendaRow } from "@/components/AgendaRow";
 import { TaskItem } from "@/components/TaskItem";
-import { Card } from "@/components/ui/Card";
+import { TimelineCard, remainingMinutes } from "@/components/home/TimelineRow";
+import { WeekStrip } from "@/components/home/WeekStrip";
 import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
-import { PressableScale } from "@/components/ui/PressableScale";
+import { Card } from "@/components/ui/Card";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
-import { SHIFT_TYPES, TYPE_META } from "@/constants/shiftTypes";
-import { useAgenda } from "@/hooks/useAgenda";
+import { useAgenda, useAgendaInput } from "@/hooks/useAgenda";
 import { useNow } from "@/hooks/useNow";
 import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
-import { fmtDateFull, toISO, toMinutes } from "@/lib/dates";
+import { useTheme } from "@/hooks/useTheme";
+import { typesOn } from "@/lib/agenda";
+import { relativeDay, toISO, toMinutes } from "@/lib/dates";
 import { nextPrayer } from "@/lib/prayer";
 import { usePlanner } from "@/store/usePlanner";
+import { useQuickAdd } from "@/store/useQuickAdd";
 import { useSettings } from "@/store/useSettings";
 import type { Task } from "@/types";
-import { useTheme } from "@/hooks/useTheme";
+
+const BLUE = "#0E6FA5";
 
 export default function HomeScreen() {
   useTheme();
@@ -31,6 +31,8 @@ export default function HomeScreen() {
   const now = useNow(1000);
   const today = toISO(now);
   const minuteKey = Math.floor(now.getTime() / 60000);
+  const [selected, setSelected] = useState(today);
+  const isToday = selected === today;
 
   const doctorName = useSettings((s) => s.doctorName);
   const logo = useSettings((s) => s.logo);
@@ -38,8 +40,11 @@ export default function HomeScreen() {
   const prayerMethod = useSettings((s) => s.prayerMethod);
   const madhab = useSettings((s) => s.madhab);
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
+  const showTasks = useSettings((s) => s.homeShowTasks);
+  const showQuickAdd = useQuickAdd((s) => s.show);
 
-  const agenda = useAgenda(today);
+  const input = useAgendaInput();
+  const agenda = useAgenda(selected);
   const open = useOpenAgendaItem();
   const tasks = usePlanner((s) => s.tasks);
   const toggleTask = usePlanner((s) => s.toggleTask);
@@ -50,58 +55,59 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [minuteKey, prayerMethod, madhab, prayerAdjust],
   );
-  const remaining = np.time.getTime() - now.getTime();
-  const span = np.time.getTime() - np.previous.getTime();
-  const progress = Math.min(1, Math.max(0, 1 - remaining / span));
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  const isLive = (startTime: string, endTime: string, endsNextDay: boolean, continuation?: boolean) => {
-    const s = toMinutes(startTime);
-    const e = toMinutes(endTime);
-    if (continuation) return nowMin < e;
-    if (endsNextDay) return nowMin >= s;
-    return nowMin >= s && nowMin < e;
+
+  /** حالة كل عنصر في يوم اليوم: جارٍ / منتهٍ */
+  const state = (it: (typeof agenda)[number]) => {
+    if (!isToday) return { live: false, past: selected < today };
+    const s = toMinutes(it.startTime);
+    const e = toMinutes(it.endTime);
+    if (it.continuation) return { live: nowMin < e, past: nowMin >= e };
+    if (it.endsNextDay) return { live: nowMin >= s, past: false };
+    return { live: nowMin >= s && nowMin < e, past: nowMin >= e };
   };
+
+  const doneCount = agenda.filter((a) => state(a).past || a.status === "done").length;
 
   const todayTasks: Task[] = useMemo(
     () =>
       tasks
         .filter((t) => !t.done && (!t.dueDate || t.dueDate <= today))
         .sort((a, b) => (a.priority === "high" ? -1 : 0) - (b.priority === "high" ? -1 : 0))
-        .slice(0, 4),
+        .slice(0, 3),
     [tasks, today],
   );
 
-  // رحلة اليوم: أحداث انتهت + مهام أُنجزت اليوم، من إجمالي أحداث اليوم ومهامه
-  const journey = useMemo(() => {
-    const evs = agenda.filter((a) => !a.continuation);
-    const evDone = evs.filter((a) => {
-      const e = toMinutes(a.endTime);
-      return !a.endsNextDay && nowMin >= (e || 24 * 60);
-    }).length;
-    const due = tasks.filter((t) => (t.done ? toISO(new Date(t.doneAt ?? 0)) === today : !t.dueDate || t.dueDate <= today));
-    const tDone = due.filter((t) => t.done).length;
-    const total = evs.length + due.length;
-    const done = evDone + tDone;
-    return { total, done, progress: total ? done / total : 0 };
-  }, [agenda, tasks, today, nowMin]);
-
-  // الحدث الجاري أو أقرب حدث قادم
-  const nextUp = useMemo(() => {
-    const live = agenda.find((a) => isLive(a.startTime, a.endTime, a.endsNextDay, a.continuation));
-    if (live) return { item: live, live: true };
-    const upcoming = agenda.find((a) => !a.continuation && toMinutes(a.startTime) > nowMin);
-    return upcoming ? { item: upcoming, live: false } : null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agenda, nowMin]);
-
   const hour = now.getHours();
   const greeting = hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء النور";
+
+  // مكان شارة «الآن»: قبل أول عنصر لم يبدأ بعد، إن لم يكن هناك عنصر جارٍ
+  const firstUpcoming = isToday
+    ? agenda.findIndex((a) => !state(a).past && !state(a).live && !a.continuation)
+    : -1;
+  const hasLive = agenda.some((a) => state(a).live);
+
+  const NowPill = (
+    <View key="now" className="flex-row items-center mb-2" style={{ gap: 10 }}>
+      <View className="rounded-full px-3 py-1" style={{ backgroundColor: "#22C55E" }}>
+        <Text w="bold" className="text-xs" style={{ color: "#FFFFFF" }}>
+          الآن
+        </Text>
+      </View>
+      <View style={{ flex: 1, height: 2, backgroundColor: "#22C55E", opacity: 0.35 }} />
+    </View>
+  );
 
   return (
     <Screen
       title={doctorName ? `${greeting} د. ${doctorName}` : greeting}
       subtitle={appName || "Dentist Planner"}
+      logo={
+        <Pressable onPress={() => router.push("/settings")} hitSlop={8}>
+          <Logo uri={logo} size={44} app />
+        </Pressable>
+      }
       right={
         <Pressable
           onPress={() => router.push("/settings")}
@@ -110,76 +116,92 @@ export default function HomeScreen() {
           <Ionicons name="settings-outline" size={20} color="#0F172A" />
         </Pressable>
       }
-      logo={<Logo uri={logo} size={44} app />}
     >
-      <DateHero now={now} next={np} />
-
-      {nextUp ? <NextUpCard item={nextUp.item} live={nextUp.live} onPress={() => open(nextUp.item)} /> : null}
-
-      <RiverCard progress={journey.progress} total={journey.total} done={journey.done} />
-
-      {/* الصلاة القادمة */}
+      {/* بطاقة الصلاة في الأعلى */}
       <PrayerCard next={np} now={now} onPress={() => router.push("/prayer")} />
 
-      {/* إضافة سريعة */}
-      <Text w="bold" className="text-lg mb-2">
-        إضافة سريعة
-      </Text>
-      <View className="flex-row flex-wrap gap-2.5">
-        {SHIFT_TYPES.map((t) => {
-          const m = TYPE_META[t];
-          return (
-            <PressableScale
-              key={t}
-              containerClassName="w-[48.5%]"
-              className="rounded-2xl px-3 py-3 flex-row items-center gap-2.5"
-              style={{ backgroundColor: m.soft }}
-              onPress={() =>
-                router.push({ pathname: "/event/[id]", params: { id: "new", type: t, date: today } })
-              }
-            >
-              <View
-                className="w-9 h-9 rounded-xl items-center justify-center"
-                style={{ backgroundColor: m.hex }}
-              >
-                <Ionicons name={m.icon} size={18} color={m.onSolid} />
+      {/* الأسبوع */}
+      <WeekStrip
+        selected={selected}
+        onSelect={setSelected}
+        onOpenCalendar={() => router.push("/calendar")}
+        dotsFor={(iso) => typesOn(iso, input)}
+      />
+
+      {/* جدول اليوم المحدّد */}
+      <View className="bg-surface rounded-[28px] border border-line p-4">
+        <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-1">
+            <Text w="bold" className="text-xl">
+              {relativeDay(selected)}
+            </Text>
+            <Text className="text-xs text-muted">
+              {agenda.length === 0
+                ? "لا شيء مجدول"
+                : isToday || selected < today
+                  ? `أُنجز ${doneCount} من ${agenda.length}`
+                  : `${agenda.length} ${agenda.length === 1 ? "نشاط" : "أنشطة"} مجدولة`}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => showQuickAdd(selected)}
+            className="w-10 h-10 rounded-full items-center justify-center"
+            style={{ backgroundColor: BLUE }}
+            accessibilityLabel="إضافة"
+          >
+            <Ionicons name="add" size={24} color="#FFFFFF" />
+          </Pressable>
+        </View>
+
+        {agenda.length === 0 ? (
+          <EmptyState icon="sunny-outline" title="يوم هادئ" hint="اضغط + لإضافة دوام أو موعد أو مهمة" />
+        ) : (
+          agenda.map((it, i) => {
+            const st = state(it);
+            const rail = st.past || st.live ? "#22C55E" : "#CFCBBF";
+            return (
+              <View key={it.key}>
+                {isToday && !hasLive && i === firstUpcoming ? NowPill : null}
+                <View className="flex-row items-stretch mb-2.5" style={{ gap: 10 }}>
+                  <View style={{ width: 52, alignItems: "center" }}>
+                    <Text w="bold" className="text-xs" style={{ fontVariant: ["tabular-nums"] }}>
+                      {it.startTime}
+                    </Text>
+                    <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: rail, marginTop: 5 }} />
+                    {i < agenda.length - 1 ? <View style={{ width: 2, flex: 1, backgroundColor: rail, opacity: 0.45, marginTop: 2 }} /> : null}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <TimelineCard
+                      item={it}
+                      live={st.live}
+                      past={st.past}
+                      remainingMin={st.live ? remainingMinutes(it, nowMin) : undefined}
+                      onPress={() => open(it)}
+                    />
+                  </View>
+                </View>
               </View>
-              <Text w="semi" className="flex-1 text-sm" style={{ color: m.inkHex }} numberOfLines={2}>
-                {m.label}
-              </Text>
-            </PressableScale>
-          );
-        })}
+            );
+          })
+        )}
+        {isToday && !hasLive && agenda.length > 0 && firstUpcoming === -1 ? NowPill : null}
       </View>
 
-      {/* جدول اليوم */}
-      <SectionHeader title="جدول اليوم" action="التقويم" onAction={() => router.push("/calendar")} />
-      {agenda.length === 0 ? (
-        <Card>
-          <EmptyState icon="sunny-outline" title="لا شيء مجدول اليوم" hint="أضف دوامًا أو موعدًا من الأزرار أعلاه" />
-        </Card>
-      ) : (
-        agenda.map((it) => (
-          <AgendaRow
-            key={it.key}
-            item={it}
-            live={isLive(it.startTime, it.endTime, it.endsNextDay, it.continuation)}
-            onPress={() => open(it)}
-          />
-        ))
-      )}
-
       {/* المهام */}
-      <SectionHeader title="مهام اليوم" action="كل المهام" onAction={() => router.push("/tasks")} />
-      {todayTasks.length === 0 ? (
-        <Card>
-          <EmptyState icon="checkmark-done-outline" title="لا مهام معلّقة" hint="رائع! أو أضف مهمة جديدة من تبويب المهام" />
-        </Card>
-      ) : (
-        todayTasks.map((t) => (
-          <TaskItem key={t.id} task={t} onToggle={() => toggleTask(t.id)} onPress={() => router.push("/tasks")} />
-        ))
-      )}
+      {showTasks ? (
+        <>
+          <SectionHeader title="مهام اليوم" action="كل المهام" onAction={() => router.push("/tasks")} />
+          {todayTasks.length === 0 ? (
+            <Card>
+              <EmptyState icon="checkmark-done-outline" title="لا مهام معلّقة" hint="اضغط + ثم «مهمة» لإضافة واحدة" />
+            </Card>
+          ) : (
+            todayTasks.map((t) => (
+              <TaskItem key={t.id} task={t} onToggle={() => toggleTask(t.id)} onPress={() => router.push("/tasks")} />
+            ))
+          )}
+        </>
+      ) : null}
     </Screen>
   );
 }

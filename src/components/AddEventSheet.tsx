@@ -4,7 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
-import { SHIFT_TYPES, TYPE_META } from "@/constants/shiftTypes";
+import { TYPE_META } from "@/constants/shiftTypes";
+import { useActiveTypes } from "@/hooks/useActiveTypes";
 import { fmtDateLong } from "@/lib/dates";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -17,11 +18,12 @@ type Props = {
 /** نافذة اختيار نوع الحدث الجديد (أربعة أزرار كبيرة بألوان الأنواع) */
 export function AddEventSheet({ visible, date, onClose }: Props) {
   useTheme();
+  const types = useActiveTypes();
   const router = useRouter();
   return (
     <Sheet visible={visible} onClose={onClose} title={`إضافة في ${fmtDateLong(date)}`}>
       <View className="flex-row flex-wrap gap-3">
-        {SHIFT_TYPES.map((t) => {
+        {types.map((t) => {
           const m = TYPE_META[t];
           return (
             <PressableScale

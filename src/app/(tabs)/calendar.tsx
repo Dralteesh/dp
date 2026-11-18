@@ -11,7 +11,8 @@ import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
 import { Fab } from "@/components/ui/Fab";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
-import { SHIFT_TYPES, TYPE_META } from "@/constants/shiftTypes";
+import { TYPE_META } from "@/constants/shiftTypes";
+import { useActiveTypes } from "@/hooks/useActiveTypes";
 import { useAgenda, useAgendaInput } from "@/hooks/useAgenda";
 import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
 import { typesOn } from "@/lib/agenda";
@@ -21,6 +22,7 @@ import { useTheme } from "@/hooks/useTheme";
 
 export default function CalendarScreen() {
   useTheme();
+  const types = useActiveTypes();
   const input = useAgendaInput();
   const open = useOpenAgendaItem();
 
@@ -46,8 +48,8 @@ export default function CalendarScreen() {
   }, [ym, input]);
 
   const counts = useMemo(() => {
-    const c: Record<ShiftType, number> = { hospital: 0, maxillo: 0, private: 0, personal: 0 };
-    Object.values(dotsMap).forEach((types) => types.forEach((t) => (c[t] += 1)));
+    const c = {} as Record<ShiftType, number>;
+    Object.values(dotsMap).forEach((ts) => ts.forEach((t) => (c[t] = (c[t] ?? 0) + 1)));
     return c;
   }, [dotsMap]);
 
@@ -61,6 +63,7 @@ export default function CalendarScreen() {
   return (
     <Screen
       title="التقويم"
+      back
       right={
         <Text w="semi" className="text-hospital" onPress={goToday}>
           اليوم
@@ -120,7 +123,7 @@ export default function CalendarScreen() {
 
       {/* عدّاد الأيام لكل نوع في هذا الشهر */}
       <View className="flex-row flex-wrap gap-2 mt-3">
-        {SHIFT_TYPES.map((t) => {
+        {types.map((t) => {
           const m = TYPE_META[t];
           return (
             <View
@@ -130,7 +133,7 @@ export default function CalendarScreen() {
             >
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: m.hex }} />
               <Text w="semi" className="text-xs" style={{ color: m.inkHex }}>
-                {m.short} · {counts[t]} يوم
+                {m.short} · {counts[t] ?? 0} يوم
               </Text>
             </View>
           );

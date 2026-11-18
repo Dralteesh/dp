@@ -120,7 +120,8 @@ export default function PrayerScreen() {
           borderTopRightRadius: 28,
           paddingTop: 14,
           paddingHorizontal: 14,
-          paddingBottom: 12,
+          // مساحة للشريط السفلي العائم
+          paddingBottom: 12 + 86 + insets.bottom,
         }}
       >
         <View className="flex-row items-center justify-between px-1 mb-1.5">

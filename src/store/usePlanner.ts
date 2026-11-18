@@ -6,7 +6,7 @@ import type { Note, PlannerEvent, Task } from "@/types";
 
 type NewEvent = Omit<PlannerEvent, "id" | "createdAt">;
 type NewTask = Pick<Task, "title"> & Partial<Pick<Task, "priority" | "type" | "dueDate">>;
-type NewNote = Pick<Note, "text"> & Partial<Pick<Note, "type" | "pinned">>;
+type NewNote = Pick<Note, "text"> & Partial<Pick<Note, "type" | "pinned" | "title" | "color">>;
 
 type PlannerState = {
   events: PlannerEvent[];
@@ -79,6 +79,8 @@ export const usePlanner = create<PlannerState>()(
         const now = Date.now();
         const note: Note = {
           id,
+          title: n.title,
+          color: n.color,
           text: n.text,
           type: n.type,
           pinned: n.pinned ?? false,

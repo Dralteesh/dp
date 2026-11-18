@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Chip, Segmented } from "@/components/ui/Chip";
 import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
 import { Field, FieldRow } from "@/components/ui/Field";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
@@ -202,6 +203,25 @@ export default function PatientScreen() {
         </View>
       ) : null}
 
+      {patient.fileNumber || patient.phone ? (
+        <View className="flex-row flex-wrap gap-2 mb-3">
+          {patient.fileNumber ? (
+            <View className="rounded-full px-3 py-1" style={{ backgroundColor: TYPE_META.private.soft }}>
+              <Text w="semi" className="text-xs" style={{ color: TYPE_META.private.inkHex }}>
+                ملف رقم {patient.fileNumber}
+              </Text>
+            </View>
+          ) : null}
+          {patient.birthYear ? (
+            <View className="rounded-full px-3 py-1 bg-slate-100">
+              <Text w="semi" className="text-xs">
+                مواليد {patient.birthYear}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       {/* إجراءات سريعة */}
       <View className="flex-row gap-2 mb-4">
         {patient.phone ? (
@@ -356,7 +376,6 @@ export default function PatientScreen() {
       {section === "teeth" && (
         <View className="mt-4">
           <Odontogram teeth={patient.teeth} selected={tooth} onSelect={setToothSel} />
-          <Text className="text-xs text-muted mt-2">مرّر أفقيًا لرؤية كل الأسنان، واضغط سنًا لتحديده.</Text>
 
           <SectionHeader title={tooth ? `السن ${tooth}` : "اختر سنًا"} />
           {tooth ? (
@@ -380,6 +399,35 @@ export default function PatientScreen() {
           ) : (
             <Text className="text-muted">اضغط على أي سن في المخطط أعلاه ثم حدّد حالته.</Text>
           )}
+
+          {tooth ? (
+            <PressableScale
+              className="mt-3 rounded-3xl p-4 flex-row items-center gap-3"
+              style={{ backgroundColor: TYPE_META.private.soft }}
+              onPress={() => {
+                setSTooth(tooth);
+                setSessionOpen(true);
+                setSection("sessions");
+              }}
+            >
+              <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: TYPE_META.private.hex }}>
+                <Text w="bold" style={{ color: TYPE_META.private.onSolid }}>
+                  {tooth}
+                </Text>
+              </View>
+              <View className="flex-1">
+                <Text w="bold" style={{ color: TYPE_META.private.inkHex }}>
+                  {patient.teeth[tooth] ? TOOTH_STATUS[patient.teeth[tooth]].label : "سليم"}
+                </Text>
+                <Text className="text-xs" style={{ color: TYPE_META.private.inkHex, opacity: 0.8 }}>
+                  {sessions.filter((x) => x.tooth === tooth).length} جلسات مسجّلة على هذا السن
+                </Text>
+              </View>
+              <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: TYPE_META.private.hex }}>
+                <Ionicons name="add" size={24} color={TYPE_META.private.onSolid} />
+              </View>
+            </PressableScale>
+          ) : null}
 
           {toothCount > 0 ? (
             <>

@@ -16,6 +16,7 @@ import { AppSync } from "@/components/AppSync";
 import { ThemeRoot } from "@/components/ThemeRoot";
 import { LockGate } from "@/components/LockGate";
 import { CloudSync } from "@/components/CloudSync";
+import { QuickAddSheet } from "@/components/QuickAddSheet";
 import { Text } from "@/components/ui/Text";
 import { getAlarmModule } from "@/lib/alarm";
 import { useHydrated } from "@/lib/hydration";
@@ -77,6 +78,7 @@ export default function RootLayout() {
           </Text>
         </View>
       )}
+      <QuickAddSheet />
       <LockGate />
       </ThemeRoot>
     </GestureHandlerRootView>

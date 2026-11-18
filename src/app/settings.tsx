@@ -1,4 +1,5 @@
-import { Alert, Pressable, View } from "react-native";
+import { Alert, Pressable, Switch, View } from "react-native";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,9 +12,33 @@ import { CITY, PRAYER_LABELS, PRAYER_METHODS, PRAYER_ORDER } from "@/lib/prayer"
 import { useClinic } from "@/store/useClinic";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
-import type { PrayerMethodKey } from "@/types";
+import { CHALLENGE_LABELS } from "@/lib/alarmChallenge";
+import type { AlarmChallenge, PrayerMethodKey } from "@/types";
 
 const REMINDER_OPTIONS = [0, 15, 30, 60, 120];
+
+type LinkProps = { icon: keyof typeof Ionicons.glyphMap; title: string; hint: string; href: string; last?: boolean };
+
+/** صف تنقّل داخل الإعدادات */
+function SettingsLink({ icon, title, hint, href, last }: LinkProps) {
+  const router = useRouter();
+  return (
+    <Pressable
+      onPress={() => router.push(href as never)}
+      className="flex-row items-center gap-3 py-3"
+      style={{ borderBottomWidth: last ? 0 : 1, borderBottomColor: "#EFEDE5" }}
+    >
+      <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: "#E8F1F7" }}>
+        <Ionicons name={icon} size={20} color="#0E6FA5" />
+      </View>
+      <View className="flex-1">
+        <Text w="semi">{title}</Text>
+        <Text className="text-xs text-muted">{hint}</Text>
+      </View>
+      <Ionicons name="chevron-back" size={18} color="#94A3B8" />
+    </Pressable>
+  );
+}
 
 export default function SettingsScreen() {
   const s = useSettings();
@@ -41,6 +66,47 @@ export default function SettingsScreen() {
           onChangeText={(v) => s.update({ currency: v })}
           placeholder="ل.س أو $"
         />
+      </Card>
+
+      <SectionHeader title="التخصيص" />
+      <Card>
+        <SettingsLink icon="briefcase-outline" title="أماكن العمل" hint="أنواع الدوام والمناوبة، الألوان، الأماكن الافتراضية" href="/workplaces" />
+        <SettingsLink icon="color-palette-outline" title="المظهر والشعارات" hint="ألوان الأنواع، اسم التطبيق وشعار العيادة" href="/appearance" />
+        <SettingsLink icon="cloud-outline" title="الحساب والمزامنة" hint="نسخ احتياطي سحابي ومزامنة بين الأجهزة" href="/account" />
+        <SettingsLink icon="shield-checkmark-outline" title="الأمان والنسخ الاحتياطي" hint="قفل التطبيق، تصدير واستعادة بياناتك" href="/security" last />
+      </Card>
+
+      <SectionHeader title="الشاشة الرئيسية" />
+      <Card>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 pe-3">
+            <Text w="semi">إظهار مهام اليوم</Text>
+            <Text className="text-xs text-muted">أخفها إن أردت رئيسية أخف</Text>
+          </View>
+          <Switch
+            value={s.homeShowTasks}
+            onValueChange={(v) => s.update({ homeShowTasks: v })}
+            trackColor={{ true: "#0E6FA5", false: "#CBD5E1" }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+      </Card>
+
+      <SectionHeader title="المنبّه الإجباري" />
+      <Card>
+        <FieldRow label="تحدّي الإيقاف الافتراضي لمنبّهات المناوبات">
+          <View className="flex-row flex-wrap gap-2">
+            {(["math", "hold", "phrase", "none"] as AlarmChallenge[]).map((c) => (
+              <Chip
+                key={c}
+                label={CHALLENGE_LABELS[c].label}
+                selected={s.defaultAlarmChallenge === c}
+                color="#C2410C"
+                onPress={() => s.update({ defaultAlarmChallenge: c })}
+              />
+            ))}
+          </View>
+        </FieldRow>
       </Card>
 
       <SectionHeader title={`الصلاة • ${CITY.name}`} />
@@ -155,6 +221,11 @@ export default function SettingsScreen() {
             onPress={() => confirm("استعادة الإعدادات", "ستعود كل الإعدادات لقيمها الأولى.", s.reset)}
           />
         </View>
+      </Card>
+
+      <SectionHeader title="متقدّم" />
+      <Card>
+        <SettingsLink icon="watch-outline" title="الأدوات المصغرة والساعة" hint="ودجت الشاشة الرئيسية وإشعارات Xiaomi Watch" href="/connect" last />
       </Card>
     </Screen>
   );

@@ -64,6 +64,7 @@ export default function ExpensesScreen() {
       back
       overlay={
         <Fab
+          bottom={20}
           color={green}
           onPress={() => {
             setDate(todayISO());
