@@ -194,7 +194,7 @@ export default function FocusScreen() {
   // ---------- النتيجة ----------
   const lastRec = records[0];
   return (
-    <Screen title="غابة التركيز" subtitle={`${coins} عملة • ${stats.trees} شجرة`} back>
+    <Screen title="غابة التركيز" subtitle={`${coins} عملة • ${stats.trees} شجرة`}>
       {result && lastRec ? (
         <View className="rounded-3xl items-center py-5 mb-4" style={{ backgroundColor: result === "grown" ? "#E4F4E8" : "#F1ECE4" }}>
           <TreeSvg species={lastRec.species} stage={3} withered={result === "withered"} size={150} />

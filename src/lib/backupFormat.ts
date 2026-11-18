@@ -17,9 +17,14 @@ export const CLINIC_KEYS = [
   "expenses",
 ] as const;
 
+/** بيانات العيادة الإضافية (store منفصل: useExtras) */
+export const EXTRAS_KEYS = ["priceList", "waitlist", "sterilization"] as const;
+
 export type BackupData = {
   planner: Record<(typeof PLANNER_KEYS)[number], unknown[]>;
   clinic: Record<(typeof CLINIC_KEYS)[number], unknown[]>;
+  /** قد يغيب في نسخ قديمة */
+  extras: Record<(typeof EXTRAS_KEYS)[number], unknown[]>;
   alarms: unknown[];
   settings: Record<string, unknown>;
 };
@@ -38,17 +43,20 @@ export function makeBackup(
   clinic: Partial<Record<string, unknown>>,
   alarms: unknown,
   settings: Record<string, unknown>,
+  extras: Partial<Record<string, unknown>> = {},
   now: Date = new Date(),
 ): Backup {
   const p = {} as BackupData["planner"];
   for (const k of PLANNER_KEYS) p[k] = items(planner[k]);
   const c = {} as BackupData["clinic"];
   for (const k of CLINIC_KEYS) c[k] = items(clinic[k]);
+  const x = {} as BackupData["extras"];
+  for (const k of EXTRAS_KEYS) x[k] = items(extras[k]);
   return {
     app: BACKUP_APP,
     version: BACKUP_VERSION,
     exportedAt: now.toISOString(),
-    data: { planner: p, clinic: c, alarms: items(alarms), settings },
+    data: { planner: p, clinic: c, extras: x, alarms: items(alarms), settings },
   };
 }
 
@@ -68,7 +76,7 @@ export function parseBackup(text: string): { ok: true; backup: Backup } | { ok: 
   const at = new Date(String(raw.exportedAt));
   return {
     ok: true,
-    backup: makeBackup(d.planner, d.clinic, d.alarms, isObj(d.settings) ? d.settings : {}, isNaN(at.getTime()) ? new Date(0) : at),
+    backup: makeBackup(d.planner, d.clinic, d.alarms, isObj(d.settings) ? d.settings : {}, isObj(d.extras) ? d.extras : {}, isNaN(at.getTime()) ? new Date(0) : at),
   };
 }
 
@@ -79,6 +87,7 @@ export function backupCounts(b: Backup): { label: string; n: number }[] {
     { label: "جلسات", n: b.data.clinic.sessions.length },
     { label: "دفعات", n: b.data.clinic.payments.length },
     { label: "وصفات", n: b.data.clinic.prescriptions.length },
+    { label: "سجلات تعقيم", n: b.data.extras.sterilization.length },
     { label: "أحداث", n: b.data.planner.events.length },
     { label: "مهام", n: b.data.planner.tasks.length },
   ];

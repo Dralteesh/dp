@@ -8,6 +8,7 @@ import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
+import { fmtUsd } from "@/lib/currency";
 import { fmtMoney } from "@/lib/format";
 import { buildReport, periodRange, topDebtors, type Period } from "@/lib/reports";
 import { useClinic } from "@/store/useClinic";
@@ -66,6 +67,9 @@ export default function ReportsScreen() {
         <Stat label="المقبوض" value={fmtMoney(report.collected, currency)} bg={TYPE_META.private.soft} fg={TYPE_META.private.inkHex} />
         <Stat label="المستحق (جلسات)" value={fmtMoney(report.charged, currency)} bg={TYPE_META.hospital.soft} fg={TYPE_META.hospital.inkHex} />
       </View>
+      {report.collectedUsd > 0 ? (
+        <Text className="text-xs text-muted mt-1.5 mx-1">منه بالدولار: {fmtUsd(report.collectedUsd)}</Text>
+      ) : null}
       <View className="flex-row gap-2.5 mt-2.5">
         <Stat label="المصاريف" value={fmtMoney(report.expenses, currency)} bg="#FEF3C7" fg="#92400E" />
         <Stat

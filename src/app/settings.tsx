@@ -1,4 +1,4 @@
-import { Alert, Pressable, Switch, View } from "react-native";
+import { Alert, Linking, Pressable, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
@@ -70,6 +70,8 @@ export default function SettingsScreen() {
 
       <SectionHeader title="التخصيص" />
       <Card>
+        <SettingsLink icon="cash-outline" title="دخلي الشهري" hint="الراتب والدوامات والمناوبات وصافي العيادة" href="/income" />
+        <SettingsLink icon="calendar-number-outline" title="جدولة الدوامات" hint="املأ الشهر بالدوامات والمناوبات بضغطة" href="/shifts-bulk" />
         <SettingsLink icon="briefcase-outline" title="أماكن العمل" hint="أنواع الدوام والمناوبة، الألوان، الأماكن الافتراضية" href="/workplaces" />
         <SettingsLink icon="color-palette-outline" title="المظهر والشعارات" hint="ألوان الأنواع، اسم التطبيق وشعار العيادة" href="/appearance" />
         <SettingsLink icon="cloud-outline" title="الحساب والمزامنة" hint="نسخ احتياطي سحابي ومزامنة بين الأجهزة" href="/account" />
@@ -86,6 +88,18 @@ export default function SettingsScreen() {
           <Switch
             value={s.homeShowTasks}
             onValueChange={(v) => s.update({ homeShowTasks: v })}
+            trackColor={{ true: "#0E6FA5", false: "#CBD5E1" }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+        <View className="flex-row items-center justify-between mt-4">
+          <View className="flex-1 pe-3">
+            <Text w="semi">إظهار المستندات الأخيرة</Text>
+            <Text className="text-xs text-muted">آخر 3 مستندات أضفتها تحت المهام</Text>
+          </View>
+          <Switch
+            value={s.homeShowDocs}
+            onValueChange={(v) => s.update({ homeShowDocs: v })}
             trackColor={{ true: "#0E6FA5", false: "#CBD5E1" }}
             thumbColor="#FFFFFF"
           />
@@ -168,6 +182,30 @@ export default function SettingsScreen() {
       </Card>
 
       <SectionHeader title="التذكيرات" />
+      <Card>
+        <SettingsLink
+          icon="moon-outline"
+          title="تذكيرات الصلاة والأذكار"
+          hint="قبل الصلاة، بعد الأذان حتى تصلّي، الأذكار"
+          href="/reminders-prayer"
+          last
+        />
+      </Card>
+      <Card>
+        <View className="flex-row items-start gap-3">
+          <Ionicons name="battery-charging-outline" size={22} color="#C2410C" />
+          <View className="flex-1">
+            <Text w="semi">لضمان وصول التذكيرات على هواتف Xiaomi</Text>
+            <Text className="text-sm text-muted mt-0.5">
+              أوقف توفير البطارية عن التطبيق وفعّل «التشغيل التلقائي».
+            </Text>
+          </View>
+        </View>
+        <View className="mt-3">
+          <Button label="فتح إعدادات التطبيق" variant="soft" icon="settings-outline" onPress={() => Linking.openSettings()} />
+        </View>
+      </Card>
+      <View style={{ height: 8 }} />
       <Card>
         <FieldRow label="تذكير افتراضي للأحداث الجديدة (دقائق قبل البدء)">
           <View className="flex-row flex-wrap gap-2">

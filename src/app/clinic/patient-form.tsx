@@ -3,12 +3,15 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import { useState } from "react";
 import { Alert, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { AlertFlagPicker } from "@/components/clinic/AlertFlagPicker";
+import { DictateField } from "@/components/DictateField";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { toWesternDigits } from "@/lib/format";
+import type { AlertFlag } from "@/types";
 import { useClinic } from "@/store/useClinic";
 
 
@@ -28,6 +31,7 @@ export default function PatientFormScreen() {
   const [birthYear, setBirthYear] = useState(existing?.birthYear ? String(existing.birthYear) : "");
   const [status, setStatus] = useState<"active" | "finished">(existing?.status ?? "active");
   const [alerts, setAlerts] = useState(existing?.medicalAlerts ?? "");
+  const [flags, setFlags] = useState<AlertFlag[]>(existing?.alertFlags ?? []);
   const [notes, setNotes] = useState(existing?.notes ?? "");
 
   const save = () => {
@@ -44,6 +48,7 @@ export default function PatientFormScreen() {
       birthYear: year >= 1900 && year <= new Date().getFullYear() ? year : undefined,
       status,
       medicalAlerts: alerts.trim() || undefined,
+      alertFlags: flags.length ? flags : undefined,
       notes: notes.trim() || undefined,
     };
     if (existing) {
@@ -90,7 +95,8 @@ export default function PatientFormScreen() {
           placeholder="حساسية، سكري، سيولة دم، حمل..."
           multiline
         />
-        <Field label="ملاحظات" value={notes} onChangeText={setNotes} placeholder="ملاحظات عامة" multiline />
+        <AlertFlagPicker value={flags} onChange={setFlags} />
+        <DictateField label="ملاحظات" value={notes} onChangeText={setNotes} placeholder="ملاحظات عامة" multiline />
       </Card>
 
       <View className="mt-5">

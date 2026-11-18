@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
+import { useExtras } from "@/store/useExtras";
 import { usePlanner } from "@/store/usePlanner";
 import { DEFAULT_SETTINGS, useSettings } from "@/store/useSettings";
 
@@ -75,6 +76,9 @@ const SLICES: Slice[] = [
   listSlice("clinic_stock_moves", useClinic as any, "stockMoves" as any),
   listSlice("clinic_treatment_plans", useClinic as any, "plans" as any),
   listSlice("clinic_expenses", useClinic as any, "expenses" as any),
+  listSlice("clinic_price_list", useExtras as any, "priceList" as any),
+  listSlice("clinic_waitlist", useExtras as any, "waitlist" as any),
+  listSlice("clinic_sterilization", useExtras as any, "sterilization" as any),
   settingsSlice,
 ];
 
@@ -120,6 +124,7 @@ export async function setOwner(userId: string) {
 export function wipeLocal() {
   usePlanner.getState().resetAll();
   useClinic.getState().resetAll();
+  useExtras.getState().resetAll();
   useAlarms.setState({ alarms: [] });
   useSettings.getState().reset();
 }

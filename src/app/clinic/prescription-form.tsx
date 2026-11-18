@@ -3,6 +3,7 @@ import { Alert, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DateField } from "@/components/pickers";
+import { WarningLines } from "@/components/clinic/MedicalAlertBar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -12,6 +13,7 @@ import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
 import { todayISO } from "@/lib/dates";
+import { drugWarnings, patientFlags } from "@/lib/alerts";
 import { dosageText } from "@/lib/dosage";
 import { useClinic } from "@/store/useClinic";
 import type { PrescriptionLine } from "@/types";
@@ -51,10 +53,13 @@ export default function PrescriptionForm() {
   };
 
   const green = TYPE_META.private.hex;
+  const flags = patientFlags(patient);
+  const warnings: string[] = Array.from(new Set<string>(lines.flatMap((l) => drugWarnings(flags, l.drug))));
 
   return (
     <Screen title="وصفة جديدة" subtitle={patient.name} back>
       <DateField label="التاريخ" value={date} onChange={setDate} />
+      <WarningLines lines={warnings} />
 
       {drugs.length > 0 ? (
         <FieldRow label="من دليل الأدوية (اضغط للإضافة)">

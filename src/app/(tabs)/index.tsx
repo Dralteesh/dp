@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
 import { PrayerCard } from "@/components/PrayerCard";
+import { RecentDocs } from "@/components/home/RecentDocs";
 import { TaskItem } from "@/components/TaskItem";
 import { TimelineCard, remainingMinutes } from "@/components/home/TimelineRow";
 import { WeekStrip } from "@/components/home/WeekStrip";
@@ -41,6 +42,7 @@ export default function HomeScreen() {
   const madhab = useSettings((s) => s.madhab);
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
   const showTasks = useSettings((s) => s.homeShowTasks);
+  const showDocs = useSettings((s) => s.homeShowDocs);
   const showQuickAdd = useQuickAdd((s) => s.show);
 
   const input = useAgendaInput();
@@ -109,12 +111,22 @@ export default function HomeScreen() {
         </Pressable>
       }
       right={
-        <Pressable
-          onPress={() => router.push("/settings")}
-          className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
-        >
-          <Ionicons name="settings-outline" size={20} color="#0F172A" />
-        </Pressable>
+        <View className="flex-row items-center gap-2">
+          <Pressable
+            onPress={() => router.push("/search")}
+            className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
+            accessibilityLabel="بحث"
+          >
+            <Ionicons name="search-outline" size={20} color="#0F172A" />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
+            accessibilityLabel="الإعدادات"
+          >
+            <Ionicons name="settings-outline" size={20} color="#0F172A" />
+          </Pressable>
+        </View>
       }
     >
       {/* بطاقة الصلاة في الأعلى */}
@@ -202,6 +214,9 @@ export default function HomeScreen() {
           )}
         </>
       ) : null}
+
+      {/* المستندات الأخيرة */}
+      {showDocs ? <RecentDocs /> : null}
     </Screen>
   );
 }

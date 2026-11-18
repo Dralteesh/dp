@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { MoneyField, useMoneyInput } from "@/components/MoneyField";
 import { DateField } from "@/components/pickers";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -15,7 +16,8 @@ import { EXPENSE_CATEGORIES } from "@/constants/clinic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
 import { fmtDateShort, todayISO } from "@/lib/dates";
-import { fmtMoney, parseAmount } from "@/lib/format";
+import { foreignLabel } from "@/lib/currency";
+import { fmtMoney } from "@/lib/format";
 import { periodRange, type Period } from "@/lib/reports";
 import { useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
@@ -40,7 +42,7 @@ export default function ExpensesScreen() {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(todayISO());
   const [category, setCategory] = useState<ExpenseCategory>("materials");
-  const [amount, setAmount] = useState("");
+  const money = useMoneyInput();
   const [note, setNote] = useState("");
 
   const range = periodRange(period);
@@ -51,9 +53,9 @@ export default function ExpensesScreen() {
   const total = list.reduce((a, x) => a + x.amount, 0);
 
   const save = () => {
-    const n = parseAmount(amount);
-    if (n <= 0) return Alert.alert("اكتب مبلغًا صحيحًا");
-    addExpense({ date, category, amount: n, note: note.trim() || undefined });
+    const m = money.result();
+    if (!m) return Alert.alert("اكتب مبلغًا صحيحًا", money.cur === "usd" ? "ولا تنسَ سعر الدولار." : undefined);
+    addExpense({ date, category, amount: m.amount, foreign: m.foreign, note: note.trim() || undefined });
     setOpen(false);
   };
 
@@ -68,7 +70,7 @@ export default function ExpensesScreen() {
           color={green}
           onPress={() => {
             setDate(todayISO());
-            setAmount("");
+            money.reset();
             setNote("");
             setOpen(true);
           }}
@@ -95,6 +97,7 @@ export default function ExpensesScreen() {
                 <Text w="semi">{EXPENSE_CATEGORIES[x.category]}</Text>
                 <Text className="text-xs text-muted">
                   {fmtDateShort(x.date)}
+                  {x.foreign ? ` • ${foreignLabel(x.foreign)}` : ""}
                   {x.note ? ` • ${x.note}` : ""}
                 </Text>
               </View>
@@ -126,7 +129,7 @@ export default function ExpensesScreen() {
             ))}
           </View>
         </FieldRow>
-        <Field label={`المبلغ (${currency})`} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
+        <MoneyField label="المبلغ" m={money} />
         <Field label="ملاحظة (اختياري)" value={note} onChangeText={setNote} />
         <Button label="حفظ" icon="checkmark" type="private" onPress={save} />
       </Sheet>

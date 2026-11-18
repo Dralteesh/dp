@@ -11,6 +11,7 @@ import { PRAYER_THEMES, skyKey } from "@/constants/prayerThemes";
 import { useNow } from "@/hooks/useNow";
 import { addDays, combine, fmtCountdown, fmtDateFull, fmtTimeDate, todayISO } from "@/lib/dates";
 import { CITY, PRAYER_LABELS, PRAYER_METHODS, PRAYER_ORDER, getPrayerTimes, nextPrayer } from "@/lib/prayer";
+import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
 import { useSettings } from "@/store/useSettings";
 
 export default function PrayerScreen() {
@@ -23,6 +24,9 @@ export default function PrayerScreen() {
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
   const prayerNotify = useSettings((s) => s.prayerNotify);
   const toggleNotify = useSettings((s) => s.toggleNotify);
+  const doneLog = usePrayerLog((s) => s.done);
+  const markDone = usePrayerLog((s) => s.markDone);
+  const unmark = usePrayerLog((s) => s.unmark);
 
   // الشاشة داكنة: نجعل أيقونات شريط الحالة فاتحة وهي ظاهرة فقط
   const [focused, setFocused] = useState(true);
@@ -78,7 +82,14 @@ export default function PrayerScreen() {
       {/* الترويسة */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16 }}>
         <View className="flex-row items-center justify-between">
-          <View style={{ width: 36 }} />
+          <Pressable
+            onPress={() => router.push("/reminders-prayer")}
+            hitSlop={8}
+            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+          >
+            <Ionicons name="alarm-outline" size={18} color="#FFFFFF" />
+          </Pressable>
           <View className="items-center">
             <Text w="semi" className="text-white">
               الصلاة القادمة
@@ -146,6 +157,8 @@ export default function PrayerScreen() {
         {PRAYER_ORDER.map((k) => {
           const isNext = isToday && next.key === k && next.time.getTime() === times[k].getTime();
           const on = prayerNotify[k];
+          const fard = k !== "sunrise";
+          const prayed = fard && !!doneLog[iso]?.[k as FardKey];
           return (
             <View
               key={k}
@@ -163,6 +176,27 @@ export default function PrayerScreen() {
                 <Text w="bold" className="text-white text-base" style={{ fontVariant: ["tabular-nums"] }}>
                   {fmtTimeDate(times[k])}
                 </Text>
+                {fard ? (
+                  <Pressable
+                    onPress={() => (prayed ? unmark(iso, k as FardKey) : markDone(iso, k as FardKey))}
+                    hitSlop={10}
+                    accessibilityLabel="صليت"
+                  >
+                    <View
+                      className="w-6 h-6 rounded-full items-center justify-center"
+                      style={{
+                        borderWidth: 1.5,
+                        borderColor: "#FFFFFF",
+                        backgroundColor: prayed ? "#22C55E" : "transparent",
+                        opacity: prayed ? 1 : 0.7,
+                      }}
+                    >
+                      {prayed ? <Ionicons name="checkmark" size={15} color="#FFFFFF" /> : null}
+                    </View>
+                  </Pressable>
+                ) : (
+                  <View style={{ width: 24 }} />
+                )}
                 <Pressable onPress={() => toggleNotify(k)} hitSlop={10}>
                   <Ionicons
                     name={on ? "notifications" : "notifications-off-outline"}

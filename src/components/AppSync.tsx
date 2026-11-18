@@ -8,6 +8,7 @@ import {
   syncNotifications,
 } from "@/lib/notifications";
 import { useAlarms } from "@/store/useAlarms";
+import { usePrayerLog } from "@/store/usePrayerLog";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
 import { refreshWidgets } from "@/widgets/updateWidgets";
@@ -28,6 +29,11 @@ export function AppSync() {
   const madhab = useSettings((s) => s.madhab);
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
   const prayerNotify = useSettings((s) => s.prayerNotify);
+  const prayerReminders = useSettings((s) => s.prayerReminders);
+  const dhikr = useSettings((s) => s.dhikr);
+  // تعليم صلاة كمُنجَزة أو تأجيلها يغيّر جدول التكرارات
+  const prayerDone = usePrayerLog((s) => s.done);
+  const prayerSnooze = usePrayerLog((s) => s.snoozeUntil);
   const defaultReminder = useSettings((s) => s.defaultReminder);
   const appointmentReminder = useSettings((s) => s.appointmentReminder);
   const currency = useSettings((s) => s.currency);
@@ -39,11 +45,13 @@ export function AppSync() {
       madhab,
       prayerAdjust,
       prayerNotify,
+      prayerReminders,
+      dhikr,
       defaultReminder,
       appointmentReminder,
       currency,
     } as Settings),
-    [doctorName, prayerMethod, madhab, prayerAdjust, prayerNotify, defaultReminder, appointmentReminder, currency],
+    [doctorName, prayerMethod, madhab, prayerAdjust, prayerNotify, prayerReminders, dhikr, defaultReminder, appointmentReminder, currency],
   );
 
   // إعداد القنوات وطلب الإذن مرة واحدة
@@ -60,7 +68,9 @@ export function AppSync() {
       await syncAlarms(alarms, agenda.events);
       await refreshWidgets();
     },
-    [agenda, tasks, settings, alarms],
+    // prayerDone/prayerSnooze: لا تُقرأ هنا لكنها تعيد الجدولة عند تغيّرها (syncNotifications تقرؤها من المتجر)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [agenda, tasks, settings, alarms, prayerDone, prayerSnooze],
   );
 
   useEffect(() => {

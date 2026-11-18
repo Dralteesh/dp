@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -19,11 +20,14 @@ import { CloudSync } from "@/components/CloudSync";
 import { QuickAddSheet } from "@/components/QuickAddSheet";
 import { Text } from "@/components/ui/Text";
 import { getAlarmModule } from "@/lib/alarm";
+import { handlePrayerResponse } from "@/lib/notifications";
 import { useHydrated } from "@/lib/hydration";
 import { setupRTL } from "@/lib/rtl";
 import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
 import { useDevice } from "@/store/useDevice";
+import { useExtras } from "@/store/useExtras";
+import { usePrayerLog } from "@/store/usePrayerLog";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
 
@@ -35,7 +39,7 @@ const RTL_OK = setupRTL();
 export default function RootLayout() {
   const router = useRouter();
   const [fontsLoaded] = useFonts({ Cairo_400Regular, Cairo_600SemiBold, Cairo_700Bold });
-  const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms, useDevice]);
+  const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms, useDevice, usePrayerLog, useExtras]);
   const ready = fontsLoaded && hydrated;
 
   useEffect(() => {
@@ -52,6 +56,25 @@ export default function RootLayout() {
     const sub = mod.onAlarmStateChange((id) => {
       if (id) router.push({ pathname: "/ringing", params: { id } });
     });
+    return () => sub.remove();
+  }, [ready, router]);
+
+  // أزرار إشعار الصلاة («صليت» / «ذكّرني بعد 10 د») وهو يعمل أو بعد إقلاع بارد من الإشعار
+  useEffect(() => {
+    if (!ready) return;
+    const onResponse = async (r: Notifications.NotificationResponse) => {
+      try {
+        const isPrayer = await handlePrayerResponse(r);
+        // الضغط العادي على إشعار صلاة يفتح شاشة الصلاة
+        if (isPrayer && r.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) router.push("/prayer");
+      } catch {
+        // لا نكسر التطبيق بسبب إشعار
+      }
+    };
+    Notifications.getLastNotificationResponseAsync().then((r) => {
+      if (r) onResponse(r);
+    });
+    const sub = Notifications.addNotificationResponseReceivedListener(onResponse);
     return () => sub.remove();
   }, [ready, router]);
 
