@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, Pressable, Switch, TextInput, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { TimeField } from "@/components/pickers";
 import { Button } from "@/components/ui/Button";
@@ -30,12 +31,12 @@ const ALARMS: { v: number | null; l: string }[] = [
   { v: 90, l: "قبل ساعة ونصف" },
 ];
 
-function TypeEditor({ type }: { type: ShiftType }) {
+function TypeEditor({ type, initialOpen = false }: { type: ShiftType; initialOpen?: boolean }) {
   const workplaces = useSettings((s) => s.workplaces);
   const typeColors = useSettings((s) => s.typeColors);
   const places = useSettings((s) => s.places);
   const update = useSettings((s) => s.update);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
 
   const m = TYPE_META[type];
   const w: Partial<WorkplaceConfig> = workplaces[type] ?? {};
@@ -213,6 +214,8 @@ export default function WorkplacesScreen() {
   const places = useSettings((s) => s.places);
   const update = useSettings((s) => s.update);
   const [newPlace, setNewPlace] = useState("");
+  // يفتح النوع المطلوب مباشرة (من «تعديل هذا النوع» في نموذج الموعد)
+  const { type: openType } = useLocalSearchParams<{ type?: string }>();
 
   const hidden = BUILTIN_TYPES.filter((t) => workplaces[t]?.hidden);
   const freeSlot = CUSTOM_SLOTS.find((t) => !workplaces[t]?.custom);
@@ -241,7 +244,7 @@ export default function WorkplacesScreen() {
     <Screen title="أماكن العمل" subtitle="عدّل الأنواع وأضف أماكن جديدة" back>
       <SectionHeader title="الأنواع" />
       {types.map((t) => (
-        <TypeEditor key={t} type={t} />
+        <TypeEditor key={t} type={t} initialOpen={t === openType} />
       ))}
       <Button label="إضافة مكان عمل" icon="add-circle-outline" variant="soft" onPress={addType} />
 

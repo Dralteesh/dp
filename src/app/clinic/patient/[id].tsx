@@ -4,6 +4,11 @@ import { useMemo, useState } from "react";
 import { Alert, Linking, Pressable, Share, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { DictateField } from "@/components/DictateField";
+import { MoneyField, useMoneyInput } from "@/components/MoneyField";
+import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
+import { PatientDocs } from "@/components/clinic/PatientDocs";
+import { QuickSession } from "@/components/clinic/QuickSession";
 import { Odontogram } from "@/components/Odontogram";
 import { DateField } from "@/components/pickers";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -16,6 +21,7 @@ import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { PROCEDURES, STATUS_META, TOOTH_STATUS } from "@/constants/clinic";
+import { foreignLabel } from "@/lib/currency";
 import { fmtDateShort, fmtTime, toISO } from "@/lib/dates";
 import { fmtMoney, initial, parseAmount } from "@/lib/format";
 import { telLink, whatsappLink } from "@/lib/phone";
@@ -57,12 +63,12 @@ export default function PatientScreen() {
   const [sDate, setSDate] = useState(toISO(new Date()));
   const [sProc, setSProc] = useState("");
   const [sTooth, setSTooth] = useState("");
-  const [sCost, setSCost] = useState("");
+  const sMoney = useMoneyInput();
   const [sNotes, setSNotes] = useState("");
 
   const [payOpen, setPayOpen] = useState(false);
   const [pDate, setPDate] = useState(toISO(new Date()));
-  const [pAmount, setPAmount] = useState("");
+  const pMoney = useMoneyInput();
   const [pNote, setPNote] = useState("");
 
   const sessions = useMemo(
@@ -153,30 +159,37 @@ export default function PatientScreen() {
       Alert.alert("الإجراء مطلوب", "اكتب الإجراء الذي تمّ.");
       return;
     }
+    // التكلفة اختيارية (صفر مسموح)؛ إن كُتبت بالدولار فلا بد من سعر الصرف
+    const m = sMoney.value > 0 ? sMoney.result() : { amount: 0, foreign: undefined };
+    if (!m) {
+      Alert.alert("سعر الدولار مطلوب", "اكتب سعر الدولار اليوم.");
+      return;
+    }
     addSession({
       patientId: patient.id,
       date: sDate,
       procedure: sProc.trim(),
       tooth: sTooth.trim() || undefined,
-      cost: parseAmount(sCost),
+      cost: m.amount,
+      foreign: m.foreign,
       notes: sNotes.trim() || undefined,
     });
     setSessionOpen(false);
     setSProc("");
     setSTooth("");
-    setSCost("");
+    sMoney.reset();
     setSNotes("");
   };
 
   const savePayment = () => {
-    const amount = parseAmount(pAmount);
-    if (amount <= 0) {
-      Alert.alert("المبلغ مطلوب", "اكتب مبلغًا أكبر من صفر.");
+    const m = pMoney.result();
+    if (!m) {
+      Alert.alert("المبلغ مطلوب", pMoney.cur === "usd" ? "اكتب مبلغًا وسعر الدولار." : "اكتب مبلغًا أكبر من صفر.");
       return;
     }
-    addPayment({ patientId: patient.id, date: pDate, amount, note: pNote.trim() || undefined });
+    addPayment({ patientId: patient.id, date: pDate, amount: m.amount, foreign: m.foreign, note: pNote.trim() || undefined });
     setPayOpen(false);
-    setPAmount("");
+    pMoney.reset();
     setPNote("");
   };
 
@@ -191,17 +204,7 @@ export default function PatientScreen() {
         <IconButton icon="create-outline" onPress={() => router.push({ pathname: "/clinic/patient-form", params: { id: patient.id } })} />
       }
     >
-      {patient.medicalAlerts ? (
-        <View className="flex-row gap-2 bg-red-50 border border-red-200 rounded-2xl p-3 mb-3">
-          <Ionicons name="warning" size={20} color="#DC2626" />
-          <View className="flex-1">
-            <Text w="bold" className="text-danger text-sm">
-              تنبيه طبي
-            </Text>
-            <Text className="text-danger">{patient.medicalAlerts}</Text>
-          </View>
-        </View>
-      ) : null}
+      <MedicalAlertBar patient={patient} />
 
       {patient.fileNumber || patient.phone ? (
         <View className="flex-row flex-wrap gap-2 mb-3">
@@ -312,6 +315,8 @@ export default function PatientScreen() {
               />
             </View>
           </Card>
+
+          <PatientDocs patient={patient} />
 
           <SectionHeader title="المواعيد" />
           {nextAppt ? (
@@ -459,6 +464,9 @@ export default function PatientScreen() {
       {section === "sessions" && (
         <View className="mt-4">
           <Button label="تسجيل جلسة" icon="add" type="private" onPress={() => setSessionOpen(true)} />
+          <View className="mt-2">
+            <QuickSession patientId={patient.id} />
+          </View>
           <View className="mt-3">
             {sessions.length === 0 ? (
               <EmptyState icon="medkit-outline" title="لا جلسات مسجّلة" hint="سجّل كل علاج مع تكلفته لتُحسب الذمم تلقائيًا" />
@@ -478,6 +486,7 @@ export default function PatientScreen() {
                       <Text w="bold" className="text-hospital-ink">
                         {fmtMoney(s.cost, currency)}
                       </Text>
+                      {s.foreign ? <Text className="text-xs text-muted">{foreignLabel(s.foreign)}</Text> : null}
                       <Pressable
                         hitSlop={8}
                         onPress={() =>
@@ -570,6 +579,7 @@ export default function PatientScreen() {
                       </Text>
                       <Text className="text-xs text-muted">
                         {fmtDateShort(p.date)}
+                        {p.foreign ? ` • ${foreignLabel(p.foreign)}` : ""}
                         {p.note ? ` • ${p.note}` : ""}
                       </Text>
                     </View>
@@ -603,22 +613,16 @@ export default function PatientScreen() {
           </View>
         </FieldRow>
         <Field value={sProc} onChangeText={setSProc} placeholder="أو اكتب الإجراء" />
-        <View className="flex-row gap-3">
-          <View className="flex-1">
-            <Field label="رقم السن" value={sTooth} onChangeText={setSTooth} placeholder="36" keyboardType="number-pad" />
-          </View>
-          <View className="flex-1">
-            <Field label={`التكلفة (${currency})`} value={sCost} onChangeText={setSCost} placeholder="0" keyboardType="numeric" />
-          </View>
-        </View>
-        <Field label="ملاحظات" value={sNotes} onChangeText={setSNotes} multiline />
+        <Field label="رقم السن" value={sTooth} onChangeText={setSTooth} placeholder="36" keyboardType="number-pad" />
+        <MoneyField label="التكلفة" m={sMoney} />
+        <DictateField label="ملاحظات" value={sNotes} onChangeText={setSNotes} multiline />
         <Button label="حفظ الجلسة" icon="checkmark" type="private" onPress={saveSession} />
       </Sheet>
 
       {/* نافذة الدفعة */}
       <Sheet visible={payOpen} onClose={() => setPayOpen(false)} title="تسجيل دفعة">
         <DateField label="التاريخ" value={pDate} onChange={(v) => v && setPDate(v)} />
-        <Field label={`المبلغ (${currency})`} value={pAmount} onChangeText={setPAmount} placeholder="0" keyboardType="numeric" autoFocus />
+        <MoneyField label="المبلغ" m={pMoney} autoFocus />
         <Field label="ملاحظة" value={pNote} onChangeText={setPNote} placeholder="مثال: دفعة أولى" />
         <Button label="حفظ الدفعة" icon="checkmark" type="private" onPress={savePayment} />
       </Sheet>

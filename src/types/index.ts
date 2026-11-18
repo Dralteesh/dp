@@ -47,6 +47,8 @@ export type PlannerEvent = {
   reminderMinutes: number | null;
   /** منبّه إجباري قبل البداية بعدد الدقائق، أو null بدون */
   alarmMinutes: number | null;
+  /** أحداث أُنشئت معًا من «جدولة الدوامات»: تُحذف دفعة واحدة */
+  seriesId?: string;
   createdAt: number;
 };
 
@@ -104,6 +106,25 @@ export type ToothStatus =
   | "missing"
   | "extraction";
 
+/** تنبيهات طبية مصنّفة: تظهر بشريط بارز وتفحص الوصفات والإجراءات */
+export type AlertFlag =
+  | "anesthesia_allergy"
+  | "penicillin_allergy"
+  | "nsaid_allergy"
+  | "latex_allergy"
+  | "anticoagulant"
+  | "bleeding"
+  | "pregnant"
+  | "diabetes"
+  | "hypertension"
+  | "heart"
+  | "asthma"
+  | "kidney"
+  | "infectious";
+
+/** مبلغ بعملة أجنبية: الحقل amount في الكيان يبقى بعملة العيادة الأساسية، وهذا يحفظ أصل المبلغ وسعر الصرف وقت التسجيل */
+export type ForeignAmount = { currency: "USD"; amount: number; rate: number };
+
 export type Patient = {
   id: string;
   name: string;
@@ -118,6 +139,8 @@ export type Patient = {
   legacyId?: string;
   /** تنبيهات طبية (حساسية، سكري، سيولة...) */
   medicalAlerts?: string;
+  /** تنبيهات طبية مصنّفة (تُضاف لما يُستنتج من نص medicalAlerts) */
+  alertFlags?: AlertFlag[];
   notes?: string;
   /** رمز السن (FDI) -> الحالة. غير المذكور = سليم */
   teeth: Record<string, ToothStatus>;
@@ -158,6 +181,8 @@ export type ClinicSession = {
   tooth?: string;
   notes?: string;
   cost: number;
+  /** إن سُجّلت التكلفة بالدولار */
+  foreign?: ForeignAmount;
   createdAt: number;
 };
 
@@ -166,6 +191,8 @@ export type Payment = {
   patientId: string;
   date: string;
   amount: number;
+  /** إن دُفعت بالدولار: amount = المبلغ بالدولار × سعر الصرف وقت الدفع */
+  foreign?: ForeignAmount;
   note?: string;
   createdAt: number;
 };
@@ -178,6 +205,7 @@ export type Expense = {
   date: string;
   category: ExpenseCategory;
   amount: number;
+  foreign?: ForeignAmount;
   note?: string;
   createdAt: number;
 };
@@ -267,6 +295,44 @@ export type PrayerMethodKey =
   | "karachi"
   | "turkey";
 
+/** تذكيرات الصلاة: قبل الصلاة، عند الأذان، وتكرار بعد الأذان حتى الصلاة التالية */
+export type PrayerReminders = {
+  before: { enabled: boolean; minutes: number };
+  atAdhan: { enabled: boolean };
+  repeat: { enabled: boolean; everyMin: number; quietFrom: string; quietTo: string };
+};
+
+/** تذكير الأذكار على مدار اليوم */
+export type DhikrSettings = {
+  enabled: boolean;
+  mode: "interval" | "count";
+  everyMin: number;
+  countPerDay: number;
+  from: string;
+  to: string;
+  avoidPrayerMin: number;
+  texts: string[];
+};
+
+/** عنصر في نافذة الإضافة السريعة (قابل للتخصيص والترتيب) */
+export type QuickAddItem = {
+  /** معرّف ثابت */
+  id: string;
+  /** نوع حدث (دوام/مناوبة...) أو وجهة شاشة */
+  kind: "event-type" | "route";
+  /** عند kind="event-type" */
+  type?: ShiftType;
+  /** النص (فارغ لنوع حدث = اسم النوع الحالي) */
+  label: string;
+  /** اسم أيقونة Ionicons (فارغ لنوع حدث = أيقونة النوع) */
+  icon: string;
+  /** اللون hex (اختياري: الافتراضي لون النوع أو لون التطبيق) */
+  hex?: string;
+  /** عند kind="route" مثل "/tasks" */
+  route?: string;
+  visible: boolean;
+};
+
 export type Settings = {
   doctorName: string;
   prayerMethod: PrayerMethodKey;
@@ -275,6 +341,10 @@ export type Settings = {
   prayerAdjust: Partial<Record<PrayerKey, number>>;
   /** تفعيل إشعار كل صلاة */
   prayerNotify: Record<PrayerKey, boolean>;
+  /** تذكيرات الصلاة (قبل/أذان/تكرار) */
+  prayerReminders: PrayerReminders;
+  /** تذكير الأذكار */
+  dhikr: DhikrSettings;
   /** تذكير افتراضي للأحداث الجديدة (دقائق) */
   defaultReminder: number;
   /** تذكير مواعيد العيادة قبل الموعد (دقائق) */
@@ -288,6 +358,10 @@ export type Settings = {
   places: string[];
   /** إظهار مهام اليوم في الشاشة الرئيسية */
   homeShowTasks: boolean;
+  /** إظهار «المستندات الأخيرة» في الشاشة الرئيسية */
+  homeShowDocs: boolean;
+  /** بنود الإضافة السريعة بترتيب المستخدم (null = القائمة الافتراضية) */
+  quickAdd: QuickAddItem[] | null;
   /** تحدٍّ الإيقاف الافتراضي لمنبّهات الأحداث (المناوبات) */
   defaultAlarmChallenge: AlarmChallenge;
   /** اسم التطبيق الظاهر في الرأسية (فارغ = Dentist Planner) */
@@ -298,4 +372,10 @@ export type Settings = {
   clinicName: string;
   /** شعار العيادة الخاصة كنص data:image */
   clinicLogo: string;
+  /** سعر الدولار بعملة العيادة (0 = غير مضبوط) */
+  usdRate: number;
+  /** أجر المناوبة/الدوام الواحد لكل نوع (بعملة العيادة) */
+  payRates: Partial<Record<ShiftType, number>>;
+  /** راتب شهري ثابت (المشفى) */
+  monthlySalary: number;
 };

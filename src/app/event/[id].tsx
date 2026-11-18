@@ -10,6 +10,8 @@ import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { DAYS, WEEK_ORDER } from "@/constants/arabic";
 import { TYPE_META } from "@/constants/shiftTypes";
+import { useAgendaInput } from "@/hooks/useAgenda";
+import { eventClashes, summarizeClashes } from "@/lib/conflicts";
 import { todayISO, weekdayOf } from "@/lib/dates";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
@@ -42,6 +44,7 @@ export default function EventFormScreen() {
   const events = usePlanner((s) => s.events);
   const addEvent = usePlanner((s) => s.addEvent);
   const updateEvent = usePlanner((s) => s.updateEvent);
+  const agendaInput = useAgendaInput();
   const removeEvent = usePlanner((s) => s.removeEvent);
   const defaultReminder = useSettings((s) => s.defaultReminder);
   const places = useSettings((s) => s.places);
@@ -114,13 +117,24 @@ export default function EventFormScreen() {
       reminderMinutes: reminder,
       alarmMinutes: alarm,
     };
-    // مكان جديد يُكتب يدويًا يُضاف لقائمة الأماكن المعروفة
-    if (payload.location && !places.includes(payload.location)) {
-      useSettings.getState().update({ places: [...places, payload.location] });
+    const go = () => {
+      // مكان جديد يُكتب يدويًا يُضاف لقائمة الأماكن المعروفة
+      if (payload.location && !places.includes(payload.location)) {
+        useSettings.getState().update({ places: [...places, payload.location] });
+      }
+      if (existing) updateEvent(existing.id, payload);
+      else addEvent(payload);
+      router.back();
+    };
+    const clashes = eventClashes(payload, agendaInput, existing?.id);
+    if (clashes.length) {
+      Alert.alert("تعارض في الجدول", `${summarizeClashes(clashes)}\n\nهل تريد الحفظ رغم ذلك؟`, [
+        { text: "تعديل", style: "cancel" },
+        { text: "حفظ رغم التعارض", onPress: go },
+      ]);
+      return;
     }
-    if (existing) updateEvent(existing.id, payload);
-    else addEvent(payload);
-    router.back();
+    go();
   };
 
   const confirmDelete = () => {
@@ -282,6 +296,13 @@ export default function EventFormScreen() {
             </View>
           </FieldRow>
         ) : null}
+        <Button
+          label="تعديل هذا النوع"
+          variant="ghost"
+          icon="create-outline"
+          small
+          onPress={() => router.push({ pathname: "/workplaces", params: { type } })}
+        />
         <Field
           label="أو اكتب مكانًا آخر"
           value={location}

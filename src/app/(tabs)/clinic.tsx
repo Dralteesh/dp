@@ -1,4 +1,6 @@
 import { Logo } from "@/components/Logo";
+import { FreeSlotBanner } from "@/components/clinic/FreeSlotBanner";
+import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
 import { WeekStrip } from "@/components/home/WeekStrip";
 import { useTheme } from "@/hooks/useTheme";
 import { TYPE_META } from "@/constants/shiftTypes";
@@ -270,6 +272,7 @@ export default function ClinicScreen() {
                         <Text className="text-sm text-muted">
                           {fmtTime(a.startTime)} – {fmtTime(end)} • {a.procedure}
                         </Text>
+                        {p ? <MedicalAlertBar patient={p} compact /> : null}
                       </View>
                       <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: st.soft }}>
                         <Text w="semi" className="text-xs" style={{ color: st.hex }}>
@@ -294,6 +297,7 @@ export default function ClinicScreen() {
                       <Chip label="واتساب" icon="logo-whatsapp" color="#16A34A" onPress={() => remind(a, p)} />
                     ) : null}
                   </View>
+                  <FreeSlotBanner appt={a} />
                 </Card>
               );
             })
@@ -487,6 +491,9 @@ export default function ClinicScreen() {
             { t: "المصاريف", i: "wallet", h: "/clinic/expenses" },
             { t: "التقارير", i: "stats-chart", h: "/clinic/reports" },
             { t: "المخزون", i: "cube", h: "/clinic/inventory" },
+            { t: "قائمة الأسعار", i: "pricetags", h: "/clinic/prices" },
+            { t: "قائمة الانتظار", i: "hourglass", h: "/clinic/waitlist" },
+            { t: "سجل التعقيم", i: "flask", h: "/clinic/sterilization" },
             { t: "استيراد JSON", i: "download", h: "/clinic/import" },
           ].map((x) => (
             <PressableScale

@@ -1,3 +1,4 @@
+import { sumUsd } from "@/lib/currency";
 import { addDays, fromISO, toISO } from "@/lib/dates";
 import type { Appointment, ClinicSession, Expense, Patient, Payment } from "@/types";
 
@@ -23,6 +24,8 @@ const inRange = (d: string, r: { from: string; to: string }) => d >= r.from && d
 
 export type Report = {
   collected: number; // المقبوض
+  /** منه ما دُفع بالدولار (بالدولار الأصلي) */
+  collectedUsd: number;
   expenses: number; // المصاريف
   net: number; // الصافي = المقبوض - المصاريف
   expensesByCategory: { category: string; total: number }[];
@@ -92,6 +95,7 @@ export function buildReport(
   return {
     collected,
     expenses: expTotal,
+    collectedUsd: sumUsd(pays),
     net: collected - expTotal,
     expensesByCategory: [...byCat.entries()].map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total),
     charged: sess.reduce((s, x) => s + x.cost, 0),

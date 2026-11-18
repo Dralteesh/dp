@@ -1,6 +1,0 @@
-احذف هذه الملفات من مشروعك (نُقلت أو استُبدلت):
-src/app/alarms.tsx
-src/app/clinic/index.tsx
-src/components/home/DateHero.tsx
-src/components/home/NextUpCard.tsx
-src/components/home/RiverCard.tsx

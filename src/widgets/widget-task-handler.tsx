@@ -1,6 +1,7 @@
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import { PrayerWidget } from "@/widgets/PrayerWidget";
 import { TodayWidget } from "@/widgets/TodayWidget";
+import { refreshPrayerSchedule } from "@/lib/notifications";
 import { loadWidgetData } from "@/widgets/widgetData";
 
 /**
@@ -17,6 +18,11 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       const data = await loadWidgetData(name === "TodayWidget" ? 4 : 1);
       if (name === "TodayWidget") props.renderWidget(<TodayWidget data={data} />);
       else if (name === "PrayerWidget") props.renderWidget(<PrayerWidget data={data} />);
+      // تجديد جدول الصلاة والأذكار دون فتح التطبيق (التحديث الدوري كل 30 دقيقة).
+      // الأحداث والمواعيد لا تُمسّ هنا لأن بياناتها غير محمّلة في هذا السياق.
+      if (props.widgetAction === "WIDGET_UPDATE") {
+        refreshPrayerSchedule().catch(() => {});
+      }
       break;
     }
     default:

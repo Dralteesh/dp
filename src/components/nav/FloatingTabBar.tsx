@@ -16,8 +16,8 @@ type BarProps = {
   };
 };
 
-/** ترتيب الأزرار من اليمين إلى اليسار (واجهة RTL): المنبّه، العيادة، الرئيسية، الصلاة، المزيد */
-const ORDER = ["alarms", "clinic", "index", "prayer", "more"] as const;
+/** ترتيب الأزرار من اليمين إلى اليسار (واجهة RTL): المنبّه، العيادة، الرئيسية، الصلاة، الغابة */
+const ORDER = ["alarms", "clinic", "index", "prayer", "focus"] as const;
 type Name = (typeof ORDER)[number];
 
 const META: Record<Name, { label: string; icon: keyof typeof Ionicons.glyphMap; iconOn: keyof typeof Ionicons.glyphMap }> = {
@@ -25,7 +25,8 @@ const META: Record<Name, { label: string; icon: keyof typeof Ionicons.glyphMap; 
   clinic: { label: "العيادة", icon: "medkit-outline", iconOn: "medkit" },
   index: { label: "الرئيسية", icon: "home-outline", iconOn: "home" },
   prayer: { label: "الصلاة", icon: "moon-outline", iconOn: "moon" },
-  more: { label: "المزيد", icon: "grid-outline", iconOn: "grid" },
+  // أيقونة مؤقتة ريثما تصل أيقونات المستخدم
+  focus: { label: "الغابة", icon: "leaf-outline", iconOn: "leaf" },
 };
 
 /** الشاشات المخفية من الشريط تُحسب تحت زرٍّ قريب منها ليبقى الزر مضاءً */

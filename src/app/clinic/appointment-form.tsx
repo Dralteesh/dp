@@ -9,11 +9,16 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { DictateField } from "@/components/DictateField";
+import { MedicalAlertBar, WarningLines } from "@/components/clinic/MedicalAlertBar";
 import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { DURATIONS, PROCEDURES, STATUS_META } from "@/constants/clinic";
+import { useAgendaInput } from "@/hooks/useAgenda";
+import { describeClash, findClashes } from "@/lib/conflicts";
+import { patientFlags, procedureWarnings } from "@/lib/alerts";
 import { fmtTime, minutesToTime, toISO, toMinutes } from "@/lib/dates";
 import { initial } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
@@ -28,6 +33,7 @@ export default function AppointmentFormScreen() {
     patientId?: string;
     date?: string;
     procedure?: string;
+    startTime?: string;
   }>();
 
   const patients = useClinic((s) => s.patients);
@@ -40,7 +46,7 @@ export default function AppointmentFormScreen() {
 
   const [patientId, setPatientId] = useState<string | undefined>(existing?.patientId ?? params.patientId);
   const [date, setDate] = useState(existing?.date ?? params.date ?? toISO(new Date()));
-  const [startTime, setStartTime] = useState(existing?.startTime ?? "16:00");
+  const [startTime, setStartTime] = useState(existing?.startTime ?? params.startTime ?? "16:00");
   const [duration, setDuration] = useState(existing?.durationMin ?? 30);
   const [procedure, setProcedure] = useState(existing?.procedure ?? params.procedure ?? "كشف واستشارة");
   const [notes, setNotes] = useState(existing?.notes ?? "");
@@ -56,17 +62,9 @@ export default function AppointmentFormScreen() {
 
   const endTime = minutesToTime(toMinutes(startTime) + duration);
 
-  /** تعارض مع موعد آخر في نفس اليوم؟ */
-  const findConflict = () => {
-    const s = toMinutes(startTime);
-    const e = s + duration;
-    return appointments.find((a) => {
-      if (a.id === existing?.id || a.date !== date) return false;
-      if (["cancelled", "postponed", "no_show"].includes(a.status)) return false;
-      const as = toMinutes(a.startTime);
-      return s < as + a.durationMin && as < e;
-    });
-  };
+  const agendaInput = useAgendaInput();
+  /** تعارضات مع المواعيد والدوام والمناوبات */
+  const findConflicts = () => findClashes(date, startTime, duration, agendaInput, { appointmentId: existing?.id });
 
   const doSave = () => {
     const payload = {
@@ -87,10 +85,9 @@ export default function AppointmentFormScreen() {
       Alert.alert("اختر المريض", "حدّد المريض صاحب الموعد.");
       return;
     }
-    const c = findConflict();
-    if (c) {
-      const other = patients.find((p) => p.id === c.patientId)?.name ?? "مريض آخر";
-      Alert.alert("تعارض في الوقت", `يوجد موعد لـ ${other} الساعة ${fmtTime(c.startTime)}. هل تريد الحجز رغم ذلك؟`, [
+    const c = findConflicts();
+    if (c.length) {
+      Alert.alert("تعارض في الوقت", `${c.slice(0, 3).map((x) => `• ${describeClash(x)}`).join("\n")}\n\nهل تريد الحجز رغم ذلك؟`, [
         { text: "تعديل الوقت", style: "cancel" },
         { text: "حجز رغم التعارض", onPress: doSave },
       ]);
@@ -133,12 +130,8 @@ export default function AppointmentFormScreen() {
             <Ionicons name="chevron-down" size={18} color="#94A3B8" />
           </Pressable>
         </FieldRow>
-        {patient?.medicalAlerts ? (
-          <View className="flex-row items-center gap-2 bg-red-50 rounded-xl px-3 py-2 mb-2">
-            <Ionicons name="warning" size={16} color="#DC2626" />
-            <Text className="flex-1 text-sm text-danger">{patient.medicalAlerts}</Text>
-          </View>
-        ) : null}
+        {patient ? <MedicalAlertBar patient={patient} /> : null}
+        <WarningLines lines={patient ? procedureWarnings(patientFlags(patient), procedure) : []} />
       </Card>
 
       <Card className="mt-3">
@@ -171,7 +164,7 @@ export default function AppointmentFormScreen() {
           </View>
         </FieldRow>
         <Field label="أو اكتب إجراءً آخر" value={procedure} onChangeText={setProcedure} />
-        <Field label="ملاحظات" value={notes} onChangeText={setNotes} multiline />
+        <DictateField label="ملاحظات" value={notes} onChangeText={setNotes} multiline />
         {existing ? (
           <FieldRow label="الحالة">
             <View className="flex-row flex-wrap gap-2">
