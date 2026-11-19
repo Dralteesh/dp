@@ -172,26 +172,6 @@ export default function ClinicScreen() {
       overlay={
         <>
           <Fab onPress={() => setFabOpen(true)} color={TYPE_META.private.hex} />
-          {/* المقبض المنحني على الحافة: يفتح درج أدوات العيادة (من تصميم Dental) */}
-          <Pressable
-            onPress={() => setToolsOpen(true)}
-            accessibilityLabel="أدوات العيادة"
-            style={{
-              position: "absolute",
-              end: 0,
-              top: "38%",
-              width: 30,
-              height: 92,
-              borderTopStartRadius: 46,
-              borderBottomStartRadius: 46,
-              backgroundColor: TYPE_META.private.hex,
-              alignItems: "center",
-              justifyContent: "center",
-              elevation: 6,
-            }}
-          >
-            <Ionicons name="menu" size={20} color={TYPE_META.private.onSolid} />
-          </Pressable>
         </>
       }
     >

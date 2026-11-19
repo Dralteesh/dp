@@ -42,7 +42,7 @@ export const usePrayerLog = create<PrayerLogState>()(
           return { snoozeUntil: next };
         }),
       markDone: (iso, key) =>
-        set((s) => prune({ ...s.done, [iso]: { ...s.done[iso], [key]: Date.now() } })),
+        set((s) => ({ done: prune({ ...s.done, [iso]: { ...s.done[iso], [key]: Date.now() } }) })),
       unmark: (iso, key) =>
         set((s) => {
           const day = { ...s.done[iso] };

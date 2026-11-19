@@ -7,6 +7,7 @@ import { useClinicTools } from "@/store/useClinicTools";
 import { useQuickAdd } from "@/store/useQuickAdd";
 
 const CLINIC_LOGO = require("../../../assets/clinic-logo.png");
+const CLINIC_LOGO_OFF = require("../../../assets/clinic-logo-off.png");
 
 type Route = { key: string; name: string; params?: object };
 type BarProps = {
@@ -160,7 +161,7 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                 }}
               >
                 {name === "clinic" ? (
-                  <Image source={CLINIC_LOGO} style={{ width: 30, height: 30, opacity: on ? 1 : 0.85 }} resizeMode="contain" />
+                  <Image source={on ? CLINIC_LOGO : CLINIC_LOGO_OFF} style={{ width: 30, height: 30 }} resizeMode="contain" />
                 ) : (
                   <Image
                     source={on ? NAV_ICONS[ICON_KEY[name]].on : NAV_ICONS[ICON_KEY[name]].off}
