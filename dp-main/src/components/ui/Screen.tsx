@@ -3,6 +3,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { SkyBackground } from "@/components/ui/SkyBackground";
 import { Text } from "@/components/ui/Text";
 
 type Props = {
@@ -25,7 +26,8 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
   const router = useRouter();
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#F0EFEA" }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#E4F2FB" }}>
+      <SkyBackground />
       {(title || back) && (
         <View className="flex-row items-center gap-3 px-4 pt-2 pb-3">
           {back && (
@@ -34,7 +36,7 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
               hitSlop={10}
               className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
             >
-              <Ionicons name="arrow-forward" size={20} color="#0F172A" />
+              <Ionicons name="arrow-forward" size={20} color="#0B3A58" />
             </Pressable>
           )}
           {logo}

@@ -63,7 +63,7 @@ export function Button({
     <PressableScale
       onPress={onPress}
       disabled={disabled}
-      className={`flex-row items-center justify-center gap-2 rounded-xl ${bg} ${border} ${
+      className={`flex-row items-center justify-center gap-2 rounded-2xl ${bg} ${border} ${
         small ? "px-3 py-2" : "px-4 py-3"
       } ${disabled ? "opacity-40" : ""} ${className}`}
     >

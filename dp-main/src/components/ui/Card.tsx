@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import { SOFT_SHADOW } from "@/constants/skin";
 import { TYPE_META } from "@/constants/shiftTypes";
 import type { ShiftType } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
@@ -15,7 +16,8 @@ export function Card({ children, className = "", accent }: Props) {
   useTheme();
   return (
     <View
-      className={`bg-surface rounded-2xl border border-line p-4 overflow-hidden ${className}`}
+      className={`bg-surface rounded-3xl border border-line p-4 overflow-hidden ${className}`}
+      style={SOFT_SHADOW}
     >
       {accent ? (
         <View

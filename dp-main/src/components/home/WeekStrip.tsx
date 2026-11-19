@@ -70,7 +70,7 @@ export function WeekStrip({ selected, onSelect, onOpenCalendar, dotsFor }: Props
                   overflow: "hidden",
                   backgroundColor: isSel ? "#E4F1F9" : "#FFFFFF",
                   borderWidth: isSel ? 1.5 : 1,
-                  borderColor: isSel ? BLUE : "#E8E6DE",
+                  borderColor: isSel ? BLUE : "#D6EAF6",
                   elevation: isSel ? 3 : 0,
                 }}
               >

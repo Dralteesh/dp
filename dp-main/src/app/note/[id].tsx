@@ -61,7 +61,7 @@ export default function NoteEditor() {
   };
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: color || "#F0EFEA" }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: color || "#F3F9FD" }}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
         <Pressable onPress={() => router.back()} hitSlop={10} className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.07)" }}>
           <Ionicons name="arrow-forward" size={20} color="#0F172A" />
@@ -112,7 +112,7 @@ export default function NoteEditor() {
                 borderRadius: 17,
                 backgroundColor: c,
                 borderWidth: (color || "#FFFFFF") === c ? 3 : 1,
-                borderColor: (color || "#FFFFFF") === c ? "#0E6FA5" : "#D9D6CC",
+                borderColor: (color || "#FFFFFF") === c ? "#0E6FA5" : "#C6E0F1",
               }}
             />
           ))}

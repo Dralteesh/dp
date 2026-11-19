@@ -47,7 +47,7 @@ export function PerioChart({ patient }: { patient: Patient }) {
                 width: 42,
                 height: 42,
                 backgroundColor: on ? "#111418" : has ? "#D6EBF7" : "#FFFFFF",
-                borderColor: on ? "#111418" : has ? "#0E6FA5" : "#D9D6CC",
+                borderColor: on ? "#111418" : has ? "#0E6FA5" : "#C6E0F1",
               }}
             >
               <Text w="bold" style={{ color: on ? "#FFFFFF" : "#334155" }}>

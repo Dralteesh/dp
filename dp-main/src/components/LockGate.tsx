@@ -77,7 +77,7 @@ export function LockGate() {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "#F0EFEA",
+        backgroundColor: "#F3F9FD",
         alignItems: "center",
         justifyContent: "center",
         padding: 32,
