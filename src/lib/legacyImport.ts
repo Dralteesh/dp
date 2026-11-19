@@ -1,5 +1,5 @@
 import type { Appointment, AppointmentStatus, ClinicSession, Patient, Payment, ToothStatus } from "@/types";
-import { LOWER_TEETH, UPPER_TEETH } from "@/constants/clinic";
+import { LOWER_PRIMARY, LOWER_TEETH, UPPER_PRIMARY, UPPER_TEETH } from "@/constants/clinic";
 
 /**
  * استيراد ملف JSON مُصدَّر من البرنامج السابق للعيادة (جداول patients / appointments / invoices ...).
@@ -33,7 +33,8 @@ export type LegacyPlan = {
   moneySample?: { total: number; paid: number };
 };
 
-const VALID_TEETH = new Set([...UPPER_TEETH, ...LOWER_TEETH]);
+// الدائمة (11–48) واللبنية (51–85)
+const VALID_TEETH = new Set([...UPPER_TEETH, ...LOWER_TEETH, ...UPPER_PRIMARY, ...LOWER_PRIMARY]);
 const DAMASCUS_OFFSET_MS = 3 * 3600 * 1000; // سوريا UTC+3 دائمًا منذ 2022
 
 const pad = (n: number) => String(n).padStart(2, "0");

@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Text } from "@/components/ui/Text";
 import { STATUS_META } from "@/constants/clinic";
+import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { TYPE_META } from "@/constants/shiftTypes";
 import type { AgendaItem } from "@/lib/agenda";
 import { fmtTime } from "@/lib/dates";
@@ -50,7 +51,11 @@ export function AgendaRow({ item, onPress, live }: Props) {
           className="w-10 h-10 rounded-xl items-center justify-center"
           style={{ backgroundColor: m.hex }}
         >
-          <Ionicons name={m.icon} size={20} color={m.onSolid} />
+          {item.source === "appointment" ? (
+            <ProcedureBadge name={item.procedure} size={30} color={m.onSolid} />
+          ) : (
+            <Ionicons name={m.icon} size={20} color={m.onSolid} />
+          )}
         </View>
         <View className="flex-1">
           <Text w="bold" style={{ color: m.inkHex }} numberOfLines={1}>

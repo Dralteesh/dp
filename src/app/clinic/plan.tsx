@@ -11,16 +11,17 @@ import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
-import { PROCEDURES } from "@/constants/clinic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
 import { toISO } from "@/lib/dates";
 import { fmtMoney, parseAmount } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
+import { useProcedures } from "@/hooks/useProcedures";
 
 /** خطط علاج المريض: بنود مرتبة بتكلفة، وإنجاز البند يضيف جلسة لحساب المريض */
 export default function PlanScreen() {
+  const procedures = useProcedures();
   useTheme();
   const router = useRouter();
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
@@ -175,7 +176,7 @@ export default function PlanScreen() {
       <Sheet visible={!!itemFor} onClose={() => setItemFor(null)} title="بند جديد">
         <FieldRow label="إجراء شائع">
           <View className="flex-row flex-wrap gap-2">
-            {PROCEDURES.slice(0, 10).map((p) => (
+            {procedures.slice(0, 10).map((p) => (
               <Chip key={p.name} label={p.name} selected={proc === p.name} color={green} onPress={() => setProc(p.name)} />
             ))}
           </View>

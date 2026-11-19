@@ -23,6 +23,7 @@ const DESTS: Dest[] = [
   { title: "جدولة الدوامات", hint: "املأ الشهر بالدوامات", icon: "calendar-number", href: "/shifts-bulk", words: "جدوله دوامات مناوبات شهر تكرار نمط", hex: "#7C3AED", soft: "#EDE9FE" },
   { title: "قائمة الأسعار", hint: "العيادة", icon: "pricetags", href: "/clinic/prices", words: "اسعار قائمه تسعيره اجرة" },
   { title: "قائمة الانتظار", hint: "العيادة", icon: "hourglass", href: "/clinic/waitlist", words: "انتظار قائمه مرضى موعد شاغر" },
+  { title: "تعديل الإجراءات", hint: "العيادة", icon: "construct", href: "/clinic/procedures", words: "اجراءات علاج ايقونات مدة كتالوج حشوة" },
   { title: "سجل التعقيم", hint: "العيادة", icon: "flask", href: "/clinic/sterilization", words: "تعقيم اوتوكلاف سجل اختبار اسبور" },
   { title: "الإعدادات", hint: "الصلاة، التذكيرات، العملة", icon: "settings", href: "/settings", words: "اعدادات الصلاه تذكير عمله اسم" },
   { title: "تذكيرات الصلاة والأذكار", hint: "قبل الأذان وبعده والأذكار", icon: "moon", href: "/reminders-prayer", words: "تذكيرات صلاه اذكار اذان تكرار صليت" },

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Image, Keyboard, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/Text";
+import { NAV_ICONS } from "@/constants/icons";
 import { useQuickAdd } from "@/store/useQuickAdd";
 
 const CLINIC_LOGO = require("../../../assets/clinic-logo.png");
@@ -20,13 +20,20 @@ type BarProps = {
 const ORDER = ["alarms", "clinic", "index", "prayer", "focus"] as const;
 type Name = (typeof ORDER)[number];
 
-const META: Record<Name, { label: string; icon: keyof typeof Ionicons.glyphMap; iconOn: keyof typeof Ionicons.glyphMap }> = {
-  alarms: { label: "المنبّه", icon: "alarm-outline", iconOn: "alarm" },
-  clinic: { label: "العيادة", icon: "medkit-outline", iconOn: "medkit" },
-  index: { label: "الرئيسية", icon: "home-outline", iconOn: "home" },
-  prayer: { label: "الصلاة", icon: "moon-outline", iconOn: "moon" },
-  // أيقونة مؤقتة ريثما تصل أيقونات المستخدم
-  focus: { label: "الغابة", icon: "leaf-outline", iconOn: "leaf" },
+/** الأيقونات ملوّنة: نسختان (نشطة وخاملة) لكل زر، والعيادة بشعارها */
+const META: Record<Name, { label: string }> = {
+  alarms: { label: "المنبّه" },
+  clinic: { label: "العيادة" },
+  index: { label: "الرئيسية" },
+  prayer: { label: "الصلاة" },
+  focus: { label: "الغابة" },
+};
+
+const ICON_KEY: Record<Exclude<Name, "clinic">, keyof typeof NAV_ICONS> = {
+  alarms: "alarms",
+  index: "home",
+  prayer: "prayer",
+  focus: "focus",
 };
 
 /** الشاشات المخفية من الشريط تُحسب تحت زرٍّ قريب منها ليبقى الزر مضاءً */
@@ -103,11 +110,11 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                     height: 64,
                     borderRadius: 32,
                     marginTop: -26,
-                    backgroundColor: BLUE,
+                    backgroundColor: "#FFFFFF",
                     alignItems: "center",
                     justifyContent: "center",
-                    borderWidth: 5,
-                    borderColor: "#F0EFEA",
+                    borderWidth: 4,
+                    borderColor: "#DCEEF8",
                     elevation: 8,
                     shadowColor: BLUE,
                     shadowOpacity: 0.35,
@@ -115,7 +122,7 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                     shadowOffset: { width: 0, height: 4 },
                   }}
                 >
-                  <Ionicons name={on ? m.iconOn : m.icon} size={28} color="#FFFFFF" />
+                  <Image source={NAV_ICONS.home.on} style={{ width: 54, height: 54 }} resizeMode="contain" />
                 </Pressable>
                 <Text w="semi" style={{ fontSize: 10.5, color: on ? BLUE : MUTED, marginTop: 1 }}>
                   {m.label}
@@ -139,7 +146,11 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                 {name === "clinic" ? (
                   <Image source={CLINIC_LOGO} style={{ width: 30, height: 30, opacity: on ? 1 : 0.85 }} resizeMode="contain" />
                 ) : (
-                  <Ionicons name={on ? m.iconOn : m.icon} size={23} color={on ? BLUE : MUTED} />
+                  <Image
+                    source={on ? NAV_ICONS[ICON_KEY[name]].on : NAV_ICONS[ICON_KEY[name]].off}
+                    style={{ width: 34, height: 34 }}
+                    resizeMode="contain"
+                  />
                 )}
               </View>
               <Text w={on ? "bold" : "semi"} style={{ fontSize: 10.5, color: on ? INK : MUTED }}>

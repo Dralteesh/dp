@@ -20,7 +20,7 @@ import { PressableScale } from "@/components/ui/PressableScale";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
-import { PROCEDURES, STATUS_META, TOOTH_STATUS } from "@/constants/clinic";
+import { STATUS_META, TOOTH_STATUS } from "@/constants/clinic";
 import { foreignLabel } from "@/lib/currency";
 import { fmtDateShort, fmtTime, toISO } from "@/lib/dates";
 import { fmtMoney, initial, parseAmount } from "@/lib/format";
@@ -28,10 +28,12 @@ import { telLink, whatsappLink } from "@/lib/phone";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
 import type { ToothStatus } from "@/types";
+import { useProcedures } from "@/hooks/useProcedures";
 
 type Section = "overview" | "teeth" | "sessions" | "rx" | "payments";
 
 export default function PatientScreen() {
+  const procedures = useProcedures();
   useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -380,7 +382,7 @@ export default function PatientScreen() {
       {/* ---------------- الأسنان ---------------- */}
       {section === "teeth" && (
         <View className="mt-4">
-          <Odontogram teeth={patient.teeth} selected={tooth} onSelect={setToothSel} />
+          <Odontogram teeth={patient.teeth} selected={tooth} onSelect={setToothSel} birthYear={patient.birthYear} />
 
           <SectionHeader title={tooth ? `السن ${tooth}` : "اختر سنًا"} />
           {tooth ? (
@@ -607,7 +609,7 @@ export default function PatientScreen() {
         <DateField label="التاريخ" value={sDate} onChange={(v) => v && setSDate(v)} />
         <FieldRow label="الإجراء">
           <View className="flex-row flex-wrap gap-2">
-            {PROCEDURES.map((p) => (
+            {procedures.map((p) => (
               <Chip key={p.name} label={p.name} selected={sProc === p.name} color={TYPE_META.private.hex} onPress={() => setSProc(p.name)} />
             ))}
           </View>
