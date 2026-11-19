@@ -110,7 +110,7 @@ export default function SettingsScreen() {
       <Card>
         <FieldRow label="تحدّي الإيقاف الافتراضي لمنبّهات المناوبات">
           <View className="flex-row flex-wrap gap-2">
-            {(["math", "hold", "phrase", "none"] as AlarmChallenge[]).map((c) => (
+            {(["math", "memory", "phrase", "shake", "hold", "none"] as AlarmChallenge[]).map((c) => (
               <Chip
                 key={c}
                 label={CHALLENGE_LABELS[c].label}

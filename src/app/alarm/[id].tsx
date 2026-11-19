@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
-import { WheelTimePicker } from "@/components/alarm/WheelTimePicker";
+import { ArcTimePicker } from "@/components/alarm/ArcTimePicker";
+import { ChallengeView } from "@/components/alarm/ChallengeView";
+import { MissionCards } from "@/components/alarm/MissionCards";
 import { Chip } from "@/components/ui/Chip";
 import { Field, FieldRow } from "@/components/ui/Field";
 import { Sheet } from "@/components/ui/Sheet";
@@ -18,10 +19,8 @@ import type { AlarmChallenge } from "@/types";
 const BG = "#F4F4F4";
 const RED = "#E32D0B";
 const INK = "#111111";
-const RING_GREY = "#ECECEC";
 const SNOOZES = [5, 10, 15];
 const SNOOZE_LIMITS = [0, 1, 2, 3];
-const CHALLENGES: AlarmChallenge[] = ["math", "hold", "phrase", "none"];
 
 function nextOnceDate(time: string): string {
   const today = toISO(new Date());
@@ -35,7 +34,6 @@ const describeDays = (days: number[]) =>
 export default function AlarmEditScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
   const alarms = useAlarms((s) => s.alarms);
   const addAlarm = useAlarms((s) => s.addAlarm);
@@ -51,6 +49,7 @@ export default function AlarmEditScreen() {
   const [maxSnoozes, setMaxSnoozes] = useState(existing?.maxSnoozes ?? MAX_SNOOZES_DEFAULT);
   const [challenge, setChallenge] = useState<AlarmChallenge>(existing?.challenge ?? "math");
   const [sheet, setSheet] = useState<null | "stop" | "repeat">(null);
+  const [preview, setPreview] = useState<Exclude<AlarmChallenge, "none"> | null>(null);
 
   const save = () => {
     const base = {
@@ -68,20 +67,10 @@ export default function AlarmEditScreen() {
     router.back();
   };
 
-  // دائرتان كبيرتان باهتتان خلف الدولابين
-  const r = width * 0.52;
-  const cy = height * 0.46;
   const ch = CHALLENGE_LABELS[challenge];
 
   return (
     <View style={s.root}>
-      <Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Circle cx={-width * 0.02} cy={cy} r={r} fill={RING_GREY} />
-        <Circle cx={width * 1.02} cy={cy} r={r} fill={RING_GREY} />
-        <Circle cx={-width * 0.02} cy={cy} r={r * 0.72} fill={BG} />
-        <Circle cx={width * 1.02} cy={cy} r={r * 0.72} fill={BG} />
-      </Svg>
-
       <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
         {/* أعلى: إغلاق + عنوان + حذف */}
         <View style={s.top}>
@@ -111,7 +100,7 @@ export default function AlarmEditScreen() {
         <View style={{ flex: 1 }} />
 
         {/* المنتقي خارج أي ScrollView حتى لا يتعارض التمرير */}
-        <WheelTimePicker value={time} onChange={setTime} />
+        <ArcTimePicker value={time} onChange={setTime} />
 
         <View style={{ flex: 0.5 }} />
 
@@ -134,28 +123,13 @@ export default function AlarmEditScreen() {
         </View>
       </View>
 
-      {/* طريقة الإيقاف + الغفوة */}
-      <Sheet visible={sheet === "stop"} onClose={() => setSheet(null)} title="كيف تُوقف المنبّه؟">
-        <View className="gap-2 mb-3">
-          {CHALLENGES.map((c) => {
-            const m = CHALLENGE_LABELS[c];
-            const on = challenge === c;
-            return (
-              <Pressable
-                key={c}
-                onPress={() => setChallenge(c)}
-                className="flex-row items-center gap-3 rounded-2xl px-3 py-3 border"
-                style={{ backgroundColor: on ? "#FFF1E8" : "#FFFFFF", borderColor: on ? RED : "#E3E1D8" }}
-              >
-                <Ionicons name={m.icon as never} size={22} color={on ? RED : "#64748B"} />
-                <View className="flex-1">
-                  <Text w="bold">{m.label}</Text>
-                  <Text className="text-xs text-muted">{m.hint}</Text>
-                </View>
-                {on ? <Ionicons name="checkmark-circle" size={20} color={RED} /> : null}
-              </Pressable>
-            );
-          })}
+      {/* المهمات + الغفوة */}
+      <Sheet visible={sheet === "stop"} onClose={() => setSheet(null)} title="المهمات">
+        <Text className="text-xs text-muted mb-3" style={{ marginTop: -8 }}>
+          اضغط للاختيار · اضغط مطوّلًا للتجربة
+        </Text>
+        <View className="mb-3">
+          <MissionCards value={challenge} onSelect={setChallenge} onPreview={setPreview} />
         </View>
         <FieldRow label="مدة الغفوة">
           <View className="flex-row gap-2">
@@ -196,6 +170,24 @@ export default function AlarmEditScreen() {
           </View>
         </FieldRow>
       </Sheet>
+
+      {/* تجربة المهمة (ضغط مطوّل على البطاقة) */}
+      <Modal visible={preview !== null} animationType="fade" onRequestClose={() => setPreview(null)}>
+        <View style={{ flex: 1, backgroundColor: "#C2410C", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <Pressable
+            onPress={() => setPreview(null)}
+            hitSlop={12}
+            accessibilityLabel="إغلاق التجربة"
+            style={{ position: "absolute", top: insets.top + 12, end: 20 }}
+          >
+            <Ionicons name="close" size={30} color="#fff" />
+          </Pressable>
+          <Text w="semi" style={{ color: "#FFEDD5", marginBottom: 24 }}>
+            تجربة المهمة
+          </Text>
+          {preview ? <ChallengeView key={preview} kind={preview} onSolved={() => setPreview(null)} /> : null}
+        </View>
+      </Modal>
     </View>
   );
 }

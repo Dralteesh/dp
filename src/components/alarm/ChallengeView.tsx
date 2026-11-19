@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Accelerometer } from "expo-sensors";
 import { Text } from "@/components/ui/Text";
 import {
   HOLD_SECONDS,
   MATH_ROUNDS,
+  MEMORY_ROUNDS,
+  MEMORY_START,
+  SHAKE_TARGET,
   makeMathProblem,
+  makeMemorySequence,
   normalizeDigits,
   randomPhrase,
 } from "@/lib/alarmChallenge";
@@ -186,8 +191,157 @@ function PhraseChallenge({ onSolved }: { onSolved: () => void }) {
   );
 }
 
+
+/** تذكّر ترتيب المربعات التي أضاءت ثم أعده (3 جولات بطول 3 ثم 4 ثم 5). الخطأ يعيد من الجولة الأولى */
+function MemoryChallenge({ onSolved }: { onSolved: () => void }) {
+  const [round, setRound] = useState(0);
+  const [seq, setSeq] = useState(() => makeMemorySequence(MEMORY_START));
+  const [phase, setPhase] = useState<"show" | "input">("show");
+  const [step, setStep] = useState(0);
+  const [lit, setLit] = useState<number | null>(null);
+  const [wrong, setWrong] = useState(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const later = (fn: () => void, ms: number) => {
+    timers.current.push(setTimeout(fn, ms));
+  };
+
+  useEffect(() => {
+    setPhase("show");
+    setStep(0);
+    seq.forEach((cell, i) => {
+      later(() => setLit(cell), 700 + i * 750);
+      later(() => setLit(null), 700 + i * 750 + 500);
+    });
+    later(() => setPhase("input"), 700 + seq.length * 750);
+    return () => {
+      timers.current.forEach(clearTimeout);
+      timers.current = [];
+    };
+  }, [seq]);
+
+  const press = (i: number) => {
+    if (phase !== "input") return;
+    setWrong(false);
+    setLit(i);
+    later(() => setLit(null), 160);
+    if (seq[step] === i) {
+      if (step + 1 < seq.length) {
+        setStep(step + 1);
+      } else if (round + 1 >= MEMORY_ROUNDS) {
+        onSolved();
+      } else {
+        setRound(round + 1);
+        setSeq(makeMemorySequence(MEMORY_START + round + 1));
+      }
+    } else {
+      setWrong(true);
+      setRound(0);
+      setSeq(makeMemorySequence(MEMORY_START));
+    }
+  };
+
+  return (
+    <View className="items-center">
+      <Text className="text-red-100 text-sm mb-1">
+        الجولة {round + 1} من {MEMORY_ROUNDS}
+        {wrong ? " • خطأ، بدأنا من جديد" : ""}
+      </Text>
+      <Text w="semi" className="text-white text-lg mb-4">
+        {phase === "show" ? "راقب الترتيب…" : "دورك: أعد الترتيب"}
+      </Text>
+      <View style={{ width: 270, flexDirection: "row", flexWrap: "wrap", gap: 10, direction: "ltr" }}>
+        {Array.from({ length: 9 }, (_, i) => (
+          <Pressable
+            key={i}
+            onPress={() => press(i)}
+            style={{
+              width: 83,
+              height: 83,
+              borderRadius: 20,
+              backgroundColor: lit === i ? "#FFFFFF" : "rgba(255,255,255,0.22)",
+            }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** هزّ الهاتف SHAKE_TARGET مرة. إن لم يتوفر الحسّاس يُستبدل بالنقر حتى لا يبقى المنبّه بلا مخرج */
+function ShakeChallenge({ onSolved }: { onSolved: () => void }) {
+  const [count, setCount] = useState(0);
+  const [sensor, setSensor] = useState(true);
+  const n = useRef(0);
+  const last = useRef(0);
+
+  const bump = () => {
+    n.current += 1;
+    setCount(n.current);
+    if (n.current === SHAKE_TARGET) onSolved();
+  };
+
+  useEffect(() => {
+    let sub: { remove: () => void } | null = null;
+    let alive = true;
+    (async () => {
+      try {
+        if (!(await Accelerometer.isAvailableAsync())) throw new Error("no sensor");
+        Accelerometer.setUpdateInterval(80);
+        sub = Accelerometer.addListener(({ x, y, z }) => {
+          const g = Math.sqrt(x * x + y * y + z * z);
+          const t = Date.now();
+          if (alive && g > 1.9 && t - last.current > 250 && n.current < SHAKE_TARGET) {
+            last.current = t;
+            bump();
+          }
+        });
+      } catch {
+        if (alive) setSensor(false);
+      }
+    })();
+    return () => {
+      alive = false;
+      sub?.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pct = Math.min(1, count / SHAKE_TARGET);
+  return (
+    <View className="items-center">
+      <Text w="semi" className="text-red-100 mb-4">
+        {sensor ? "هزّ الهاتف بقوة" : "الحسّاس غير متوفر: اضغط الزر بسرعة"}
+      </Text>
+      <Pressable disabled={sensor} onPress={bump}>
+        <View
+          style={{
+            width: 190,
+            height: 190,
+            borderRadius: 95,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(255,255,255,0.25)",
+            borderWidth: 6,
+            borderColor: "rgba(255,255,255,0.5)",
+            overflow: "hidden",
+          }}
+        >
+          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: `${pct * 100}%`, backgroundColor: "#FDBA74" }} />
+          <Text w="bold" style={{ fontSize: 44, color: "#FFFFFF" }}>
+            {Math.max(0, SHAKE_TARGET - count)}
+          </Text>
+          <Ionicons name="phone-portrait-outline" size={30} color="#FFFFFF" />
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
 export function ChallengeView({ kind, onSolved }: Props) {
   if (kind === "math") return <MathChallenge onSolved={onSolved} />;
   if (kind === "hold") return <HoldChallenge onSolved={onSolved} />;
+  if (kind === "memory") return <MemoryChallenge onSolved={onSolved} />;
+  if (kind === "shake") return <ShakeChallenge onSolved={onSolved} />;
   return <PhraseChallenge onSolved={onSolved} />;
 }

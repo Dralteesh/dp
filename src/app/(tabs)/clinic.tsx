@@ -4,7 +4,7 @@ import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
 import { WeekStrip } from "@/components/home/WeekStrip";
 import { useTheme } from "@/hooks/useTheme";
 import { TYPE_META } from "@/constants/shiftTypes";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +23,7 @@ import { fmtMoney, initial } from "@/lib/format";
 import { inputAlign } from "@/lib/rtl";
 import { whatsappLink } from "@/lib/phone";
 import { patientBalance, useClinic } from "@/store/useClinic";
+import { useClinicTools } from "@/store/useClinicTools";
 import { useSettings } from "@/store/useSettings";
 import type { Appointment, AppointmentStatus, Patient, ShiftType } from "@/types";
 
@@ -49,6 +50,16 @@ export default function ClinicScreen() {
   const [pFilter, setPFilter] = useState<PFilter>("active");
   const [fabOpen, setFabOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsPending = useClinicTools((s) => s.pending);
+  const consumeTools = useClinicTools((s) => s.consume);
+
+  // ضغط مطوّل على شعار العيادة في الشريط السفلي يفتح درج الأدوات (حتى لو كانت الشاشة تُفتح للتو)
+  useEffect(() => {
+    if (toolsPending) {
+      setToolsOpen(true);
+      consumeTools();
+    }
+  }, [toolsPending, consumeTools]);
 
   const today = toISO(new Date());
   const byId = useMemo(() => new Map(patients.map((p) => [p.id, p])), [patients]);

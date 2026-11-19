@@ -3,6 +3,7 @@ import { Image, Keyboard, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { NAV_ICONS } from "@/constants/icons";
+import { useClinicTools } from "@/store/useClinicTools";
 import { useQuickAdd } from "@/store/useQuickAdd";
 
 const CLINIC_LOGO = require("../../../assets/clinic-logo.png");
@@ -47,6 +48,7 @@ const MUTED = "#94A3B8";
 export function FloatingTabBar({ state, navigation }: BarProps) {
   const insets = useSafeAreaInsets();
   const showQuickAdd = useQuickAdd((s) => s.show);
+  const requestTools = useClinicTools((s) => s.request);
   const [kb, setKb] = useState(false);
 
   useEffect(() => {
@@ -114,9 +116,9 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                     alignItems: "center",
                     justifyContent: "center",
                     borderWidth: 4,
-                    borderColor: "#DCEEF8",
+                    borderColor: "#F1F1EF",
                     elevation: 8,
-                    shadowColor: BLUE,
+                    shadowColor: INK,
                     shadowOpacity: 0.35,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: 4 },
@@ -132,7 +134,21 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
           }
 
           return (
-            <Pressable key={name} onPress={() => press(name)} style={{ flex: 1, alignItems: "center", paddingVertical: 6 }}>
+            <Pressable
+              key={name}
+              onPress={() => press(name)}
+              onLongPress={
+                name === "clinic"
+                  ? () => {
+                      press("clinic");
+                      requestTools();
+                    }
+                  : undefined
+              }
+              delayLongPress={350}
+              accessibilityLabel={name === "clinic" ? "العيادة (اضغط مطوّلًا لأدوات العيادة)" : m.label}
+              style={{ flex: 1, alignItems: "center", paddingVertical: 6 }}
+            >
               <View
                 style={{
                   width: 46,
@@ -140,7 +156,7 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                   borderRadius: 15,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: on ? "#DCEEF8" : "transparent",
+                  backgroundColor: "transparent",
                 }}
               >
                 {name === "clinic" ? (
