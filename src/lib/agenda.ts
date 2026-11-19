@@ -16,6 +16,8 @@ export type AgendaItem = {
   /** تكملة مناوبة بدأت أمس */
   continuation?: boolean;
   status?: string;
+  /** نوع العلاج لمواعيد العيادة (لأيقونة البطاقة) */
+  procedure?: string;
 };
 
 export type AgendaInput = {
@@ -85,6 +87,7 @@ export function agendaFor(iso: string, input: AgendaInput): AgendaItem[] {
       endTime: minutesToTime(toMinutes(a.startTime) + a.durationMin),
       endsNextDay: false,
       status: a.status,
+      procedure: a.procedure,
     });
   }
 

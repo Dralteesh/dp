@@ -15,7 +15,7 @@ import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
-import { DURATIONS, PROCEDURES, STATUS_META } from "@/constants/clinic";
+import { DURATIONS, STATUS_META } from "@/constants/clinic";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { describeClash, findClashes } from "@/lib/conflicts";
 import { patientFlags, procedureWarnings } from "@/lib/alerts";
@@ -23,9 +23,11 @@ import { fmtTime, minutesToTime, toISO, toMinutes } from "@/lib/dates";
 import { initial } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
 import type { AppointmentStatus } from "@/types";
+import { useProcedures } from "@/hooks/useProcedures";
 
 
 export default function AppointmentFormScreen() {
+  const procedures = useProcedures();
   useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -149,7 +151,7 @@ export default function AppointmentFormScreen() {
       <Card className="mt-3">
         <FieldRow label="الإجراء">
           <View className="flex-row flex-wrap gap-2">
-            {PROCEDURES.map((p) => (
+            {procedures.map((p) => (
               <Chip
                 key={p.name}
                 label={p.name}
@@ -164,6 +166,11 @@ export default function AppointmentFormScreen() {
           </View>
         </FieldRow>
         <Field label="أو اكتب إجراءً آخر" value={procedure} onChangeText={setProcedure} />
+        <Pressable onPress={() => router.push("/clinic/procedures" as never)} className="self-start mb-2" hitSlop={8}>
+          <Text w="semi" className="text-xs" style={{ color: TYPE_META.private.hex }}>
+            تعديل الإجراءات ›
+          </Text>
+        </Pressable>
         <DictateField label="ملاحظات" value={notes} onChangeText={setNotes} multiline />
         {existing ? (
           <FieldRow label="الحالة">

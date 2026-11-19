@@ -362,6 +362,8 @@ export type Settings = {
   homeShowDocs: boolean;
   /** بنود الإضافة السريعة بترتيب المستخدم (null = القائمة الافتراضية) */
   quickAdd: QuickAddItem[] | null;
+  /** كتالوج الإجراءات القابل للتعديل؛ null = الافتراضي */
+  procedures: ProcedureDef[] | null;
   /** تحدٍّ الإيقاف الافتراضي لمنبّهات الأحداث (المناوبات) */
   defaultAlarmChallenge: AlarmChallenge;
   /** اسم التطبيق الظاهر في الرأسية (فارغ = Dentist Planner) */
@@ -378,4 +380,20 @@ export type Settings = {
   payRates: Partial<Record<ShiftType, number>>;
   /** راتب شهري ثابت (المشفى) */
   monthlySalary: number;
+};
+
+/** أيقونة إجراء علاجي: مرسلة مع التطبيق، أو من Ionicons، أو صورة اختارها المستخدم (data:image) */
+export type ProcedureIcon =
+  | { kind: "asset"; key: string }
+  | { kind: "ionicon"; name: string }
+  | { kind: "image"; uri: string };
+
+export type ProcedureDef = {
+  id: string;
+  name: string;
+  /** المدة الافتراضية بالدقائق */
+  minutes: number;
+  icon: ProcedureIcon;
+  /** كلمات تُطابق الأسماء الحرة (مثل: عصب، لبية، RCT) */
+  keywords: string[];
 };

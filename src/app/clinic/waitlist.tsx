@@ -13,7 +13,6 @@ import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
-import { PROCEDURES } from "@/constants/clinic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
 import { fmtDateShort } from "@/lib/dates";
@@ -24,6 +23,7 @@ import { useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
 import { useSettings } from "@/store/useSettings";
 import type { PartOfDay, WaitEntry } from "@/types/extras";
+import { useProcedures } from "@/hooks/useProcedures";
 
 const PARTS: PartOfDay[] = ["any", "morning", "afternoon", "evening"];
 const STATUS_LABEL: Record<WaitEntry["status"], string> = {
@@ -35,6 +35,7 @@ const STATUS_LABEL: Record<WaitEntry["status"], string> = {
 
 /** قائمة الانتظار: مرضى يريدون موعدًا أبكر. عند إلغاء موعد يقترح التطبيق من يناسبه الوقت. */
 export default function WaitlistScreen() {
+  const procedures = useProcedures();
   useTheme();
   const router = useRouter();
   const green = TYPE_META.private.hex;
@@ -207,7 +208,7 @@ export default function WaitlistScreen() {
         </FieldRow>
         <FieldRow label="الإجراء">
           <View className="flex-row flex-wrap gap-2">
-            {PROCEDURES.slice(0, 6).map((p) => (
+            {procedures.slice(0, 6).map((p) => (
               <Chip key={p.name} label={p.name} selected={procedure === p.name} color={green} onPress={() => setProcedure(p.name)} />
             ))}
           </View>

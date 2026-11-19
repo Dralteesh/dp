@@ -10,7 +10,6 @@ import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
-import { PROCEDURES } from "@/constants/clinic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
 import { fmtUsd } from "@/lib/currency";
@@ -18,9 +17,11 @@ import { fmtMoney, parseAmount } from "@/lib/format";
 import { useExtras } from "@/store/useExtras";
 import { useSettings } from "@/store/useSettings";
 import type { PriceItem } from "@/types/extras";
+import { useProcedures } from "@/hooks/useProcedures";
 
 /** قائمة أسعار الإجراءات: تُستعمل في «جلسة سريعة» داخل ملف المريض */
 export default function PricesScreen() {
+  const procedures = useProcedures();
   useTheme();
   const currency = useSettings((s) => s.currency);
   const items = useExtras((s) => s.priceList);
@@ -60,7 +61,7 @@ export default function PricesScreen() {
   };
   const importDefaults = () => {
     const have = new Set(items.map((i) => i.name));
-    const missing = PROCEDURES.filter((p) => !have.has(p.name));
+    const missing = procedures.filter((p) => !have.has(p.name));
     if (!missing.length) return Alert.alert("كلها موجودة");
     Alert.alert("استيراد الإجراءات", `ستُضاف ${missing.length} إجراءات بسعر صفر لتعدّل أسعارها بنفسك.`, [
       { text: "إلغاء", style: "cancel" },

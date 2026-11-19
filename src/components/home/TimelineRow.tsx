@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Text } from "@/components/ui/Text";
 import { STATUS_META } from "@/constants/clinic";
+import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
 import type { AgendaItem } from "@/lib/agenda";
@@ -73,7 +74,11 @@ export function TimelineCard({ item, live, past, remainingMin, onPress }: Props)
       <View
         style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: m.hex, alignItems: "center", justifyContent: "center" }}
       >
-        <Ionicons name={m.icon} size={26} color={m.onSolid} />
+        {item.source === "appointment" ? (
+          <ProcedureBadge name={item.procedure} size={40} color={m.onSolid} />
+        ) : (
+          <Ionicons name={m.icon} size={26} color={m.onSolid} />
+        )}
       </View>
     </PressableScale>
   );
