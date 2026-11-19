@@ -93,7 +93,7 @@ export type AlarmItem = {
   maxSnoozes?: number;
 };
 
-export type AlarmChallenge = "none" | "math" | "hold" | "phrase";
+export type AlarmChallenge = "none" | "math" | "hold" | "phrase" | "memory" | "shake";
 
 // ---------- العيادة الخاصة ----------
 

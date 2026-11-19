@@ -5,11 +5,26 @@ export const CHALLENGE_LABELS: Record<AlarmChallenge, { label: string; hint: str
   math: { label: "مسائل حسابية", hint: "حلّ 3 مسائل متتالية", icon: "calculator-outline" },
   hold: { label: "ضغط مطوّل", hint: "اضغط باستمرار 10 ثوانٍ دون رفع إصبعك", icon: "finger-print-outline" },
   phrase: { label: "كتابة جملة", hint: "اكتب الجملة المعروضة حرفيًا", icon: "create-outline" },
+  memory: { label: "ذاكرة", hint: "أعد ترتيب المربعات التي أضاءت", icon: "grid-outline" },
+  shake: { label: "هزّ الهاتف", hint: "هزّ الهاتف 30 مرة", icon: "phone-portrait-outline" },
 };
 
 export const MAX_SNOOZES_DEFAULT = 2;
 export const HOLD_SECONDS = 10;
 export const MATH_ROUNDS = 3;
+export const SHAKE_TARGET = 30;
+export const MEMORY_START = 3; // طول التسلسل في الجولة الأولى
+export const MEMORY_ROUNDS = 3; // 3 ثم 4 ثم 5
+
+/** تسلسل عشوائي من خلايا شبكة 3×3 دون تكرار الخلية نفسها متتالية */
+export function makeMemorySequence(len: number): number[] {
+  const out: number[] = [];
+  while (out.length < len) {
+    const c = rnd(0, 8);
+    if (c !== out[out.length - 1]) out.push(c);
+  }
+  return out;
+}
 
 export type MathProblem = { text: string; answer: number };
 
