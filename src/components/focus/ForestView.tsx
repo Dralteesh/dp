@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
+import { Forest3D, GLBoundary } from "@/components/forest3d/Forest3D";
 import { SceneBox } from "@/components/focus/Scene";
 import { Tree } from "@/components/focus/Tree";
 import { useSky } from "@/components/focus/useSky";
@@ -19,7 +20,7 @@ const ROWS = [
   { size: 86, bottom: 4 },
 ];
 
-const Landscape = memo(function Landscape({ records, onPick }: { records: FocusRecord[]; onPick: (r: FocusRecord) => void }) {
+const Landscape2D = memo(function Landscape2D({ records, onPick }: { records: FocusRecord[]; onPick: (r: FocusRecord) => void }) {
   const sky = useSky().now;
   const [w, setW] = useState(340);
   const placed = useMemo(
@@ -50,6 +51,15 @@ const Landscape = memo(function Landscape({ records, onPick }: { records: FocusR
         ) : null}
       </View>
     </SceneBox>
+  );
+});
+
+/** المشهد: رسم ثلاثي الأبعاد، ومعه المشهد ثنائي الأبعاد القديم احتياطًا إن فشل */
+const Landscape = memo(function Landscape({ records, onPick }: { records: FocusRecord[]; onPick: (r: FocusRecord) => void }) {
+  return (
+    <GLBoundary fallback={<Landscape2D records={records} onPick={onPick} />}>
+      <Forest3D records={records} onPick={onPick} />
+    </GLBoundary>
   );
 });
 
