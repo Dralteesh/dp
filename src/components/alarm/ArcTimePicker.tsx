@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { type LayoutChangeEvent, Pressable, ScrollView, View } from "react-native";
+import { type LayoutChangeEvent, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { DayNightSwitch } from "@/components/alarm/DayNightSwitch";
 import { Text } from "@/components/ui/Text";
 
 const ROW = 62;
@@ -191,16 +192,10 @@ export function ArcTimePicker({ value, onChange, accent = YELLOW }: Props) {
         }}
       />
 
-      {/* ص / م */}
-      <Pressable
-        onPress={() => emit(h12, m, !pm)}
-        hitSlop={10}
-        style={{ position: "absolute", right: 6, top: cy - 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.06)" }}
-      >
-        <Text w="bold" style={{ fontSize: 15, color: "#0A0A0A" }}>
-          {pm ? "م" : "ص"}
-        </Text>
-      </Pressable>
+      {/* صباح / مساء */}
+      <View style={{ position: "absolute", left: midX - 56, bottom: 4 }}>
+        <DayNightSwitch pm={pm} onToggle={() => emit(h12, m, !pm)} />
+      </View>
     </View>
   );
 }
