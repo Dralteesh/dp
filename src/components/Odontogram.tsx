@@ -25,10 +25,10 @@ type Props = {
   birthYear?: number;
 };
 
-const SELECT = "#2DD4BF";
-const TOOTH_TOP = "#F1EEFC";
-const TOOTH_BOTTOM = "#CFC9F0";
-const TEXT_PALE = "#4A4BA3";
+const SELECT = "#8CCBEA";
+const TOOTH_TOP = "#FFFEE8";
+const TOOTH_BOTTOM = "#F6EDB4";
+const TEXT_PALE = "#0B4F73";
 
 /** مخطط الأسنان (FDI) على قوسين U: أسنان بحجومها الحقيقية موزّعة على طول القوس. اضغط قرب سن لتحديده */
 export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onDentitionChange, birthYear }: Props) {
@@ -70,7 +70,7 @@ export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onD
     const active = sel === code;
     const gone = st === "missing" || st === "extraction";
     const fill = active ? SELECT : meta ? meta.hex : "url(#tg)";
-    const numColor = active ? "#053D37" : meta ? "#FFFFFF" : TEXT_PALE;
+    const numColor = active ? "#0B4F73" : meta ? "#FFFFFF" : TEXT_PALE;
     const fs = u(9);
     return (
       <G key={code}>
@@ -79,9 +79,9 @@ export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onD
           d={sh.d}
           fill={fill}
           fillOpacity={gone ? 0.35 : 1}
-          stroke="#FFFFFF"
-          strokeOpacity={active ? 1 : 0.55}
-          strokeWidth={u(active ? 2 : 1)}
+          stroke={active ? "#FFF9C9" : "#0B4F73"}
+          strokeOpacity={1}
+          strokeWidth={u(active ? 2.4 : 1.6)}
           strokeLinejoin="round"
           strokeDasharray={gone ? `${u(3)},${u(2)}` : undefined}
         />
@@ -131,7 +131,7 @@ export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onD
   );
 
   return (
-    <View onLayout={(e: LayoutChangeEvent) => setW(Math.max(260, e.nativeEvent.layout.width))} style={{ backgroundColor: ODONTO_BG, borderRadius: 28, paddingTop: 14, overflow: "hidden" }}>
+    <View onLayout={(e: LayoutChangeEvent) => setW(Math.max(260, e.nativeEvent.layout.width))} style={{ backgroundColor: ODONTO_BG, borderRadius: 28, paddingTop: 14, overflow: "hidden", borderWidth: 2.5, borderColor: "#0B4F73" }}>
       <View style={{ paddingHorizontal: 18, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <Text w="bold" style={{ color: "#FFFFFF", fontSize: 16 }}>
           مخطط الأسنان

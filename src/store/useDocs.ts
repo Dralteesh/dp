@@ -13,6 +13,16 @@ export type DocItem = {
   ext: string;
   size: number;
   addedAt: number;
+  /** مفضّل */
+  fav?: boolean;
+  /** آخر فتح (لقسم «تابع القراءة») */
+  openedAt?: number;
+  /** PDF: آخر صفحة وصل إليها القارئ وعدد الصفحات */
+  page?: number;
+  pages?: number;
+  /** PDF: مستوى التكبير والوضع الليلي */
+  zoom?: number;
+  night?: boolean;
 };
 
 type DocsState = {
@@ -20,6 +30,9 @@ type DocsState = {
   /** يفتح منتقي الملفات وينسخها داخل التطبيق. يعيد عدد المضاف */
   importDocs: () => Promise<number>;
   removeDoc: (id: string) => Promise<void>;
+  patchDoc: (id: string, patch: Partial<DocItem>) => void;
+  toggleFav: (id: string) => void;
+  touch: (id: string) => void;
 };
 
 const DIR = `${FileSystem.documentDirectory}docs/`;
@@ -48,6 +61,9 @@ export const useDocs = create<DocsState>()(
         if (d) await FileSystem.deleteAsync(d.uri, { idempotent: true }).catch(() => {});
         set((s) => ({ docs: s.docs.filter((x) => x.id !== id) }));
       },
+      patchDoc: (id, patch) => set((s) => ({ docs: s.docs.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
+      toggleFav: (id) => set((s) => ({ docs: s.docs.map((d) => (d.id === id ? { ...d, fav: !d.fav } : d)) })),
+      touch: (id) => set((s) => ({ docs: s.docs.map((d) => (d.id === id ? { ...d, openedAt: Date.now() } : d)) })),
     }),
     { name: "dp.docs.v1", storage, partialize: (s) => ({ docs: s.docs }) },
   ),
@@ -71,6 +87,16 @@ export const KIND_ICON: Record<DocKind, string> = {
   docx: "reader",
   sheet: "grid",
   other: "attach",
+};
+
+/** لون كل نوع (للأيقونة والخلفية الفاتحة) والتسمية العربية */
+export const KIND_META: Record<DocKind, { label: string; hex: string; soft: string }> = {
+  pdf: { label: "PDF", hex: "#DC2626", soft: "#FEE2E2" },
+  docx: { label: "Word", hex: "#2563EB", soft: "#DBEAFE" },
+  sheet: { label: "Excel", hex: "#16A34A", soft: "#DCFCE7" },
+  image: { label: "صور", hex: "#9333EA", soft: "#F3E8FF" },
+  text: { label: "نصوص", hex: "#475569", soft: "#E2E8F0" },
+  other: { label: "أخرى", hex: "#64748B", soft: "#F1F5F9" },
 };
 
 export function mimeOf(ext: string): string {

@@ -86,7 +86,7 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <AppSync />
       <CloudSync />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#F0EFEA" } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#F2F8FC" } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="ringing" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
       </Stack>

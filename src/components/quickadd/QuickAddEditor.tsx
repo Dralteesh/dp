@@ -115,7 +115,7 @@ function EditRow({ item, index, count, activeIdx, overIdx, dragY, onReorder, onS
         <Pressable onPress={onEdit} className="flex-1 flex-row items-center gap-2.5">
           <View
             className="w-9 h-9 rounded-xl items-center justify-center"
-            style={{ backgroundColor: item.kind === "event-type" ? look.hex : "#FFFFFF", borderWidth: item.kind === "event-type" ? 0 : 1, borderColor: "#E3E1D8" }}
+            style={{ backgroundColor: item.kind === "event-type" ? look.hex : "#FFFFFF", borderWidth: item.kind === "event-type" ? 0 : 1, borderColor: "#0B4F73" }}
           >
             <Ionicons
               name={look.icon as never}
@@ -275,7 +275,7 @@ export function QuickAddEditor({ items }: { items: QuickAddItem[] }) {
                   key={d.key}
                   onPress={() => pickDest(d)}
                   className="flex-row items-center gap-1.5 rounded-full px-3 py-2 border"
-                  style={{ backgroundColor: on ? BLUE : "#FFFFFF", borderColor: on ? BLUE : "#E3E1D8" }}
+                  style={{ backgroundColor: on ? BLUE : "#FFFFFF", borderColor: on ? BLUE : "#0B4F73" }}
                 >
                   <Ionicons name={d.icon as never} size={14} color={on ? "#FFFFFF" : "#475569"} />
                   <Text w="semi" className="text-xs" style={{ color: on ? "#FFFFFF" : "#475569" }}>
@@ -296,7 +296,7 @@ export function QuickAddEditor({ items }: { items: QuickAddItem[] }) {
                   key={n}
                   onPress={() => setForm({ ...form, icon: n })}
                   className="w-11 h-11 rounded-xl items-center justify-center border"
-                  style={{ backgroundColor: on ? BLUE : "#F8FAFC", borderColor: on ? BLUE : "#E3E1D8" }}
+                  style={{ backgroundColor: on ? BLUE : "#F8FAFC", borderColor: on ? BLUE : "#0B4F73" }}
                 >
                   <Ionicons name={n as never} size={20} color={on ? "#FFFFFF" : "#334155"} />
                 </Pressable>
@@ -310,7 +310,7 @@ export function QuickAddEditor({ items }: { items: QuickAddItem[] }) {
             <Pressable
               onPress={() => setForm({ ...form, hex: "" })}
               className="rounded-full px-3 py-2 border"
-              style={{ backgroundColor: !form.hex ? "#0F172A" : "#FFFFFF", borderColor: !form.hex ? "#0F172A" : "#E3E1D8" }}
+              style={{ backgroundColor: !form.hex ? "#0F172A" : "#FFFFFF", borderColor: !form.hex ? "#0F172A" : "#0B4F73" }}
             >
               <Text w="semi" className="text-xs" style={{ color: !form.hex ? "#FFFFFF" : "#475569" }}>
                 افتراضي

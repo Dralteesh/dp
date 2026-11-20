@@ -35,17 +35,17 @@ export const TOOTH_STATUS: Record<
   ToothStatus,
   { label: string; hex: string; soft: string }
 > = {
-  caries: { label: "نخر", hex: "#EF4444", soft: "#FEE2E2" },
-  filling: { label: "حشوة", hex: "#3B82F6", soft: "#DBEAFE" },
-  rct: { label: "معالجة لبية", hex: "#F97316", soft: "#FFEDD5" },
-  crown: { label: "تاج", hex: "#CA8A04", soft: "#FEF9C3" },
-  implant: { label: "زرعة", hex: "#8B5CF6", soft: "#EDE9FE" },
+  caries: { label: "نخر", hex: "#DC2626", soft: "#FEE2E2" },
+  filling: { label: "حشوة", hex: "#2B8FCB", soft: "#DBEAFE" },
+  rct: { label: "معالجة لبية", hex: "#EA580C", soft: "#FFEDD5" },
+  crown: { label: "تاج", hex: "#B7791F", soft: "#FEF9C3" },
+  implant: { label: "زرعة", hex: "#7B8794", soft: "#E5E9EE" },
   missing: { label: "مفقود", hex: "#6B7280", soft: "#E5E7EB" },
-  extraction: { label: "مطلوب قلعه", hex: "#111827", soft: "#D1D5DB" },
+  extraction: { label: "مطلوب قلعه", hex: "#334155", soft: "#D1D5DB" },
 };
 
-/** خلفية بطاقة مخطط الأسنان (بنفسجي مزرق قريب من الصورة المرجعية) — سهل التعديل */
-export const ODONTO_BG = "#4A4BA3";
+/** خلفية بطاقة مخطط الأسنان (أزرق من شعار العيادة) — سهل التعديل */
+export const ODONTO_BG = "#1F6B94";
 
 /** ترتيب الأسنان الدائمة (FDI) كما تُرى من وجه المريض: يمين المريض على اليسار */
 export const UPPER_TEETH = [

@@ -16,14 +16,14 @@ type ChipProps = {
   textColor?: string;
 };
 
-export function Chip({ label, selected, onPress, icon, color = "#0F172A", textColor = "#FFFFFF" }: ChipProps) {
+export function Chip({ label, selected, onPress, icon, color = "#0A3A57", textColor = "#FFFFFF" }: ChipProps) {
   return (
     <Pressable
       onPress={onPress}
       className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2 border"
       style={{
         backgroundColor: selected ? color : "#FFFFFF",
-        borderColor: selected ? color : "#E3E1D8",
+        borderColor: selected ? color : "#0B4F73",
       }}
     >
       {icon ? <Ionicons name={icon} size={14} color={selected ? textColor : "#475569"} /> : null}
@@ -103,7 +103,7 @@ export function Segmented<T extends string>({
             key={o.value}
             onPress={() => onChange(o.value)}
             className="flex-1 items-center rounded-full py-2.5 border"
-            style={{ backgroundColor: active ? "#111418" : "#FFFFFF", borderColor: active ? "#111418" : "#D9D6CC" }}
+            style={{ backgroundColor: active ? "#0A3A57" : "#FFFFFF", borderColor: active ? "#0A3A57" : "#0B4F73" }}
           >
             <Text w={active ? "bold" : "semi"} style={{ color: active ? "#FFFFFF" : "#475569" }}>
               {o.label}
