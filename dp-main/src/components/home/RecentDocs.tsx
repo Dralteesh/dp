@@ -34,8 +34,8 @@ export function RecentDocs() {
               onPress={() => router.push({ pathname: "/doc/[id]", params: { id: d.id } })}
               className="flex-row items-center gap-3 bg-surface border border-line rounded-2xl p-3 mb-2.5"
             >
-              <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: "#EDE9FE" }}>
-                <Ionicons name={KIND_ICON[kind] as never} size={24} color="#7C3AED" />
+              <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: "#D6EBF7" }}>
+                <Ionicons name={KIND_ICON[kind] as never} size={24} color="#0E6FA5" />
               </View>
               <View className="flex-1">
                 <Text w="semi" numberOfLines={1}>

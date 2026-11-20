@@ -8,9 +8,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { WebView } from "react-native-webview";
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
+import { PdfReader } from "@/components/docs/PdfReader";
 import { kindOf, mimeOf, useDocs } from "@/store/useDocs";
 
-const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
 const MAX_INLINE = 25_000_000; // أكبر من هذا يُفتح بتطبيق خارجي
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -26,21 +26,6 @@ const wrapHtml = (body: string, extraCss = "") => `<!doctype html><html dir="aut
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
 <style>body{font-family:sans-serif;margin:0;padding:16px;line-height:1.8;color:#0f172a;background:#fff;word-wrap:break-word}
 img{max-width:100%;height:auto}table{border-collapse:collapse;margin:8px 0;font-size:14px}td,th{border:1px solid #cbd5e1;padding:4px 8px}${extraCss}</style></head><body>${body}</body></html>`;
-
-function pdfHtml(b64: string) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
-<style>body{margin:0;background:#525659}canvas{display:block;margin:8px auto;max-width:100%;height:auto;background:#fff}#s{color:#fff;font-family:sans-serif;padding:20px;text-align:center}</style></head>
-<body><div id="s">جارٍ تحميل القارئ…</div>
-<script src="${PDFJS}/pdf.min.js"></script>
-<script>
-(async()=>{const s=document.getElementById('s');try{
-pdfjsLib.GlobalWorkerOptions.workerSrc='${PDFJS}/pdf.worker.min.js';
-const raw=atob('${b64}');const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
-const pdf=await pdfjsLib.getDocument({data:bytes}).promise;s.remove();
-for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);const vp=p.getViewport({scale:1.8});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;document.body.appendChild(c);await p.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;}
-}catch(e){s.textContent='تعذّر عرض الملف هنا (القارئ يحتاج اتصالًا بالإنترنت أول مرة): '+e.message;}})();
-</script></body></html>`;
-}
 
 function sheetHtml(XLSX: any, b64: string) {
   const wb = XLSX.read(b64, { type: "base64" });
@@ -74,7 +59,8 @@ export default function DocViewer() {
   };
 
   useEffect(() => {
-    if (!doc) return;
+    if (!doc || kind === "pdf") return;
+    useDocs.getState().touch(doc.id);
     let alive = true;
     (async () => {
       try {
@@ -82,9 +68,6 @@ export default function DocViewer() {
         if (kind === "text") {
           const t = await FileSystem.readAsStringAsync(doc.uri);
           if (alive) setText(t);
-        } else if (kind === "pdf") {
-          const b64 = await FileSystem.readAsStringAsync(doc.uri, { encoding: FileSystem.EncodingType.Base64 });
-          if (alive) setHtml(pdfHtml(b64));
         } else if (kind === "docx") {
           const b64 = await FileSystem.readAsStringAsync(doc.uri, { encoding: FileSystem.EncodingType.Base64 });
           // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -106,10 +89,13 @@ export default function DocViewer() {
     return () => {
       alive = false;
     };
-  }, [doc, kind]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc?.id, kind]);
+
+  if (doc && kind === "pdf") return <PdfReader doc={doc} />;
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: "#F0EFEA" }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: "#F2F8FC" }}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
         <Pressable onPress={() => router.back()} hitSlop={10} className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center">
           <Ionicons name="arrow-forward" size={20} color="#0F172A" />
@@ -135,7 +121,7 @@ export default function DocViewer() {
           <Button label="فتح بتطبيق آخر" icon="open-outline" onPress={openExternal} />
         </View>
       ) : loading ? (
-        <ActivityIndicator style={{ marginTop: 60 }} color="#7C3AED" />
+        <ActivityIndicator style={{ marginTop: 60 }} color="#0E6FA5" />
       ) : kind === "image" ? (
         <ScrollView maximumZoomScale={5} minimumZoomScale={1} contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}>
           <Image source={{ uri: doc.uri }} style={{ width: "100%", height: 600 }} resizeMode="contain" />

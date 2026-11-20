@@ -144,8 +144,6 @@ export type Patient = {
   notes?: string;
   /** رمز السن (FDI) -> الحالة. غير المذكور = سليم */
   teeth: Record<string, ToothStatus>;
-  /** ملاحظة سريرية لكل سن (FDI -> نص). غير المذكور = بلا ملاحظة */
-  toothNotes?: Record<string, string>;
   createdAt: number;
   /** آخر مرة أُرسلت له رسالة استدعاء (متابعة) */
   recalledAt?: number;

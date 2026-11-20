@@ -33,7 +33,6 @@ export const ROUTE_PRESETS: { route: string; label: string; icon: string }[] = [
   { route: "/alarm/new", label: "منبّه جديد", icon: "alarm-outline" },
   { route: "/calendar", label: "التقويم", icon: "calendar-number-outline" },
   { route: "/docs", label: "المستندات", icon: "document-text-outline" },
-  { route: "/focus", label: "ازرع شجرة", icon: "leaf-outline" },
 ];
 
 /** القائمة الافتراضية: كل نوع نشط، ثم مهمة، ملاحظة، مريض جديد */
@@ -63,7 +62,7 @@ export function defaultQuickAdd(types: ShiftType[]): QuickAddItem[] {
 export function resolveQuickAdd(saved: QuickAddItem[] | null | undefined, types: ShiftType[]): QuickAddItem[] {
   if (!saved || !Array.isArray(saved)) return defaultQuickAdd(types);
   const active = new Set(types);
-  const out = saved.filter((i) => i && (i.kind !== "event-type" || (i.type && active.has(i.type))));
+  const out = saved.filter((i) => i && !(i.kind === "route" && i.route === "/focus") && (i.kind !== "event-type" || (i.type && active.has(i.type))));
   const have = new Set(out.filter((i) => i.kind === "event-type").map((i) => i.type));
   for (const t of types) if (!have.has(t)) out.push(typeItem(t));
   return out;

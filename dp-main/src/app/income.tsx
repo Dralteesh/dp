@@ -151,8 +151,8 @@ export default function IncomeScreen() {
             const active = s.month === month;
             return (
               <Pressable key={s.month} onPress={() => setMonth(s.month)} className="items-center flex-1">
-                <View style={{ width: 22, height: h, borderRadius: 7, backgroundColor: active ? "#111418" : "#CBD5E1" }} />
-                <Text className="text-xs mt-1" style={{ color: active ? "#111418" : "#64748B" }}>
+                <View style={{ width: 22, height: h, borderRadius: 7, backgroundColor: active ? "#0A3A57" : "#CBD5E1" }} />
+                <Text className="text-xs mt-1" style={{ color: active ? "#0A3A57" : "#64748B" }}>
                   {Number(s.month.slice(5))}
                 </Text>
               </Pressable>

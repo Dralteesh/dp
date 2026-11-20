@@ -18,8 +18,8 @@ type BarProps = {
   };
 };
 
-/** ترتيب الأزرار من اليمين إلى اليسار (واجهة RTL): المنبّه، العيادة، الرئيسية، الصلاة، الغابة */
-const ORDER = ["alarms", "clinic", "index", "prayer", "focus"] as const;
+/** ترتيب الأزرار من اليمين إلى اليسار (واجهة RTL): المنبّه، العيادة، الرئيسية، الصلاة، المستندات */
+const ORDER = ["alarms", "clinic", "index", "prayer", "docs"] as const;
 type Name = (typeof ORDER)[number];
 
 /** الأيقونات ملوّنة: نسختان (نشطة وخاملة) لكل زر، والعيادة بشعارها */
@@ -28,21 +28,21 @@ const META: Record<Name, { label: string }> = {
   clinic: { label: "العيادة" },
   index: { label: "الرئيسية" },
   prayer: { label: "الصلاة" },
-  focus: { label: "الغابة" },
+  docs: { label: "المستندات" },
 };
 
 const ICON_KEY: Record<Exclude<Name, "clinic">, keyof typeof NAV_ICONS> = {
   alarms: "alarms",
   index: "home",
   prayer: "prayer",
-  focus: "focus",
+  docs: "docs",
 };
 
 /** الشاشات المخفية من الشريط تُحسب تحت زرٍّ قريب منها ليبقى الزر مضاءً */
 const OWNER: Record<string, Name> = { calendar: "index", tasks: "index" };
 
 const BLUE = "#0E6FA5";
-const INK = "#0F172A";
+const INK = "#0A3A57";
 const MUTED = "#94A3B8";
 
 /** شريط تنقل عائم: الرئيسية كبيرة في المنتصف، والعيادة بشعارها، والضغط المطوّل على الرئيسية = إضافة سريعة */
@@ -92,8 +92,8 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
           shadowOpacity: 0.14,
           shadowRadius: 16,
           shadowOffset: { width: 0, height: 6 },
-          borderWidth: 1,
-          borderColor: "#E8E6DE",
+          borderWidth: 2.5,
+          borderColor: "#0B4F73",
         }}
       >
         {ORDER.map((name) => {

@@ -9,7 +9,6 @@ import { MoneyField, useMoneyInput } from "@/components/MoneyField";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
 import { PatientDocs } from "@/components/clinic/PatientDocs";
 import { QuickSession } from "@/components/clinic/QuickSession";
-import { ToothPanel } from "@/components/clinic/ToothPanel";
 import { Odontogram } from "@/components/Odontogram";
 import { DateField } from "@/components/pickers";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -17,6 +16,7 @@ import { Card } from "@/components/ui/Card";
 import { Chip, Segmented } from "@/components/ui/Chip";
 import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
 import { Field, FieldRow } from "@/components/ui/Field";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
@@ -384,30 +384,57 @@ export default function PatientScreen() {
         <View className="mt-4">
           <Odontogram teeth={patient.teeth} selected={tooth} onSelect={setToothSel} birthYear={patient.birthYear} />
 
+          <SectionHeader title={tooth ? `السن ${tooth}` : "اختر سنًا"} />
           {tooth ? (
-            <ToothPanel
-              patient={patient}
-              tooth={tooth}
-              sessions={sessions}
-              onSetStatus={(st) => setTooth(patient.id, tooth, st)}
-              onSaveNote={(note) => {
-                const notes = { ...(patient.toothNotes ?? {}) };
-                if (note) notes[tooth] = note;
-                else delete notes[tooth];
-                updatePatient(patient.id, { toothNotes: notes });
-              }}
-              onAddSession={() => {
+            <View className="flex-row flex-wrap gap-2">
+              <Chip
+                label="سليم"
+                selected={!patient.teeth[tooth]}
+                color="#64748B"
+                onPress={() => setTooth(patient.id, tooth, null)}
+              />
+              {(Object.keys(TOOTH_STATUS) as ToothStatus[]).map((s) => (
+                <Chip
+                  key={s}
+                  label={TOOTH_STATUS[s].label}
+                  selected={patient.teeth[tooth] === s}
+                  color={TOOTH_STATUS[s].hex}
+                  onPress={() => setTooth(patient.id, tooth, s)}
+                />
+              ))}
+            </View>
+          ) : (
+            <Text className="text-muted">اضغط على أي سن في المخطط أعلاه ثم حدّد حالته.</Text>
+          )}
+
+          {tooth ? (
+            <PressableScale
+              className="mt-3 rounded-3xl p-4 flex-row items-center gap-3"
+              style={{ backgroundColor: TYPE_META.private.soft }}
+              onPress={() => {
                 setSTooth(tooth);
                 setSessionOpen(true);
                 setSection("sessions");
               }}
-            />
-          ) : (
-            <>
-              <SectionHeader title="اختر سنًا" />
-              <Text className="text-muted">اضغط على أي سن في المخطط أعلاه لعرض حالته وسجل علاجه وملاحظاته.</Text>
-            </>
-          )}
+            >
+              <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: TYPE_META.private.hex }}>
+                <Text w="bold" style={{ color: TYPE_META.private.onSolid }}>
+                  {tooth}
+                </Text>
+              </View>
+              <View className="flex-1">
+                <Text w="bold" style={{ color: TYPE_META.private.inkHex }}>
+                  {patient.teeth[tooth] ? TOOTH_STATUS[patient.teeth[tooth]].label : "سليم"}
+                </Text>
+                <Text className="text-xs" style={{ color: TYPE_META.private.inkHex, opacity: 0.8 }}>
+                  {sessions.filter((x) => x.tooth === tooth).length} جلسات مسجّلة على هذا السن
+                </Text>
+              </View>
+              <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: TYPE_META.private.hex }}>
+                <Ionicons name="add" size={24} color={TYPE_META.private.onSolid} />
+              </View>
+            </PressableScale>
+          ) : null}
 
           {toothCount > 0 ? (
             <>

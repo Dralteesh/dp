@@ -24,8 +24,7 @@ export const ACTION_SNOOZE = "snooze";
 const SNOOZE_MIN = 10;
 
 /**
- * البادئات التي يديرها التزامن فقط. أي إشعار آخر (مثل انتهاء جلسة غابة التركيز
- * أو الإشعارات التجريبية) لا يُلمس. تكرارات الصلاة تبدأ بـ prayer-rep- فتدخل ضمن prayer-.
+ * البادئات التي يديرها التزامن فقط. أي إشعار آخر (مثل الإشعارات التجريبية) لا يُلمس. تكرارات الصلاة تبدأ بـ prayer-rep- فتدخل ضمن prayer-.
  */
 const MANAGED_PREFIXES = ["prayer-", "event-", "appt-", "task-", "dhikr-"] as const;
 const PRAYER_PREFIXES = ["prayer-", "dhikr-"] as const;
@@ -391,7 +390,7 @@ function enqueue<T>(job: () => Promise<T>): Promise<T> {
 
 /**
  * يعيد جدولة كل الإشعارات المُدارة: صلاة وأذكار + أحداث (14 يومًا) + مواعيد العيادة + مهام لها موعد.
- * لا يلغي ما لا يديره (مثل إشعار انتهاء جلسة الغابة).
+ * لا يلغي ما لا يديره (مثل الإشعارات التجريبية).
  */
 export function syncNotifications(input: SyncInput): Promise<void> {
   return enqueue(() => doSync(input));
@@ -454,7 +453,7 @@ async function doSync({ agenda, tasks, settings }: SyncInput): Promise<void> {
     });
   }
 
-  // إشعارات غير مُدارة (غابة التركيز...) تُحسب من الميزانية أيضًا
+  // إشعارات غير مُدارة (التجريبية...) تُحسب من الميزانية أيضًا
   const unmanaged = (await Notifications.getAllScheduledNotificationsAsync()).length;
   await scheduleAll(applyBudget(items, MAX_SCHEDULED - unmanaged));
   await logScheduleDev("بعد التزامن الكامل");
