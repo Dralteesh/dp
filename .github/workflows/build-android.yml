@@ -81,7 +81,7 @@ jobs:
             rm -rf dp-main
             if ! git diff --cached --quiet; then
               git commit -q -m "chore: remove nested dp-main folder [skip ci]"
-              git pull --rebase -X theirs origin main || git rebase --abort
+              git pull --rebase --autostash -X theirs origin main || git rebase --abort
               git push origin HEAD:main
             fi
           fi
