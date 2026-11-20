@@ -16,7 +16,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="clinic" options={{ title: "العيادة" }} />
       <Tabs.Screen name="alarms" options={{ title: "المنبّه" }} />
       <Tabs.Screen name="prayer" options={{ title: "الصلاة" }} />
-      <Tabs.Screen name="docs" options={{ title: "المستندات" }} />
+      <Tabs.Screen name="documents" options={{ title: "المستندات" }} />
+      <Tabs.Screen name="focus" options={{ href: null }} />
       <Tabs.Screen name="calendar" options={{ title: "التقويم", href: null }} />
       <Tabs.Screen name="tasks" options={{ title: "المهام", href: null }} />
     </Tabs>

@@ -32,7 +32,7 @@ export const ROUTE_PRESETS: { route: string; label: string; icon: string }[] = [
   { route: "/clinic/appointment-form", label: "موعد عيادة", icon: "calendar-outline" },
   { route: "/alarm/new", label: "منبّه جديد", icon: "alarm-outline" },
   { route: "/calendar", label: "التقويم", icon: "calendar-number-outline" },
-  { route: "/docs", label: "المستندات", icon: "document-text-outline" },
+  { route: "/documents", label: "المستندات", icon: "document-text-outline" },
 ];
 
 /** القائمة الافتراضية: كل نوع نشط، ثم مهمة، ملاحظة، مريض جديد */

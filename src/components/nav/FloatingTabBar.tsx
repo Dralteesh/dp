@@ -19,7 +19,7 @@ type BarProps = {
 };
 
 /** ترتيب الأزرار من اليمين إلى اليسار (واجهة RTL): المنبّه، العيادة، الرئيسية، الصلاة، المستندات */
-const ORDER = ["alarms", "clinic", "index", "prayer", "docs"] as const;
+const ORDER = ["alarms", "clinic", "index", "prayer", "documents"] as const;
 type Name = (typeof ORDER)[number];
 
 /** الأيقونات ملوّنة: نسختان (نشطة وخاملة) لكل زر، والعيادة بشعارها */
@@ -28,14 +28,14 @@ const META: Record<Name, { label: string }> = {
   clinic: { label: "العيادة" },
   index: { label: "الرئيسية" },
   prayer: { label: "الصلاة" },
-  docs: { label: "المستندات" },
+  documents: { label: "المستندات" },
 };
 
 const ICON_KEY: Record<Exclude<Name, "clinic">, keyof typeof NAV_ICONS> = {
   alarms: "alarms",
   index: "home",
   prayer: "prayer",
-  docs: "docs",
+  documents: "docs",
 };
 
 /** الشاشات المخفية من الشريط تُحسب تحت زرٍّ قريب منها ليبقى الزر مضاءً */
