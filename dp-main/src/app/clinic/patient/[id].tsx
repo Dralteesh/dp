@@ -9,11 +9,7 @@ import { MoneyField, useMoneyInput } from "@/components/MoneyField";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
 import { PatientDocs } from "@/components/clinic/PatientDocs";
 import { QuickSession } from "@/components/clinic/QuickSession";
-import { MixedChart } from "@/components/clinic/MixedChart";
-import { ImagingGallery } from "@/components/clinic/ImagingGallery";
-import { PatientStats } from "@/components/clinic/PatientStats";
-import { PerioChart } from "@/components/clinic/PerioChart";
-import { SurfacePicker } from "@/components/clinic/SurfacePicker";
+import { ToothPanel } from "@/components/clinic/ToothPanel";
 import { Odontogram } from "@/components/Odontogram";
 import { DateField } from "@/components/pickers";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -21,7 +17,6 @@ import { Card } from "@/components/ui/Card";
 import { Chip, Segmented } from "@/components/ui/Chip";
 import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
 import { Field, FieldRow } from "@/components/ui/Field";
-import { PressableScale } from "@/components/ui/PressableScale";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
@@ -35,7 +30,7 @@ import { useSettings } from "@/store/useSettings";
 import type { ToothStatus } from "@/types";
 import { useProcedures } from "@/hooks/useProcedures";
 
-type Section = "overview" | "teeth" | "sessions" | "rx" | "payments" | "perio" | "imaging";
+type Section = "overview" | "teeth" | "sessions" | "rx" | "payments";
 
 export default function PatientScreen() {
   const procedures = useProcedures();
@@ -51,7 +46,6 @@ export default function PatientScreen() {
   const updatePatient = useClinic((s) => s.updatePatient);
   const removePatient = useClinic((s) => s.removePatient);
   const setTooth = useClinic((s) => s.setTooth);
-  const setToothSurfaces = useClinic((s) => s.setToothSurfaces);
   const addSession = useClinic((s) => s.addSession);
   const removeSession = useClinic((s) => s.removeSession);
   const addPayment = useClinic((s) => s.addPayment);
@@ -65,7 +59,6 @@ export default function PatientScreen() {
 
   const [section, setSection] = useState<Section>("overview");
   const [tooth, setToothSel] = useState<string | undefined>();
-  const [mixedView, setMixedView] = useState(false);
 
   // نماذج الجلسة والدفعة
   const [sessionOpen, setSessionOpen] = useState(false);
@@ -264,8 +257,6 @@ export default function PatientScreen() {
         </View>
       </View>
 
-      <PatientStats patient={patient} appointments={appointments} sessions={allSessions} balance={money.balance} currency={currency} />
-
       <Segmented
         value={section}
         onChange={setSection}
@@ -277,15 +268,6 @@ export default function PatientScreen() {
           { value: "payments", label: "الدفعات" },
         ]}
       />
-
-      {/* أقسام إضافية: اللثة والأشعة */}
-      <View className="flex-row gap-2 mt-2">
-        <Chip label="مخطط اللثة" selected={section === "perio"} color="#0E6FA5" onPress={() => setSection("perio")} />
-        <Chip label="الأشعة والصور" selected={section === "imaging"} color="#7C3AED" onPress={() => setSection("imaging")} />
-      </View>
-
-      {section === "perio" && <PerioChart patient={patient} />}
-      {section === "imaging" && <ImagingGallery patient={patient} />}
 
       {/* ---------------- نظرة عامة ---------------- */}
       {section === "overview" && (
@@ -402,72 +384,30 @@ export default function PatientScreen() {
         <View className="mt-4">
           <Odontogram teeth={patient.teeth} selected={tooth} onSelect={setToothSel} birthYear={patient.birthYear} />
 
-          <View className="flex-row mt-3">
-            <Chip label="عرض مختلط (دائمة + لبنية)" selected={mixedView} color="#0E6FA5" onPress={() => setMixedView((v) => !v)} />
-          </View>
-          {mixedView ? <MixedChart teeth={patient.teeth} selected={tooth} onSelect={setToothSel} /> : null}
-
-          <SectionHeader title={tooth ? `السن ${tooth}` : "اختر سنًا"} />
           {tooth ? (
-            <View className="flex-row flex-wrap gap-2">
-              <Chip
-                label="سليم"
-                selected={!patient.teeth[tooth]}
-                color="#64748B"
-                onPress={() => setTooth(patient.id, tooth, null)}
-              />
-              {(Object.keys(TOOTH_STATUS) as ToothStatus[]).map((s) => (
-                <Chip
-                  key={s}
-                  label={TOOTH_STATUS[s].label}
-                  selected={patient.teeth[tooth] === s}
-                  color={TOOTH_STATUS[s].hex}
-                  onPress={() => setTooth(patient.id, tooth, s)}
-                />
-              ))}
-            </View>
-          ) : (
-            <Text className="text-muted">اضغط على أي سن في المخطط أعلاه ثم حدّد حالته.</Text>
-          )}
-
-          {tooth ? (
-            <>
-              <SectionHeader title="الأسطح المعنية" />
-              <SurfacePicker
-                value={patient.surfaces?.[tooth] ?? []}
-                onChange={(v) => setToothSurfaces(patient.id, tooth, v)}
-              />
-            </>
-          ) : null}
-
-          {tooth ? (
-            <PressableScale
-              className="mt-3 rounded-3xl p-4 flex-row items-center gap-3"
-              style={{ backgroundColor: TYPE_META.private.soft }}
-              onPress={() => {
+            <ToothPanel
+              patient={patient}
+              tooth={tooth}
+              sessions={sessions}
+              onSetStatus={(st) => setTooth(patient.id, tooth, st)}
+              onSaveNote={(note) => {
+                const notes = { ...(patient.toothNotes ?? {}) };
+                if (note) notes[tooth] = note;
+                else delete notes[tooth];
+                updatePatient(patient.id, { toothNotes: notes });
+              }}
+              onAddSession={() => {
                 setSTooth(tooth);
                 setSessionOpen(true);
                 setSection("sessions");
               }}
-            >
-              <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: TYPE_META.private.hex }}>
-                <Text w="bold" style={{ color: TYPE_META.private.onSolid }}>
-                  {tooth}
-                </Text>
-              </View>
-              <View className="flex-1">
-                <Text w="bold" style={{ color: TYPE_META.private.inkHex }}>
-                  {patient.teeth[tooth] ? TOOTH_STATUS[patient.teeth[tooth]].label : "سليم"}
-                </Text>
-                <Text className="text-xs" style={{ color: TYPE_META.private.inkHex, opacity: 0.8 }}>
-                  {sessions.filter((x) => x.tooth === tooth).length} جلسات مسجّلة على هذا السن
-                </Text>
-              </View>
-              <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: TYPE_META.private.hex }}>
-                <Ionicons name="add" size={24} color={TYPE_META.private.onSolid} />
-              </View>
-            </PressableScale>
-          ) : null}
+            />
+          ) : (
+            <>
+              <SectionHeader title="اختر سنًا" />
+              <Text className="text-muted">اضغط على أي سن في المخطط أعلاه لعرض حالته وسجل علاجه وملاحظاته.</Text>
+            </>
+          )}
 
           {toothCount > 0 ? (
             <>

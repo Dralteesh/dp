@@ -39,11 +39,11 @@ jobs:
         run: npx expo prebuild --platform android --no-install --clean
 
       # تثبيت NDK وCMake صراحةً: التنزيل التلقائي داخل Gradle يفشل أحيانًا على أجهزة GitHub
-      - name: Install Android NDK
+      - name: Install Android NDK and CMake
         run: |
           SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKM" --licenses > /dev/null || true
-          "$SDKM" --install "ndk;27.1.12297006" "cmake;3.22.1"
+          "$SDKM" --install "ndk;27.1.12297006" "cmake;3.22.1" "platform-tools"
 
       - name: Gradle memory settings
         run: echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" >> android/gradle.properties

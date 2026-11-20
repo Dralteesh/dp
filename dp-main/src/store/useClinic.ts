@@ -10,9 +10,6 @@ import type {
   Expense,
   InventoryItem,
   Patient,
-  PatientImage,
-  PerioReading,
-  ToothSurface,
   Payment,
   Prescription,
   StockMove,
@@ -46,13 +43,6 @@ type ClinicState = {
   /** يحذف المريض وكل ما يتعلق به */
   removePatient: (id: string) => void;
   setTooth: (patientId: string, tooth: string, status: ToothStatus | null) => void;
-  /** (إضافة) أسطح السن؛ مصفوفة فارغة تمسح السجل */
-  setToothSurfaces: (patientId: string, tooth: string, surfaces: ToothSurface[]) => void;
-  /** (إضافة) قياسات اللثة لسن؛ null يمسحها */
-  setPerio: (patientId: string, tooth: string, reading: PerioReading | null) => void;
-  /** (إضافة) الأشعة والصور */
-  addPatientImage: (patientId: string, img: Omit<PatientImage, "id">) => void;
-  removePatientImage: (patientId: string, imageId: string) => void;
 
   addAppointment: (a: NewAppointment) => string;
   updateAppointment: (id: string, patch: Partial<Appointment>) => void;
@@ -139,39 +129,6 @@ export const useClinic = create<ClinicState>()(
             else delete teeth[tooth];
             return { ...p, teeth };
           }),
-        })),
-
-      setToothSurfaces: (patientId, tooth, surfaces) =>
-        set((s) => ({
-          patients: s.patients.map((p) => {
-            if (p.id !== patientId) return p;
-            const next = { ...(p.surfaces ?? {}) };
-            if (surfaces.length) next[tooth] = surfaces;
-            else delete next[tooth];
-            return { ...p, surfaces: next };
-          }),
-        })),
-      setPerio: (patientId, tooth, reading) =>
-        set((s) => ({
-          patients: s.patients.map((p) => {
-            if (p.id !== patientId) return p;
-            const next = { ...(p.perio ?? {}) };
-            if (reading) next[tooth] = reading;
-            else delete next[tooth];
-            return { ...p, perio: next };
-          }),
-        })),
-      addPatientImage: (patientId, img) =>
-        set((s) => ({
-          patients: s.patients.map((p) =>
-            p.id === patientId ? { ...p, images: [{ ...img, id: uid() }, ...(p.images ?? [])] } : p,
-          ),
-        })),
-      removePatientImage: (patientId, imageId) =>
-        set((s) => ({
-          patients: s.patients.map((p) =>
-            p.id === patientId ? { ...p, images: (p.images ?? []).filter((x) => x.id !== imageId) } : p,
-          ),
         })),
 
       addAppointment: (a) => {

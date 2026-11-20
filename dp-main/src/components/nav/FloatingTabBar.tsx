@@ -42,8 +42,8 @@ const ICON_KEY: Record<Exclude<Name, "clinic">, keyof typeof NAV_ICONS> = {
 const OWNER: Record<string, Name> = { calendar: "index", tasks: "index" };
 
 const BLUE = "#0E6FA5";
-const INK = "#0B4568";
-const MUTED = "#7FA0B5";
+const INK = "#0F172A";
+const MUTED = "#94A3B8";
 
 /** شريط تنقل عائم: الرئيسية كبيرة في المنتصف، والعيادة بشعارها، والضغط المطوّل على الرئيسية = إضافة سريعة */
 export function FloatingTabBar({ state, navigation }: BarProps) {
@@ -88,12 +88,12 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
           justifyContent: "space-between",
           paddingHorizontal: 8,
           elevation: 12,
-          shadowColor: "#6D9DB9",
-          shadowOpacity: 0.22,
+          shadowColor: "#0F172A",
+          shadowOpacity: 0.14,
           shadowRadius: 16,
           shadowOffset: { width: 0, height: 6 },
           borderWidth: 1,
-          borderColor: "#D6EAF6",
+          borderColor: "#E8E6DE",
         }}
       >
         {ORDER.map((name) => {
@@ -117,7 +117,7 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                     alignItems: "center",
                     justifyContent: "center",
                     borderWidth: 4,
-                    borderColor: "#E3F0F8",
+                    borderColor: "#F1F1EF",
                     elevation: 8,
                     shadowColor: INK,
                     shadowOpacity: 0.35,
@@ -157,7 +157,7 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                   borderRadius: 15,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: on ? "#DCEFFA" : "transparent",
+                  backgroundColor: "transparent",
                 }}
               >
                 {name === "clinic" ? (

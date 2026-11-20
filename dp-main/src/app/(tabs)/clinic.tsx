@@ -1,7 +1,3 @@
-import { DoctorFilter } from "@/components/clinic/DoctorFilter";
-import { DayTimeline } from "@/components/clinic/DayTimeline";
-import { SwipeToBook } from "@/components/clinic/SwipeToBook";
-import { QuickServices, RecentActivity } from "@/components/clinic/ClinicExtras";
 import { Logo } from "@/components/Logo";
 import { FreeSlotBanner } from "@/components/clinic/FreeSlotBanner";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
@@ -49,9 +45,6 @@ export default function ClinicScreen() {
   const setStatus = useClinic((s) => s.setAppointmentStatus);
 
   const [tab, setTab] = useState<Tab>("day");
-  const [doctorF, setDoctorF] = useState<string | null>(null);
-  const [dayView, setDayView] = useState<"list" | "timeline">("list");
-  const defaultDoctor = useSettings((s) => s.doctorName);
   const [date, setDate] = useState(toISO(new Date()));
   const [query, setQuery] = useState("");
   const [pFilter, setPFilter] = useState<PFilter>("active");
@@ -75,9 +68,8 @@ export default function ClinicScreen() {
     () =>
       appointments
         .filter((a) => a.date === date)
-        .filter((a) => !doctorF || (a.doctor?.trim() || defaultDoctor?.trim() || "") === doctorF)
         .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime)),
-    [appointments, date, doctorF, defaultDoctor],
+    [appointments, date],
   );
 
   const todayCount = appointments.filter(
@@ -251,16 +243,7 @@ export default function ClinicScreen() {
             dotsFor={(iso) => (apptDays.has(iso) ? (["private"] as ShiftType[]) : [])}
           />
 
-          <DoctorFilter value={doctorF} onChange={setDoctorF} />
-
-          <View className="flex-row gap-2 mb-3">
-            <Chip label="قائمة" selected={dayView === "list"} color={TYPE_META.private.hex} onPress={() => setDayView("list")} />
-            <Chip label="جدول زمني" selected={dayView === "timeline"} color={TYPE_META.private.hex} onPress={() => setDayView("timeline")} />
-          </View>
-
-          {dayView === "timeline" ? (
-            <DayTimeline date={date} appointments={dayAppts} patients={byId} />
-          ) : dayAppts.length === 0 ? (
+          {dayAppts.length === 0 ? (
             <Card>
               <EmptyState icon="calendar-clear-outline" title="لا مواعيد في هذا اليوم" hint="اضغط + لحجز موعد" />
             </Card>
@@ -337,9 +320,6 @@ export default function ClinicScreen() {
               ))}
             </>
           )}
-
-          <QuickServices date={date} />
-          <RecentActivity />
         </View>
       )}
 
@@ -375,10 +355,9 @@ export default function ClinicScreen() {
             filteredPatients.map((p) => {
               const bal = balances.find((b) => b.patient.id === p.id)?.balance ?? 0;
               return (
-                <View key={p.id} className="mb-2">
-                <SwipeToBook onBook={() => router.push({ pathname: "/clinic/appointment-form", params: { patientId: p.id, date } })}>
                 <PressableScale
-                  className="flex-row items-center gap-3 bg-surface border border-line rounded-2xl px-3 py-3"
+                  key={p.id}
+                  className="flex-row items-center gap-3 bg-surface border border-line rounded-2xl px-3 py-3 mb-2"
                   onPress={() => router.push({ pathname: "/clinic/patient/[id]", params: { id: p.id } })}
                 >
                   <View className="w-11 h-11 rounded-full bg-private-soft items-center justify-center">
@@ -403,8 +382,6 @@ export default function ClinicScreen() {
                     </View>
                   ) : null}
                 </PressableScale>
-                </SwipeToBook>
-                </View>
               );
             })
           )}

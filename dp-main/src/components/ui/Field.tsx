@@ -27,7 +27,7 @@ export function Field({ label, hint, style, ...rest }: Props) {
             color: "#0F172A",
             backgroundColor: "#F8FAFC",
             borderWidth: 1,
-            borderColor: "#D6EAF6",
+            borderColor: "#E3E1D8",
             borderRadius: 12,
             paddingHorizontal: 14,
             paddingVertical: 10,

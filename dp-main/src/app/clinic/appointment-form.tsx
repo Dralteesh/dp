@@ -18,7 +18,6 @@ import { Text } from "@/components/ui/Text";
 import { DURATIONS, STATUS_META } from "@/constants/clinic";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { describeClash, findClashes } from "@/lib/conflicts";
-import { DoctorPicker } from "@/components/clinic/DoctorFilter";
 import { patientFlags, procedureWarnings } from "@/lib/alerts";
 import { fmtTime, minutesToTime, toISO, toMinutes } from "@/lib/dates";
 import { initial } from "@/lib/format";
@@ -54,7 +53,6 @@ export default function AppointmentFormScreen() {
   const [procedure, setProcedure] = useState(existing?.procedure ?? params.procedure ?? "كشف واستشارة");
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [status, setStatus] = useState<AppointmentStatus>(existing?.status ?? "scheduled");
-  const [doctor, setDoctor] = useState(existing?.doctor ?? "");
   const [pickOpen, setPickOpen] = useState(false);
   const [q, setQ] = useState("");
 
@@ -78,7 +76,6 @@ export default function AppointmentFormScreen() {
       durationMin: duration,
       procedure: procedure.trim() || "كشف واستشارة",
       notes: notes.trim() || undefined,
-      doctor: doctor.trim() || undefined,
     };
     if (existing) updateAppointment(existing.id, { ...payload, status });
     else addAppointment(payload);
@@ -174,7 +171,6 @@ export default function AppointmentFormScreen() {
             تعديل الإجراءات ›
           </Text>
         </Pressable>
-        <DoctorPicker value={doctor} onChange={setDoctor} />
         <DictateField label="ملاحظات" value={notes} onChangeText={setNotes} multiline />
         {existing ? (
           <FieldRow label="الحالة">

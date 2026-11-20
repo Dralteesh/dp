@@ -42,11 +42,10 @@ export const TOOTH_STATUS: Record<
   implant: { label: "زرعة", hex: "#8B5CF6", soft: "#EDE9FE" },
   missing: { label: "مفقود", hex: "#6B7280", soft: "#E5E7EB" },
   extraction: { label: "مطلوب قلعه", hex: "#111827", soft: "#D1D5DB" },
-  sealant: { label: "سدّ شقوق", hex: "#22A06B", soft: "#DCFCE7" },
 };
 
-/** خلفية بطاقة مخطط الأسنان (بنفسجي مزرق قريب من الصورة المرجعية) — سهل التعديل */
-export const ODONTO_BG = "#4A4BA3";
+/** خلفية بطاقة مخطط الأسنان: أزرق العيادة (من شعارها) — سهل التعديل */
+export const ODONTO_BG = "#155681";
 
 /** ترتيب الأسنان الدائمة (FDI) كما تُرى من وجه المريض: يمين المريض على اليسار */
 export const UPPER_TEETH = [

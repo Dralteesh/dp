@@ -301,7 +301,7 @@ export default function WorkplacesScreen() {
               fontSize: 15,
               backgroundColor: "#F8FAFC",
               borderWidth: 1,
-              borderColor: "#D6EAF6",
+              borderColor: "#E3E1D8",
               borderRadius: 12,
               paddingHorizontal: 12,
               paddingVertical: 8,

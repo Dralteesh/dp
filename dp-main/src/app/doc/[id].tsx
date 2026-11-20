@@ -109,7 +109,7 @@ export default function DocViewer() {
   }, [doc, kind]);
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: "#F3F9FD" }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: "#F0EFEA" }}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
         <Pressable onPress={() => router.back()} hitSlop={10} className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center">
           <Ionicons name="arrow-forward" size={20} color="#0F172A" />

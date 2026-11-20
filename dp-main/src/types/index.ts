@@ -104,8 +104,7 @@ export type ToothStatus =
   | "crown"
   | "implant"
   | "missing"
-  | "extraction"
-  | "sealant";
+  | "extraction";
 
 /** تنبيهات طبية مصنّفة: تظهر بشريط بارز وتفحص الوصفات والإجراءات */
 export type AlertFlag =
@@ -145,34 +144,11 @@ export type Patient = {
   notes?: string;
   /** رمز السن (FDI) -> الحالة. غير المذكور = سليم */
   teeth: Record<string, ToothStatus>;
+  /** ملاحظة سريرية لكل سن (FDI -> نص). غير المذكور = بلا ملاحظة */
+  toothNotes?: Record<string, string>;
   createdAt: number;
   /** آخر مرة أُرسلت له رسالة استدعاء (متابعة) */
   recalledAt?: number;
-  /** (إضافة) رمز السن -> الأسطح المصابة/المعالَجة */
-  surfaces?: Record<string, ToothSurface[]>;
-  /** (إضافة) مخطط اللثة: رمز السن -> قياسات 6 نقاط */
-  perio?: Record<string, PerioReading>;
-  /** (إضافة) الأشعة والصور السريرية */
-  images?: PatientImage[];
-};
-
-/** أسطح السن: إنسي، وحشي، إطباقي/قاطع، دهليزي/شفوي، لساني/حنكي */
-export type ToothSurface = "m" | "d" | "o" | "b" | "l";
-
-/** عمق الجيب (مم) عند 6 نقاط: MB B DB ML L DL، مع النزف عند الجس */
-export type PerioReading = { pd: (number | null)[]; bop?: boolean };
-
-export type PatientImageKind = "periapical" | "panoramic" | "photo" | "other";
-
-export type PatientImage = {
-  id: string;
-  /** مسار الملف المحلي على الجهاز */
-  uri: string;
-  kind: PatientImageKind;
-  /** YYYY-MM-DD */
-  date: string;
-  tooth?: string;
-  note?: string;
 };
 
 export type AppointmentStatus =
@@ -196,8 +172,6 @@ export type Appointment = {
   createdAt: number;
   /** وقت إرسال تذكير الموعد للمريض */
   remindedAt?: number;
-  /** (إضافة) اسم الطبيب المسؤول عن الموعد */
-  doctor?: string;
 };
 
 /** جلسة علاجية مع تكلفتها */

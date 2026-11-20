@@ -26,9 +26,9 @@ type Props = {
 };
 
 const SELECT = "#2DD4BF";
-const TOOTH_TOP = "#F1EEFC";
-const TOOTH_BOTTOM = "#CFC9F0";
-const TEXT_PALE = "#4A4BA3";
+const TOOTH_TOP = "#F4F9FE";
+const TOOTH_BOTTOM = "#CFE3F5";
+const TEXT_PALE = "#155681";
 
 /** مخطط الأسنان (FDI) على قوسين U: أسنان بحجومها الحقيقية موزّعة على طول القوس. اضغط قرب سن لتحديده */
 export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onDentitionChange, birthYear }: Props) {
@@ -187,6 +187,23 @@ export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onD
           <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
         </Pressable>
       </View>
+
+      {/* دليل الألوان */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 16, paddingBottom: 14 }}>
+        <LegendDot color="#F4F9FE" label="سليم" />
+        {(Object.keys(TOOTH_STATUS) as ToothStatus[]).map((k) => (
+          <LegendDot key={k} color={TOOTH_STATUS[k].hex} label={TOOTH_STATUS[k].label} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color, borderWidth: 1, borderColor: "rgba(255,255,255,0.5)" }} />
+      <Text style={{ color: "#FFFFFF", opacity: 0.85, fontSize: 11 }}>{label}</Text>
     </View>
   );
 }
