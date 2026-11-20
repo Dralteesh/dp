@@ -486,7 +486,6 @@ export default function ClinicScreen() {
             { t: "قائمة الانتظار", i: "hourglass", h: "/clinic/waitlist" },
             { t: "سجل التعقيم", i: "flask", h: "/clinic/sterilization" },
             { t: "تعديل الإجراءات", i: "construct", h: "/clinic/procedures" },
-            { t: "استيراد JSON", i: "download", h: "/clinic/import" },
           ].map((x) => (
             <PressableScale
               key={x.h}

@@ -19,11 +19,11 @@ export function RecentDocs() {
 
   return (
     <>
-      <SectionHeader title="المستندات الأخيرة" action="كل المستندات" onAction={() => router.push("/docs")} />
+      <SectionHeader title="المستندات الأخيرة" action="كل المستندات" onAction={() => router.push("/documents")} />
       {recent.length === 0 ? (
         <Card>
           <EmptyState icon="document-text-outline" title="لا مستندات بعد" />
-          <Button label="إضافة" icon="document-attach-outline" variant="soft" onPress={() => router.push("/docs")} />
+          <Button label="إضافة" icon="document-attach-outline" variant="soft" onPress={() => router.push("/documents")} />
         </Card>
       ) : (
         recent.map((d) => {

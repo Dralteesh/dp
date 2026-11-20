@@ -4,11 +4,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { ArcTimePicker } from "@/components/alarm/ArcTimePicker";
+import { CardStack } from "@/components/alarm/CardStack";
 import { ChallengeView } from "@/components/alarm/ChallengeView";
-import { MissionCards } from "@/components/alarm/MissionCards";
+import { MissionCards, SnoozeCountCards, SnoozeDurationCards } from "@/components/alarm/MissionCards";
 import { Chip } from "@/components/ui/Chip";
-import { Field, FieldRow } from "@/components/ui/Field";
-import { Sheet } from "@/components/ui/Sheet";
+import { Field } from "@/components/ui/Field";
 import { Text } from "@/components/ui/Text";
 import { DAYS, WEEK_ORDER } from "@/constants/arabic";
 import { CHALLENGE_LABELS, MAX_SNOOZES_DEFAULT } from "@/lib/alarmChallenge";
@@ -34,7 +34,7 @@ const describeDays = (days: number[]) =>
 export default function AlarmEditScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, date } = useLocalSearchParams<{ id: string; date?: string }>();
   const alarms = useAlarms((s) => s.alarms);
   const addAlarm = useAlarms((s) => s.addAlarm);
   const updateAlarm = useAlarms((s) => s.updateAlarm);
@@ -59,7 +59,12 @@ export default function AlarmEditScreen() {
       snoozeMinutes: snooze,
       maxSnoozes,
       challenge,
-      onceDate: days.length === 0 ? nextOnceDate(time) : undefined,
+      onceDate:
+        days.length === 0
+          ? !existing && date && combine(date, time).getTime() > Date.now()
+            ? date
+            : nextOnceDate(time)
+          : undefined,
       enabled: true,
     };
     if (existing) updateAlarm(existing.id, base);
@@ -123,53 +128,45 @@ export default function AlarmEditScreen() {
         </View>
       </View>
 
-      {/* المهمات + الغفوة */}
-      <Sheet visible={sheet === "stop"} onClose={() => setSheet(null)} title="المهمات">
-        <Text className="text-xs text-muted mb-3" style={{ marginTop: -8 }}>
-          اضغط للاختيار · اضغط مطوّلًا للتجربة
-        </Text>
-        <View className="mb-3">
-          <MissionCards value={challenge} onSelect={setChallenge} onPreview={setPreview} />
-        </View>
-        <FieldRow label="مدة الغفوة">
-          <View className="flex-row gap-2">
-            {SNOOZES.map((v) => (
-              <Chip key={v} label={`${v} د`} selected={snooze === v} color={RED} onPress={() => setSnooze(v)} />
-            ))}
-          </View>
-        </FieldRow>
-        <FieldRow label="أقصى عدد للغفوات">
-          <View className="flex-row gap-2">
-            {SNOOZE_LIMITS.map((v) => (
-              <Chip
-                key={v}
-                label={v === 0 ? "ممنوعة" : String(v)}
-                selected={maxSnoozes === v}
-                color={RED}
-                onPress={() => setMaxSnoozes(v)}
-              />
-            ))}
-          </View>
-        </FieldRow>
-      </Sheet>
+      {/* المهمات + الغفوة: بطاقات متتالية */}
+      <CardStack
+        visible={sheet === "stop"}
+        onClose={() => setSheet(null)}
+        cards={[
+          { key: "t", tone: "red", title: "طريقة الإيقاف", hint: "اضغط للاختيار · اضغط مطوّلًا للتجربة" },
+          { key: "m", tone: "cream", title: "المهمة", content: <MissionCards value={challenge} onSelect={setChallenge} onPreview={setPreview} /> },
+          { key: "s", tone: "yellow", title: "مدة الغفوة", content: <SnoozeDurationCards options={SNOOZES} value={snooze} onSelect={setSnooze} /> },
+          { key: "n", tone: "blue", title: "أقصى عدد للغفوات", content: <SnoozeCountCards options={SNOOZE_LIMITS} value={maxSnoozes} onSelect={setMaxSnoozes} /> },
+        ]}
+      />
 
-      {/* الاسم + التكرار */}
-      <Sheet visible={sheet === "repeat"} onClose={() => setSheet(null)} title="الاسم والتكرار">
-        <Field label="الاسم" value={label} onChangeText={setLabel} placeholder="مثال: الاستيقاظ للمناوبة" />
-        <FieldRow label="التكرار (فارغ = مرة واحدة)">
-          <View className="flex-row flex-wrap gap-2">
-            {WEEK_ORDER.map((d) => (
-              <Chip
-                key={d}
-                label={DAYS[d]}
-                selected={days.includes(d)}
-                color={RED}
-                onPress={() => setDays((c) => (c.includes(d) ? c.filter((x) => x !== d) : [...c, d]))}
-              />
-            ))}
-          </View>
-        </FieldRow>
-      </Sheet>
+      {/* الاسم + التكرار: بطاقات متتالية */}
+      <CardStack
+        visible={sheet === "repeat"}
+        onClose={() => setSheet(null)}
+        cards={[
+          { key: "t", tone: "blue", title: "الاسم والتكرار", hint: "فارغ = مرة واحدة" },
+          { key: "f", tone: "cream", content: <Field label="الاسم" value={label} onChangeText={setLabel} placeholder="مثال: الاستيقاظ للمناوبة" /> },
+          {
+            key: "d",
+            tone: "yellow",
+            title: "التكرار",
+            content: (
+              <View className="flex-row flex-wrap gap-2">
+                {WEEK_ORDER.map((d) => (
+                  <Chip
+                    key={d}
+                    label={DAYS[d]}
+                    selected={days.includes(d)}
+                    color={RED}
+                    onPress={() => setDays((c) => (c.includes(d) ? c.filter((x) => x !== d) : [...c, d]))}
+                  />
+                ))}
+              </View>
+            ),
+          },
+        ]}
+      />
 
       {/* تجربة المهمة (ضغط مطوّل على البطاقة) */}
       <Modal visible={preview !== null} animationType="fade" onRequestClose={() => setPreview(null)}>

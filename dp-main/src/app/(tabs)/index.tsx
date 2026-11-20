@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
@@ -12,6 +12,8 @@ import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
 import { Card } from "@/components/ui/Card";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { NAV_ICONS } from "@/constants/icons";
+import { useDocs } from "@/store/useDocs";
 import { useAgenda, useAgendaInput } from "@/hooks/useAgenda";
 import { useNow } from "@/hooks/useNow";
 import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
@@ -44,6 +46,7 @@ export default function HomeScreen() {
   const showTasks = useSettings((s) => s.homeShowTasks);
   const showDocs = useSettings((s) => s.homeShowDocs);
   const showQuickAdd = useQuickAdd((s) => s.show);
+  const docsCount = useDocs((s) => s.docs.length);
 
   const input = useAgendaInput();
   const agenda = useAgenda(selected);
@@ -214,6 +217,24 @@ export default function HomeScreen() {
           )}
         </>
       ) : null}
+
+      {/* المستندات: مدخل دائم في الرئيسية (صار تبويب الطقس مكانها في الشريط) */}
+      <Pressable
+        onPress={() => router.push("/documents")}
+        accessibilityLabel="المستندات"
+        className="flex-row items-center gap-3 bg-surface border border-line rounded-[24px] p-3"
+      >
+        <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: "#D6EBF7" }}>
+          <Image source={NAV_ICONS.docs.on} style={{ width: 44, height: 44 }} resizeMode="contain" />
+        </View>
+        <View className="flex-1">
+          <Text w="bold" className="text-base">
+            المستندات
+          </Text>
+          <Text className="text-xs text-muted">{docsCount > 0 ? `${docsCount} ملف • PDF وWord وExcel وصور` : "PDF وWord وExcel وصور"}</Text>
+        </View>
+        <Ionicons name="chevron-back" size={20} color="#94A3B8" />
+      </Pressable>
 
       {/* المستندات الأخيرة */}
       {showDocs ? <RecentDocs /> : null}

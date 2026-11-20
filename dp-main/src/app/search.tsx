@@ -16,7 +16,7 @@ const DESTS: Dest[] = [
   { title: "التقويم", hint: "الأسبوع والشهر", icon: "calendar", href: "/calendar", words: "تقويم جدول شهر اسبوع مواعيد", hex: "#0E6FA5", soft: "#D6EBF7" },
   { title: "المهام", hint: "كل المهام", icon: "checkbox", href: "/tasks", words: "مهام مهمه تاسك قائمه", hex: "#16A34A", soft: "#DCFCE7" },
   { title: "الملاحظات", hint: "ملاحظات مثبّتة وملوّنة", icon: "create", href: "/notes", words: "ملاحظات ملاحظه نوت مذكره", hex: "#CA8A04", soft: "#FEF3C7" },
-  { title: "المستندات", hint: "PDF وWord وExcel وصور", icon: "document-text", href: "/docs", words: "مستندات ملفات وثائق pdf word excel", hex: "#0E6FA5", soft: "#D6EBF7" },
+  { title: "المستندات", hint: "PDF وWord وExcel وصور", icon: "document-text", href: "/documents", words: "مستندات ملفات وثائق pdf word excel", hex: "#0E6FA5", soft: "#D6EBF7" },
   { title: "أماكن العمل", hint: "أنواع الدوام والمناوبة", icon: "briefcase", href: "/workplaces", words: "اماكن عمل دوام مناوبه مشفى نوع", hex: "#EA580C", soft: "#FFEDD5" },
   { title: "دخلي الشهري", hint: "الراتب والدوامات وصافي العيادة", icon: "cash", href: "/income", words: "دخل راتب اجور شهري ارباح", hex: "#16A34A", soft: "#DCFCE7" },
   { title: "جدولة الدوامات", hint: "املأ الشهر بالدوامات", icon: "calendar-number", href: "/shifts-bulk", words: "جدوله دوامات مناوبات شهر تكرار نمط", hex: "#7C3AED", soft: "#EDE9FE" },
@@ -35,7 +35,7 @@ const DESTS: Dest[] = [
   { title: "التقارير", hint: "العيادة", icon: "bar-chart", href: "/clinic/reports", words: "تقارير ارباح دخل" },
   { title: "المخزون", hint: "العيادة", icon: "cube", href: "/clinic/inventory", words: "مخزون مواد نقص" },
   { title: "المتابعات والاستدعاء", hint: "العيادة", icon: "chatbubbles", href: "/clinic/followups", words: "متابعه استدعاء واتساب تذكير" },
-  { title: "استيراد من البرنامج السابق", hint: "ملف JSON", icon: "download", href: "/clinic/import", words: "استيراد json برنامج سابق نقل" },
+  { title: "استيراد من البرنامج السابق", hint: "الإعدادات ← البيانات • ملف JSON", icon: "download", href: "/clinic/import", words: "استيراد json برنامج سابق نقل" },
 ];
 
 /** تطبيع عربي: أ إ آ←ا، ة←ه، ى←ي، إزالة التشكيل، وأحرف صغيرة */

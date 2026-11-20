@@ -18,8 +18,8 @@ type BarProps = {
   };
 };
 
-/** ترتيب الأزرار من اليمين إلى اليسار (واجهة RTL): المنبّه، العيادة، الرئيسية، الصلاة، المستندات */
-const ORDER = ["alarms", "clinic", "index", "prayer", "docs"] as const;
+/** ترتيب الأزرار من اليمين إلى اليسار (واجهة RTL): المنبّه، العيادة، الرئيسية، الصلاة، الطقس */
+const ORDER = ["alarms", "clinic", "index", "prayer", "weather"] as const;
 type Name = (typeof ORDER)[number];
 
 /** الأيقونات ملوّنة: نسختان (نشطة وخاملة) لكل زر، والعيادة بشعارها */
@@ -28,18 +28,18 @@ const META: Record<Name, { label: string }> = {
   clinic: { label: "العيادة" },
   index: { label: "الرئيسية" },
   prayer: { label: "الصلاة" },
-  docs: { label: "المستندات" },
+  weather: { label: "الطقس" },
 };
 
 const ICON_KEY: Record<Exclude<Name, "clinic">, keyof typeof NAV_ICONS> = {
   alarms: "alarms",
   index: "home",
   prayer: "prayer",
-  docs: "docs",
+  weather: "weather",
 };
 
 /** الشاشات المخفية من الشريط تُحسب تحت زرٍّ قريب منها ليبقى الزر مضاءً */
-const OWNER: Record<string, Name> = { calendar: "index", tasks: "index" };
+const OWNER: Record<string, Name> = { calendar: "index", tasks: "index", documents: "index", docs: "index" };
 
 const BLUE = "#0E6FA5";
 const INK = "#0A3A57";
