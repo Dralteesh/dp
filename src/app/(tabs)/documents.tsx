@@ -89,7 +89,7 @@ export default function DocsTab() {
   }, [docs]);
 
   return (
-    <Screen title="المستندات" subtitle={`${docs.length} ملف`} overlay={<Fab onPress={add} color={BLUE} icon="document-attach" />}>
+    <Screen back title="المستندات" subtitle={`${docs.length} ملف`} overlay={<Fab onPress={add} color={BLUE} icon="document-attach" />}>
       {docs.length > 0 && (
         <View className="flex-row items-center gap-2 bg-surface border border-line rounded-2xl px-3 mb-3">
           <Ionicons name="search" size={18} color="#94A3B8" />

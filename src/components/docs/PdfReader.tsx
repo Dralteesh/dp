@@ -11,6 +11,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { inputAlign } from "@/lib/rtl";
 import { useDocs, type DocItem } from "@/store/useDocs";
+import { PDFJS_MAIN, PDFJS_WORKER } from "@/lib/pdfjsInline";
 
 const BLUE = "#0E6FA5";
 const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
@@ -21,7 +22,7 @@ const ZOOMS = [1, 1.25, 1.5, 2, 2.5, 3];
  * صفحة القارئ (pdf.js داخل WebView): تمرير مستمر، رسم الصفحات القريبة فقط لتوفير الذاكرة،
  * وتكبير يعيد الرسم بوضوح كامل، ووضع ليلي. الواجهة الأصلية تتحكم بالصفحات والتكبير.
  */
-const READER_HTML = `<!doctype html><html dir="ltr"><head><meta charset="utf-8">
+const READER_TPL = `<!doctype html><html dir="ltr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
 <style>
 html,body{margin:0;background:#525659;-webkit-tap-highlight-color:transparent}
@@ -33,7 +34,7 @@ body.n{background:#101215}
 body.n .pg{filter:invert(.9) hue-rotate(180deg)}
 </style></head><body>
 <div id="s">جارٍ تحميل القارئ…</div><div id="w"></div>
-<script src="${PDFJS}/pdf.min.js" onerror="window.__fail=1"></script>
+@@PDFJS_TAG@@
 <script>
 var pdf=null,zoom=1,total=0,cur=1,sizes=[],tops=[],hs=[],els=[],rend={},tok=0,tick=false,W=0;
 function post(o){window.ReactNativeWebView.postMessage(JSON.stringify(o));}
@@ -81,7 +82,7 @@ window.__night=function(b){document.body.className=b?'n':'';};
 window.__open=async function(b64,start,z,night){
   try{
     zoom=z||1;window.__night(night);msg('جارٍ فتح الملف…');
-    pdfjsLib.GlobalWorkerOptions.workerSrc='${PDFJS}/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc=window.__workerUrl||'${PDFJS}/pdf.worker.min.js';
     var raw=atob(b64),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
     pdf=await pdfjsLib.getDocument({data:bytes}).promise;total=pdf.numPages;
     var w=document.getElementById('w');
@@ -99,6 +100,15 @@ window.__open=async function(b64,start,z,night){
 if(window.__fail||typeof pdfjsLib==='undefined'){post({t:'error',m:'تعذّر تحميل قارئ PDF. يلزم اتصال بالإنترنت أول مرة فقط.'});}
 else post({t:'ready'});
 </script></body></html>`;
+
+// pdf.js مضمَّن داخل التطبيق (يعمل بدون إنترنت)؛ وإن لم يتوفر نرجع إلى CDN.
+const INLINE_OK = PDFJS_MAIN.length > 0 && PDFJS_WORKER.length > 0;
+const PDFJS_TAG = INLINE_OK
+  ? "<script>window.__workerUrl=URL.createObjectURL(new Blob([" + JSON.stringify(PDFJS_WORKER).replace(/</g, "\\u003c") + "],{type:'text/javascript'}));</script>\n<script>" +
+    PDFJS_MAIN.replace(/<\/script/gi, "<\\/script") +
+    "</script>"
+  : '<script src="' + PDFJS + '/pdf.min.js" onerror="window.__fail=1"></script>';
+const READER_HTML = READER_TPL.replace("@@PDFJS_TAG@@", () => PDFJS_TAG);
 
 export function PdfReader({ doc }: { doc: DocItem }) {
   const router = useRouter();

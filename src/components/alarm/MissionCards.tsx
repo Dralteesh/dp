@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,6 +13,7 @@ const CREAM = "#F3EBDD";
 const RED = "#E32D0B";
 
 type Mission = { key: AlarmChallenge | "walk" | "pushups"; label: string; soon?: boolean };
+type ArtKind = Mission["key"];
 
 /** نفس ترتيب تصميم Missions: 6 بطاقات؛ المشي والضغط قريبًا (يحتاجان حسّاسات إضافية) */
 const MISSIONS: Mission[] = [
@@ -21,12 +23,14 @@ const MISSIONS: Mission[] = [
   { key: "shake", label: "هزّ" },
   { key: "walk", label: "مشي", soon: true },
   { key: "pushups", label: "ضغط", soon: true },
+  { key: "hold", label: CHALLENGE_LABELS.hold.label },
+  { key: "none", label: CHALLENGE_LABELS.none.label },
 ];
 
 const W = 120;
 const H = 80;
 
-function Art({ kind }: { kind: Mission["key"] }) {
+function Art({ kind }: { kind: ArtKind }) {
   return (
     <Svg width={W} height={H} viewBox="0 0 120 80">
       {kind === "math" && (
@@ -99,6 +103,21 @@ function Art({ kind }: { kind: Mission["key"] }) {
           />
         </>
       )}
+      {kind === "hold" && (
+        <>
+          <Circle cx={60} cy={44} r={34} stroke={YELLOW} strokeWidth={4} fill="none" strokeDasharray="10 8" strokeLinecap="round" />
+          <Circle cx={60} cy={44} r={22} stroke={ORANGE} strokeWidth={4} fill="none" />
+          <Circle cx={60} cy={44} r={11} fill={CREAM} />
+          <Circle cx={60} cy={44} r={4} fill={RED} />
+        </>
+      )}
+      {kind === "none" && (
+        <>
+          <Circle cx={60} cy={44} r={28} stroke={CREAM} strokeWidth={7} fill="none" />
+          <Path d="M40 64 L80 24" stroke={ORANGE} strokeWidth={7} strokeLinecap="round" />
+          <Circle cx={16} cy={20} r={5} fill={YELLOW} />
+        </>
+      )}
     </Svg>
   );
 }
@@ -110,7 +129,7 @@ type Props = {
   onPreview: (k: Exclude<AlarmChallenge, "none">) => void;
 };
 
-/** شبكة بطاقات المهمات (تصميم Missions): اضغط للاختيار، اضغط مطوّلًا للتجربة */
+/** شبكة بطاقات المهمات (تصميم Missions) بما فيها «ضغط مطوّل» و«بدون»: اضغط للاختيار، اضغط مطوّلًا للتجربة */
 export function MissionCards({ value, onSelect, onPreview }: Props) {
   const { width } = useWindowDimensions();
   const gap = 12;
@@ -127,7 +146,7 @@ export function MissionCards({ value, onSelect, onPreview }: Props) {
               disabled={m.soon}
               accessibilityLabel={m.label}
               onPress={() => onSelect(m.key as AlarmChallenge)}
-              onLongPress={() => onPreview(m.key as Exclude<AlarmChallenge, "none">)}
+              onLongPress={m.key === "none" ? undefined : () => onPreview(m.key as Exclude<AlarmChallenge, "none">)}
               style={{
                 width: cw,
                 height: 116,
@@ -162,37 +181,105 @@ export function MissionCards({ value, onSelect, onPreview }: Props) {
         })}
       </View>
 
-      {/* خيارات إضافية خارج التصميم الأصلي: ضغط مطوّل وبدون مهمة */}
-      <View style={{ flexDirection: "row", gap, marginTop: gap }}>
-        {(["hold", "none"] as const).map((k) => {
-          const on = value === k;
-          const m = CHALLENGE_LABELS[k];
-          return (
-            <Pressable
-              key={k}
-              onPress={() => onSelect(k)}
-              onLongPress={k === "none" ? undefined : () => onPreview(k)}
-              style={{
-                width: cw,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 14,
-                paddingVertical: 14,
-                borderRadius: 20,
-                backgroundColor: "#fff",
-                borderWidth: 3,
-                borderColor: on ? RED : "#E7E5DE",
-              }}
-            >
-              <Ionicons name={m.icon as never} size={22} color={on ? RED : "#64748B"} />
-              <Text w="bold" style={{ flex: 1 }}>
-                {m.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+    </View>
+  );
+}
+
+/* ───────── بطاقات الغفوة (مدة + عدد) بنفس أسلوب التصميم ───────── */
+
+function pie(cx: number, cy: number, r: number, frac: number) {
+  if (frac >= 1) return `M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy} A ${r} ${r} 0 1 1 ${cx - r} ${cy} Z`;
+  const a = frac * Math.PI * 2;
+  const x = cx + r * Math.sin(a);
+  const y = cy - r * Math.cos(a);
+  return `M ${cx} ${cy} L ${cx} ${cy - r} A ${r} ${r} 0 ${frac > 0.5 ? 1 : 0} 1 ${x} ${y} Z`;
+}
+
+function SmallCard({
+  w,
+  label,
+  sub,
+  on,
+  onPress,
+  children,
+}: {
+  w: number;
+  label: string;
+  sub?: string;
+  on: boolean;
+  onPress: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel={sub ? `${label} ${sub}` : label}
+      style={{ width: w, height: 96, borderRadius: 22, backgroundColor: CARD_BG, overflow: "hidden", borderWidth: 3, borderColor: on ? RED : "transparent" }}
+    >
+      <View style={{ position: "absolute", top: 8, start: 12, flexDirection: "row", alignItems: "baseline", gap: 3 }}>
+        <Text w="bold" style={{ color: "#fff", fontSize: 20 }}>
+          {label}
+        </Text>
+        {sub ? (
+          <Text w="semi" style={{ color: CREAM, fontSize: 12 }}>
+            {sub}
+          </Text>
+        ) : null}
       </View>
+      {on ? (
+        <View style={{ position: "absolute", top: 8, end: 8 }}>
+          <Ionicons name="checkmark-circle" size={18} color={RED} />
+        </View>
+      ) : null}
+      <View style={{ position: "absolute", bottom: 6, end: 8, direction: "ltr" }}>{children}</View>
+    </Pressable>
+  );
+}
+
+/** مدة الغفوة: قرص أصفر يمثّل نسبة المدة من ساعة ربع */
+export function SnoozeDurationCards({ options, value, onSelect }: { options: number[]; value: number; onSelect: (v: number) => void }) {
+  const { width } = useWindowDimensions();
+  const gap = 10;
+  const cw = Math.floor((width - 40 - gap * (options.length - 1)) / options.length);
+  const max = Math.max(...options, 1);
+  return (
+    <View style={{ flexDirection: "row", gap }}>
+      {options.map((v) => (
+        <SmallCard key={v} w={cw} label={String(v)} sub="د" on={value === v} onPress={() => onSelect(v)}>
+          <Svg width={44} height={44} viewBox="0 0 44 44">
+            <Circle cx={22} cy={22} r={20} fill="#3A352B" />
+            <Path d={pie(22, 22, 20, v / (max * 1.25))} fill={YELLOW} />
+            <Circle cx={22} cy={22} r={5} fill={CARD_BG} />
+          </Svg>
+        </SmallCard>
+      ))}
+    </View>
+  );
+}
+
+/** عدد الغفوات: نقاط بعدد الغفوات، و«ممنوعة» بدائرة مشطوبة */
+export function SnoozeCountCards({ options, value, onSelect }: { options: number[]; value: number; onSelect: (v: number) => void }) {
+  const { width } = useWindowDimensions();
+  const gap = 10;
+  const cw = Math.floor((width - 40 - gap * (options.length - 1)) / options.length);
+  return (
+    <View style={{ flexDirection: "row", gap }}>
+      {options.map((v) => (
+        <SmallCard key={v} w={cw} label={v === 0 ? "ممنوعة" : String(v)} on={value === v} onPress={() => onSelect(v)}>
+          <Svg width={44} height={44} viewBox="0 0 44 44">
+            {v === 0 ? (
+              <>
+                <Circle cx={22} cy={22} r={15} stroke={CREAM} strokeWidth={5} fill="none" />
+                <Path d="M12 32 L32 12" stroke={ORANGE} strokeWidth={5} strokeLinecap="round" />
+              </>
+            ) : (
+              Array.from({ length: Math.min(v, 6) }, (_, i) => (
+                <Circle key={i} cx={10 + (i % 3) * 12} cy={v > 3 ? (i < 3 ? 14 : 30) : 22} r={5} fill={i % 2 === 0 ? YELLOW : ORANGE} />
+              ))
+            )}
+          </Svg>
+        </SmallCard>
+      ))}
     </View>
   );
 }

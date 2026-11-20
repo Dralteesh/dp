@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Switch, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Animated, FlatList, Pressable, StyleSheet, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
-import { Egg } from "@/components/alarm/Egg";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
@@ -23,7 +22,6 @@ const RED = "#E32D0B";
 const GREEN = "#22C55E";
 const INK = "#111111";
 const MUTED = "#9A9A9A";
-const EGG_GREY = "#D9D9D9";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -60,7 +58,32 @@ export default function AlarmsScreen() {
     if (supported) ensureAlarmPermissions().then(setPermOk);
   }, [supported]);
 
-  const openEdit = (id: string) => router.push({ pathname: "/alarm/[id]", params: { id } });
+  const openEdit = (id: string, date?: string) =>
+    router.push({ pathname: "/alarm/[id]", params: date ? { id, date } : { id } });
+
+  // اليوم المحدّد في شريط الأسبوع (null = عرض الكل)
+  const [selDay, setSelDay] = useState<number | null>(null);
+  const todayISO = toISO(now);
+  const weekDates = useMemo(() => {
+    const off = (now.getDay() - WEEK_ORDER[0] + 7) % 7;
+    return WEEK_ORDER.map((_, i) => addDays(todayISO, i - off));
+  }, [todayISO, now]);
+  const runsOn = (a: AlarmItem, d: number, date: string) =>
+    a.days.length > 0 ? a.days.includes(d) : a.onceDate === date;
+  const counts = useMemo(() => {
+    const m: Record<number, number> = {};
+    WEEK_ORDER.forEach((d, i) => {
+      m[d] = alarms.filter((a) => a.enabled && runsOn(a, d, weekDates[i])).length;
+    });
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alarms, weekDates]);
+  const selIndex = selDay === null ? -1 : WEEK_ORDER.indexOf(selDay);
+  const shown = useMemo(
+    () => (selDay === null ? alarms : alarms.filter((a) => runsOn(a, selDay, weekDates[selIndex]))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [alarms, selDay, weekDates],
+  );
 
   // أقرب منبّه فعّال مع موعد رنينه
   const next = useMemo(() => {
@@ -71,17 +94,6 @@ export default function AlarmsScreen() {
     }
     return best;
   }, [alarms, now]);
-
-  // أيام الأسبوع القادم التي فيها منبّه فعّال (بديل «سلسلة الأيام» لأن التطبيق لا يسجّل إيقاف المنبّهات)
-  const scheduled = useMemo(() => {
-    const set = new Set<number>();
-    for (const a of alarms) {
-      if (!a.enabled) continue;
-      if (a.days.length > 0) a.days.forEach((d) => set.add(d));
-      else if (a.onceDate) set.add(new Date(`${a.onceDate}T12:00:00`).getDay());
-    }
-    return set;
-  }, [alarms]);
 
   const test = async () => {
     const ok = await scheduleTestAlarm();
@@ -127,7 +139,7 @@ export default function AlarmsScreen() {
 
       <View style={s.rowBetween}>
         <View style={[s.row, { gap: 8 }]}>
-          <Egg width={26} height={32} color={INK} face={false} />
+          <Ionicons name="alarm" size={30} color={INK} />
           <Text w="bold" style={{ fontSize: 24, lineHeight: 34, color: INK }}>
             المنبّه
           </Text>
@@ -137,7 +149,28 @@ export default function AlarmsScreen() {
         </Text>
       </View>
 
-      <WeekStrip scheduled={scheduled} todayIndex={now.getDay()} />
+      <WeekStrip
+        counts={counts}
+        dates={weekDates}
+        todayIndex={now.getDay()}
+        selected={selDay}
+        onSelect={(d) => setSelDay((cur) => (cur === d ? null : d))}
+        onAdd={(date) => openEdit("new", date)}
+      />
+      {selDay !== null ? (
+        <View style={s.rowBetween}>
+          <Text w="bold" style={{ fontSize: 13, color: INK }}>
+            {DAYS[selDay]} · {shown.length} منبّه
+          </Text>
+          <Pressable onPress={() => setSelDay(null)} hitSlop={10}>
+            <Text w="bold" style={{ fontSize: 12, color: RED }}>
+              عرض الكل
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Text style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>اضغط يومًا لعرض منبّهاته · اضغط مطوّلًا لإضافة منبّه فيه</Text>
+      )}
 
       <SectionTitle text="المنبّه القادم" />
       {next ? (
@@ -155,15 +188,22 @@ export default function AlarmsScreen() {
   return (
     <View style={s.root}>
       <FlatList
-        data={alarms}
+        data={shown}
         keyExtractor={(a) => a.id}
         style={{ paddingTop: insets.top }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 220, gap: 12 }}
         ListHeaderComponent={header}
         ListEmptyComponent={
-          <Text style={{ color: MUTED, textAlign: "center", paddingVertical: 12 }}>
-            لا منبّهات. اضغط + لإضافة منبّه، أو اربط منبّهًا بأي مناوبة من شاشة الحدث.
-          </Text>
+          selDay !== null ? (
+            <View style={{ gap: 10, paddingVertical: 12 }}>
+              <Text style={{ color: MUTED, textAlign: "center" }}>لا منبّهات في هذا اليوم.</Text>
+              <Button label="إضافة منبّه لهذا اليوم" icon="add-circle-outline" variant="outline" onPress={() => openEdit("new", weekDates[selIndex])} />
+            </View>
+          ) : (
+            <Text style={{ color: MUTED, textAlign: "center", paddingVertical: 12 }}>
+              لا منبّهات. اضغط + لإضافة منبّه، أو اربط منبّهًا بأي مناوبة من شاشة الحدث.
+            </Text>
+          )
         }
         ListFooterComponent={
           <View style={{ marginTop: 4 }}>
@@ -195,36 +235,107 @@ export default function AlarmsScreen() {
   );
 }
 
-// ---------- شريط الأسبوع ----------
-function WeekStrip({ scheduled, todayIndex }: { scheduled: Set<number>; todayIndex: number }) {
+// ---------- شريط الأسبوع (تفاعلي) ----------
+function DayCircle({
+  num,
+  count,
+  isToday,
+  selected,
+  onPress,
+  onLong,
+}: {
+  num: number;
+  count: number;
+  isToday: boolean;
+  selected: boolean;
+  onPress: () => void;
+  onLong: () => void;
+}) {
+  const sc = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.spring(sc, { toValue: selected ? 1.14 : 1, useNativeDriver: true, friction: 5 }).start();
+  }, [selected, sc]);
+  const press = (v: number) => Animated.spring(sc, { toValue: v, useNativeDriver: true, friction: 6 }).start();
+  const has = count > 0;
+  const bg = selected ? RED : has ? INK : "#E7E7E7";
+  const fg = selected || has ? "#fff" : MUTED;
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLong}
+      onPressIn={() => press(0.9)}
+      onPressOut={() => press(selected ? 1.14 : 1)}
+      accessibilityLabel={`${num}`}
+      style={{ flex: 1, alignItems: "center" }}
+    >
+      <Animated.View
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 21,
+          backgroundColor: bg,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: isToday ? 3 : 0,
+          borderColor: isToday ? GREEN : "transparent",
+          transform: [{ scale: sc }],
+        }}
+      >
+        <Text w="bold" style={{ color: fg, fontSize: 16 }}>
+          {num}
+        </Text>
+        {count > 1 ? (
+          <View style={s.badge}>
+            <Text w="bold" style={{ color: INK, fontSize: 9, lineHeight: 12 }}>
+              {count}
+            </Text>
+          </View>
+        ) : null}
+      </Animated.View>
+      <View
+        style={{ width: 6, height: 6, borderRadius: 3, marginTop: 5, backgroundColor: isToday ? GREEN : "transparent" }}
+      />
+    </Pressable>
+  );
+}
+
+function WeekStrip({
+  counts,
+  dates,
+  todayIndex,
+  selected,
+  onSelect,
+  onAdd,
+}: {
+  counts: Record<number, number>;
+  dates: string[];
+  todayIndex: number;
+  selected: number | null;
+  onSelect: (d: number) => void;
+  onAdd: (date: string) => void;
+}) {
   return (
     <View>
       <View style={s.row}>
         {WEEK_ORDER.map((d) => (
-          <Text key={d} style={s.weekLabel}>
+          <Text key={d} style={[s.weekLabel, selected === d && { color: RED }]}>
             {DAYS_SHORT[d]}
           </Text>
         ))}
       </View>
       <View style={{ height: 6 }} />
       <View style={s.row}>
-        {WEEK_ORDER.map((d) => {
-          const on = scheduled.has(d);
-          return (
-            <View key={d} style={{ flex: 1, alignItems: "center" }}>
-              <Egg width={34} height={40} color={on ? "#fff" : EGG_GREY} face={on} outlined={on} />
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  marginTop: 4,
-                  backgroundColor: d === todayIndex ? GREEN : "transparent",
-                }}
-              />
-            </View>
-          );
-        })}
+        {WEEK_ORDER.map((d, i) => (
+          <DayCircle
+            key={d}
+            num={Number(dates[i].slice(8, 10))}
+            count={counts[d] ?? 0}
+            isToday={d === todayIndex}
+            selected={selected === d}
+            onPress={() => onSelect(d)}
+            onLong={() => onAdd(dates[i])}
+          />
+        ))}
       </View>
     </View>
   );
@@ -384,6 +495,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: BG },
   row: { flexDirection: "row", alignItems: "center" },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  badge: { position: "absolute", top: -4, end: -4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: "#FFB800", alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   weekLabel: { flex: 1, textAlign: "center", fontSize: 10, color: INK, fontFamily: "Cairo_700Bold" },
   nextCard: { backgroundColor: CARD, borderRadius: 24, padding: 14 },
   tile: { flex: 1, backgroundColor: BG, borderRadius: 18, padding: 12 },

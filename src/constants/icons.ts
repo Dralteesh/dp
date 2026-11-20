@@ -3,6 +3,7 @@ export const NAV_ICONS = {
   alarms: { on: require("../../assets/nav/alarms.png"), off: require("../../assets/nav/alarms-off.png") },
   home: { on: require("../../assets/nav/home.png"), off: require("../../assets/nav/home-off.png") },
   prayer: { on: require("../../assets/nav/prayer.png"), off: require("../../assets/nav/prayer-off.png") },
+  weather: { on: require("../../assets/nav/weather.png"), off: require("../../assets/nav/weather-off.png") },
   docs: { on: require("../../assets/nav/docs.png"), off: require("../../assets/nav/docs-off.png") },
 } as const;
 

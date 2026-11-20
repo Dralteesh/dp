@@ -236,6 +236,12 @@ export default function SettingsScreen() {
 
       <SectionHeader title="البيانات" />
       <Card>
+        <SettingsLink
+          icon="download-outline"
+          title="استيراد ملف JSON"
+          hint="من البرنامج السابق: معاينة ثم دمج دون حذف بياناتك"
+          href="/clinic/import"
+        />
         <Text className="text-sm text-muted mb-3">
           البيانات محفوظة على هذا الهاتف فقط (AsyncStorage). المزامنة السحابية عبر Supabase ستُضاف لاحقًا.
         </Text>

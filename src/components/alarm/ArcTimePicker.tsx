@@ -43,12 +43,12 @@ function ArcWheel({ values, index, onIndex, side, centerX, fontSize }: WheelProp
       last.current = v;
       onIndex(v);
     }
-    // أعد التمركز في منتصف التكرار حتى لا نصل لنهاية القائمة
-    if (i < n * 3 || i > n * (CYCLES - 3)) {
-      const y2 = (mid * n + v) * ROW;
-      ref.current?.scrollTo({ y: y2, animated: false });
-      setOffset(y2);
-    }
+    // ثبّت الموضع على مضاعف ROW بالضبط (يصحّح انحراف التقريب في snapToInterval على أندرويد)،
+    // وأعد التمركز في منتصف التكرار حتى لا نصل لنهاية القائمة
+    const recenter = i < n * 3 || i > n * (CYCLES - 3);
+    const ty = (recenter ? mid * n + v : i) * ROW;
+    if (Math.abs(y - ty) > 0.01) ref.current?.scrollTo({ y: ty, animated: false });
+    setOffset(ty);
   };
 
   const center = HEIGHT / 2;

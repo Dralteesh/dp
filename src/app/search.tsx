@@ -35,7 +35,7 @@ const DESTS: Dest[] = [
   { title: "التقارير", hint: "العيادة", icon: "bar-chart", href: "/clinic/reports", words: "تقارير ارباح دخل" },
   { title: "المخزون", hint: "العيادة", icon: "cube", href: "/clinic/inventory", words: "مخزون مواد نقص" },
   { title: "المتابعات والاستدعاء", hint: "العيادة", icon: "chatbubbles", href: "/clinic/followups", words: "متابعه استدعاء واتساب تذكير" },
-  { title: "استيراد من البرنامج السابق", hint: "ملف JSON", icon: "download", href: "/clinic/import", words: "استيراد json برنامج سابق نقل" },
+  { title: "استيراد من البرنامج السابق", hint: "الإعدادات ← البيانات • ملف JSON", icon: "download", href: "/clinic/import", words: "استيراد json برنامج سابق نقل" },
 ];
 
 /** تطبيع عربي: أ إ آ←ا، ة←ه، ى←ي، إزالة التشكيل، وأحرف صغيرة */
