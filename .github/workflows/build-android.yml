@@ -32,6 +32,8 @@ jobs:
       - name: Install dependencies
         run: |
           npm install
+          # المكتبات الأصلية الجديدة تُثبَّت بالإصدار المناسب لـ SDK الحالي
+          npx expo install expo-audio expo-camera expo-location
           npx expo install --fix
 
       # يكشف أخطاء كود JavaScript خلال دقيقة، قبل بناء أندرويد الطويل
