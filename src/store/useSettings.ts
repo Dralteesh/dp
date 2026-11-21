@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { DEFAULT_PLACE, applyTypeSettings } from "@/constants/shiftTypes";
+import { setCity } from "@/lib/prayer";
 import { STORAGE_KEYS, storage } from "@/lib/storage";
 import type { DhikrSettings, PrayerKey, PrayerReminders, Settings } from "@/types";
 
@@ -15,8 +16,9 @@ export const DEFAULT_DHIKR_TEXTS = [
 
 export const DEFAULT_PRAYER_REMINDERS: PrayerReminders = {
   before: { enabled: true, minutes: 30 },
-  atAdhan: { enabled: true },
+  atAdhan: { enabled: true, sound: true },
   repeat: { enabled: true, everyMin: 10, quietFrom: "23:30", quietTo: "04:00" },
+  quiet: { enabled: true, minutes: 20 },
 };
 
 export const DEFAULT_DHIKR: DhikrSettings = {
@@ -43,6 +45,9 @@ export const DEFAULT_SETTINGS: Settings = {
     maghrib: true,
     isha: true,
   },
+  location: null,
+  mosque: null,
+  quranTranslation: "none",
   prayerReminders: DEFAULT_PRAYER_REMINDERS,
   dhikr: DEFAULT_DHIKR,
   defaultReminder: 30,
@@ -93,6 +98,9 @@ export const useSettings = create<SettingsState>()(
         prayerAdjust: s.prayerAdjust,
         prayerNotify: s.prayerNotify,
         prayerReminders: s.prayerReminders,
+        location: s.location,
+        mosque: s.mosque,
+        quranTranslation: s.quranTranslation,
         dhikr: s.dhikr,
         defaultReminder: s.defaultReminder,
         appointmentReminder: s.appointmentReminder,
@@ -123,12 +131,16 @@ export const useSettings = create<SettingsState>()(
             before: { ...DEFAULT_PRAYER_REMINDERS.before, ...p.prayerReminders?.before },
             atAdhan: { ...DEFAULT_PRAYER_REMINDERS.atAdhan, ...p.prayerReminders?.atAdhan },
             repeat: { ...DEFAULT_PRAYER_REMINDERS.repeat, ...p.prayerReminders?.repeat },
+            quiet: { ...DEFAULT_PRAYER_REMINDERS.quiet, ...p.prayerReminders?.quiet },
           },
           dhikr: { ...DEFAULT_DHIKR, ...p.dhikr, texts: p.dhikr?.texts ?? DEFAULT_DHIKR_TEXTS },
         };
       },
       // بعد قراءة التخزين: طبّق الألوان المحفوظة قبل أول رسم
-      onRehydrateStorage: () => (state) => applyTypeSettings(state?.typeColors, state?.workplaces),
+      onRehydrateStorage: () => (state) => {
+        applyTypeSettings(state?.typeColors, state?.workplaces);
+        setCity(state?.location);
+      },
     },
   ),
 );
@@ -142,4 +154,9 @@ useSettings.subscribe((s) => {
     lastPlaces = s.workplaces;
     applyTypeSettings(s.typeColors, s.workplaces);
   }
+});
+
+// الموقع يتبع الإعدادات دائمًا (يشمل المزامنة السحابية والاستعادة)
+useSettings.subscribe((st, prev) => {
+  if (st.location !== prev.location) setCity(st.location);
 });

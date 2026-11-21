@@ -29,6 +29,7 @@ export function AppSync() {
   const madhab = useSettings((s) => s.madhab);
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
   const prayerNotify = useSettings((s) => s.prayerNotify);
+  const location = useSettings((s) => s.location);
   const prayerReminders = useSettings((s) => s.prayerReminders);
   const dhikr = useSettings((s) => s.dhikr);
   // تعليم صلاة كمُنجَزة أو تأجيلها يغيّر جدول التكرارات
@@ -45,13 +46,14 @@ export function AppSync() {
       madhab,
       prayerAdjust,
       prayerNotify,
+      location,
       prayerReminders,
       dhikr,
       defaultReminder,
       appointmentReminder,
       currency,
     } as Settings),
-    [doctorName, prayerMethod, madhab, prayerAdjust, prayerNotify, prayerReminders, dhikr, defaultReminder, appointmentReminder, currency],
+    [doctorName, prayerMethod, madhab, prayerAdjust, prayerNotify, location, prayerReminders, dhikr, defaultReminder, appointmentReminder, currency],
   );
 
   // إعداد القنوات وطلب الإذن مرة واحدة

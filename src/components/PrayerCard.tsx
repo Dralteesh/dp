@@ -19,6 +19,7 @@ type Props = {
 export function PrayerCard({ next, now, onPress }: Props) {
   const prayerMethod = useSettings((s) => s.prayerMethod);
   const madhab = useSettings((s) => s.madhab);
+  useSettings((s) => s.location); // إعادة الرسم عند تغيّر الموقع
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
 
   const minuteKey = Math.floor(now.getTime() / 60000);

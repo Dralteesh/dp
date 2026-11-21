@@ -3,7 +3,7 @@ import * as Notifications from "expo-notifications";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { agendaFor, occursOn, type AgendaInput } from "@/lib/agenda";
 import { addDays, combine, fmtTime, fmtTimeDate, toISO, toMinutes } from "@/lib/dates";
-import { FARD, PRAYER_LABELS, getPrayerTimes } from "@/lib/prayer";
+import { CITY, FARD, PRAYER_LABELS, getPrayerTimes } from "@/lib/prayer";
 import { useSettings } from "@/store/useSettings";
 import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
 import type { PrayerKey, Settings, Task } from "@/types";
@@ -15,6 +15,10 @@ export const CHANNEL = {
   prayerBefore: "prayer_before",
   prayerRepeat: "prayer_repeat",
   dhikr: "dhikr",
+  /** إشعارات هادئة (بلا صوت ولا اهتزاز) أثناء وقت الصلاة */
+  quiet: "quiet",
+  /** قناة صوت الأذان (ملف assets/sounds/adhan.mp3) */
+  adhan: "prayer_adhan",
 } as const;
 
 /** فئة الإشعار التي تحمل زري «صليت» و«ذكّرني بعد 10 د» (نفس المعرّف في الجدولة والتعريف) */
@@ -81,6 +85,20 @@ export async function setupNotifications(): Promise<void> {
       vibrationPattern: [0, 200, 100, 200],
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       enableVibrate: true,
+    });
+    await Notifications.setNotificationChannelAsync(CHANNEL.adhan, {
+      name: "الأذان",
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: "adhan.mp3",
+      vibrationPattern: [0, 400, 200, 400],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      enableVibrate: true,
+    });
+    await Notifications.setNotificationChannelAsync(CHANNEL.quiet, {
+      name: "هادئة (وقت الصلاة)",
+      importance: Notifications.AndroidImportance.LOW,
+      sound: null,
+      enableVibrate: false,
     });
     await Notifications.setNotificationChannelAsync(CHANNEL.dhikr, {
       name: "الأذكار",
@@ -158,7 +176,7 @@ async function scheduleAll(items: Planned[]): Promise<void> {
           content: {
             title: p.title,
             body: p.body,
-            sound: true,
+            sound: p.channel !== CHANNEL.quiet,
             ...(p.data ? { data: p.data } : {}),
             ...(p.category ? { categoryIdentifier: p.category } : {}),
           },
@@ -259,7 +277,7 @@ export function buildPrayerItems(settings: Settings, log: LogState, from: Date =
         out.push({
           id: `prayer-before-${iso}-${k}`,
           title: `بقي ${rem.before.minutes} دقيقة على صلاة ${label}`,
-          body: `${label} • ${fmtTimeDate(times[k])} بتوقيت حماه`,
+          body: `${label} • ${fmtTimeDate(times[k])} بتوقيت ${CITY.name}`,
           date: new Date(times[k].getTime() - rem.before.minutes * 60000),
           channel: CHANNEL.prayerBefore,
           data,
@@ -271,9 +289,9 @@ export function buildPrayerItems(settings: Settings, log: LogState, from: Date =
         out.push({
           id: `prayer-${iso}-${k}`,
           title: `حان وقت ${label}`,
-          body: `${label} • ${fmtTimeDate(times[k])} بتوقيت حماه`,
+          body: `${label} • ${fmtTimeDate(times[k])} بتوقيت ${CITY.name}`,
           date: times[k],
-          channel: CHANNEL.prayer,
+          channel: !rem || rem.atAdhan.sound !== false ? CHANNEL.adhan : CHANNEL.prayer,
           data,
           category: PRAYER_CATEGORY,
         });
@@ -396,6 +414,31 @@ export function syncNotifications(input: SyncInput): Promise<void> {
   return enqueue(() => doSync(input));
 }
 
+/** نوافذ الصلاة (من الأذان حتى بعده بـ minutes) للأيام القادمة، بالميلي ثانية */
+function prayerQuietWindows(settings: Settings, days: number): Array<[number, number]> {
+  const q = settings.prayerReminders.quiet;
+  if (!q?.enabled) return [];
+  const out: Array<[number, number]> = [];
+  const base = new Date();
+  for (let i = 0; i < days; i++) {
+    const t = getPrayerTimes(new Date(base.getFullYear(), base.getMonth(), base.getDate() + i, 12), settings);
+    for (const k of FARD) {
+      const a = t[k].getTime();
+      out.push([a, a + q.minutes * 60000]);
+    }
+  }
+  return out;
+}
+
+/** يحوّل قناة الإشعار إلى «هادئة» إن وقع داخل نافذة صلاة */
+function quietize(items: Planned[], windows: Array<[number, number]>): Planned[] {
+  if (windows.length === 0) return items;
+  return items.map((p) => {
+    const t = p.date.getTime();
+    return windows.some(([a, b]) => t >= a && t < b) ? { ...p, channel: CHANNEL.quiet } : p;
+  });
+}
+
 async function doSync({ agenda, tasks, settings }: SyncInput): Promise<void> {
   const granted = (await Notifications.getPermissionsAsync()).granted;
   if (!granted) return;
@@ -455,7 +498,10 @@ async function doSync({ agenda, tasks, settings }: SyncInput): Promise<void> {
 
   // إشعارات غير مُدارة (التجريبية...) تُحسب من الميزانية أيضًا
   const unmanaged = (await Notifications.getAllScheduledNotificationsAsync()).length;
-  await scheduleAll(applyBudget(items, MAX_SCHEDULED - unmanaged));
+  const prayerItems = items.filter((p) => startsWithAny(p.id, PRAYER_PREFIXES));
+  const otherItems = items.filter((p) => !startsWithAny(p.id, PRAYER_PREFIXES));
+  const quiet = quietize(otherItems, prayerQuietWindows(settings, EVENT_DAYS));
+  await scheduleAll(applyBudget([...prayerItems, ...quiet], MAX_SCHEDULED - unmanaged));
   await logScheduleDev("بعد التزامن الكامل");
 }
 

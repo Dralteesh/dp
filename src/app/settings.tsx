@@ -8,6 +8,7 @@ import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { SectionHeader } from "@/components/ui/EmptyState";
 import { Text } from "@/components/ui/Text";
+import { setCity } from "@/lib/prayer";
 import { CITY, PRAYER_LABELS, PRAYER_METHODS, PRAYER_ORDER } from "@/lib/prayer";
 import { useClinic } from "@/store/useClinic";
 import { usePlanner } from "@/store/usePlanner";
@@ -42,6 +43,31 @@ function SettingsLink({ icon, title, hint, href, last }: LinkProps) {
 
 export default function SettingsScreen() {
   const s = useSettings();
+
+  const locate = async () => {
+    try {
+      const Location = await import("expo-location");
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("الإذن مطلوب", "فعّل إذن الموقع للتطبيق من إعدادات الهاتف.");
+        return;
+      }
+      const pos =
+        (await Location.getLastKnownPositionAsync()) ??
+        (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+      const { latitude: lat, longitude: lng } = pos.coords;
+      let name = "موقعي";
+      try {
+        const g = (await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng }))[0];
+        name = g?.city || g?.subregion || g?.region || name;
+      } catch {}
+      s.update({ location: { name, lat, lng } });
+      setCity({ name, lat, lng });
+      Alert.alert("تم", `الموقع: ${name}`);
+    } catch {
+      Alert.alert("تعذّر تحديد الموقع", "شغّل GPS وجرّب مجددًا.");
+    }
+  };
   const resetPlanner = usePlanner((p) => p.resetAll);
   const resetClinic = useClinic((c) => c.resetAll);
 
@@ -123,8 +149,21 @@ export default function SettingsScreen() {
         </FieldRow>
       </Card>
 
-      <SectionHeader title={`الصلاة • ${CITY.name}`} />
+      <SectionHeader title={`الصلاة • ${s.location?.name ?? CITY.name}`} />
       <Card>
+        <FieldRow label="الموقع (للمواقيت والقبلة)">
+          <View className="flex-row gap-2">
+            <View className="flex-1">
+              <Button label="تحديد موقعي" icon="locate" variant="soft" onPress={locate} />
+            </View>
+            <View className="flex-1">
+              <Button label="حماه (الافتراضي)" icon="refresh" variant="soft" onPress={() => { s.update({ location: null }); setCity(null); }} />
+            </View>
+          </View>
+          <Text className="text-xs text-muted mt-1">
+            يُحفظ الموقع على الجهاز، وتعمل المواقيت والقبلة بعدها بلا إنترنت.
+          </Text>
+        </FieldRow>
         <FieldRow label="طريقة الحساب">
           {(Object.keys(PRAYER_METHODS) as PrayerMethodKey[]).map((k) => {
             const active = s.prayerMethod === k;
@@ -179,6 +218,8 @@ export default function SettingsScreen() {
             );
           })}
         </FieldRow>
+        <SettingsLink icon="business" title="مسجدي" hint="أوقات الإقامة في مسجدك" href="/mosque" />
+        <SettingsLink icon="book" title="القرآن الكريم" hint="قراءة واستماع وترجمة" href="/quran" last />
       </Card>
 
       <SectionHeader title="التذكيرات" />

@@ -17,9 +17,9 @@ type PrayerLogState = {
   isDone: (iso: string, key: FardKey) => boolean;
 };
 
-const KEEP_DAYS = 60;
+const KEEP_DAYS = 400;
 
-/** يُبقي آخر 60 يومًا فقط */
+/** يُبقي آخر 400 يوم (للإحصاءات) */
 function prune(done: PrayerLogState["done"]): PrayerLogState["done"] {
   const min = addDays(todayISO(), -KEEP_DAYS);
   const out: PrayerLogState["done"] = {};

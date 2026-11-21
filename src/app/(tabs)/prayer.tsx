@@ -23,6 +23,8 @@ export default function PrayerScreen() {
   const madhab = useSettings((s) => s.madhab);
   const prayerAdjust = useSettings((s) => s.prayerAdjust);
   const prayerNotify = useSettings((s) => s.prayerNotify);
+  const location = useSettings((s) => s.location);
+  const mosque = useSettings((s) => s.mosque);
   const toggleNotify = useSettings((s) => s.toggleNotify);
   const doneLog = usePrayerLog((s) => s.done);
   const markDone = usePrayerLog((s) => s.markDone);
@@ -42,19 +44,19 @@ export default function PrayerScreen() {
 
   const times = useMemo(
     () => getPrayerTimes(combine(iso, "12:00"), { prayerMethod, madhab, prayerAdjust }),
-    [iso, prayerMethod, madhab, prayerAdjust],
+    [iso, prayerMethod, madhab, prayerAdjust, location],
   );
 
   const minuteKey = Math.floor(now.getTime() / 60000);
   const next = useMemo(
     () => nextPrayer(new Date(), { prayerMethod, madhab, prayerAdjust }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [minuteKey, prayerMethod, madhab, prayerAdjust],
+    [minuteKey, prayerMethod, madhab, prayerAdjust, location],
   );
   const sky = useMemo(
     () => skyKey(new Date(), { prayerMethod, madhab, prayerAdjust }, next.key),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [minuteKey, prayerMethod, madhab, prayerAdjust, next.key],
+    [minuteKey, prayerMethod, madhab, prayerAdjust, location, next.key],
   );
   const theme = PRAYER_THEMES[sky];
 
@@ -82,20 +84,30 @@ export default function PrayerScreen() {
       {/* الترويسة */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16 }}>
         <View className="flex-row items-center justify-between">
-          <Pressable
-            onPress={() => router.push("/reminders-prayer")}
-            hitSlop={8}
-            className="w-9 h-9 rounded-full items-center justify-center"
-            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-          >
-            <Ionicons name="alarm-outline" size={18} color="#FFFFFF" />
-          </Pressable>
+          <View className="flex-row gap-2">
+            {([
+              ["alarm-outline", "/reminders-prayer"],
+              ["compass-outline", "/qibla"],
+              ["stats-chart-outline", "/prayer-stats"],
+              ["book-outline", "/quran"],
+            ] as const).map(([icon, route]) => (
+              <Pressable
+                key={route}
+                onPress={() => router.push(route)}
+                hitSlop={8}
+                className="w-9 h-9 rounded-full items-center justify-center"
+                style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              >
+                <Ionicons name={icon} size={18} color="#FFFFFF" />
+              </Pressable>
+            ))}
+          </View>
           <View className="items-center">
             <Text w="semi" className="text-white">
               الصلاة القادمة
             </Text>
             <Text className="text-white text-xs" style={{ opacity: 0.8 }}>
-              {CITY.name} • {PRAYER_METHODS[prayerMethod].label}
+              {location?.name ?? CITY.name} • {PRAYER_METHODS[prayerMethod].label}
             </Text>
           </View>
           <Pressable
@@ -176,6 +188,11 @@ export default function PrayerScreen() {
                 <Text w="bold" className="text-white text-base" style={{ fontVariant: ["tabular-nums"] }}>
                   {fmtTimeDate(times[k])}
                 </Text>
+                {mosque?.iqama[k] ? (
+                  <Text className="text-white text-xs" style={{ opacity: 0.8 }}>
+                    إقامة {fmtTimeDate(new Date(times[k].getTime() + (mosque.iqama[k] as number) * 60000))}
+                  </Text>
+                ) : null}
                 {fard ? (
                   <Pressable
                     onPress={() => (prayed ? unmark(iso, k as FardKey) : markDone(iso, k as FardKey))}

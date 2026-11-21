@@ -122,8 +122,42 @@ export default function PrayerRemindersScreen() {
         <ToggleRow
           title="إشعار وقت الصلاة"
           value={prayerReminders.atAdhan.enabled}
-          onChange={(v) => setReminders({ atAdhan: { enabled: v } })}
+          onChange={(v) => setReminders({ atAdhan: { ...prayerReminders.atAdhan, enabled: v } })}
         />
+        {prayerReminders.atAdhan.enabled && (
+          <ToggleRow
+            title="صوت الأذان"
+            hint="يُشغَّل الأذان كاملًا عند دخول الوقت (صوت الإشعار يتبع مستوى الرنين في هاتفك)"
+            value={prayerReminders.atAdhan.sound}
+            onChange={(v) => setReminders({ atAdhan: { ...prayerReminders.atAdhan, sound: v } })}
+          />
+        )}
+      </Card>
+
+      {/* عدم الإزعاج الذكي */}
+      <SectionHeader title="عدم الإزعاج أثناء الصلاة" />
+      <Card>
+        <ToggleRow
+          title="إشعارات هادئة وقت الصلاة"
+          hint="مواعيد العيادة والمناوبات والمهام التي تحين أثناء الصلاة تصل بلا صوت ولا اهتزاز"
+          value={prayerReminders.quiet.enabled}
+          onChange={(v) => setReminders({ quiet: { ...prayerReminders.quiet, enabled: v } })}
+        />
+        {prayerReminders.quiet.enabled && (
+          <FieldRow label="مدة النافذة بعد الأذان">
+            <View className="flex-row flex-wrap gap-2">
+              {[10, 15, 20, 30].map((m) => (
+                <Chip
+                  key={m}
+                  label={`${m} د`}
+                  color={GREEN}
+                  selected={prayerReminders.quiet.minutes === m}
+                  onPress={() => setReminders({ quiet: { ...prayerReminders.quiet, minutes: m } })}
+                />
+              ))}
+            </View>
+          </FieldRow>
+        )}
       </Card>
 
       {/* التكرار */}
