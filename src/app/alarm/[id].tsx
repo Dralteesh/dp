@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import { ArcTimePicker } from "@/components/alarm/ArcTimePicker";
 import { CardStack } from "@/components/alarm/CardStack";
 import { ChallengeView } from "@/components/alarm/ChallengeView";
@@ -11,10 +12,10 @@ import { Chip } from "@/components/ui/Chip";
 import { Field } from "@/components/ui/Field";
 import { Text } from "@/components/ui/Text";
 import { DAYS, WEEK_ORDER } from "@/constants/arabic";
-import { CHALLENGE_LABELS, MAX_SNOOZES_DEFAULT } from "@/lib/alarmChallenge";
+import { CHALLENGE_LABELS, LOCATION_RADIUS_DEFAULT, MAX_SNOOZES_DEFAULT, STEPS_DEFAULT } from "@/lib/alarmChallenge";
 import { addDays, combine, toISO } from "@/lib/dates";
 import { useAlarms } from "@/store/useAlarms";
-import type { AlarmChallenge } from "@/types";
+import type { AlarmChallenge, AlarmChallengeData, AlarmItem } from "@/types";
 
 const BG = "#F4F4F4";
 const RED = "#E32D0B";
@@ -48,6 +49,11 @@ export default function AlarmEditScreen() {
   const [snooze, setSnooze] = useState(existing?.snoozeMinutes ?? 5);
   const [maxSnoozes, setMaxSnoozes] = useState(existing?.maxSnoozes ?? MAX_SNOOZES_DEFAULT);
   const [challenge, setChallenge] = useState<AlarmChallenge>(existing?.challenge ?? "math");
+  const [data, setData] = useState<AlarmChallengeData>(existing?.challengeData ?? {});
+  const [link, setLink] = useState<AlarmItem["weatherLink"]>(existing?.weatherLink);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [locBusy, setLocBusy] = useState(false);
+  const [locMsg, setLocMsg] = useState("");
   const [sheet, setSheet] = useState<null | "stop" | "repeat">(null);
   const [preview, setPreview] = useState<Exclude<AlarmChallenge, "none"> | null>(null);
 
@@ -59,6 +65,8 @@ export default function AlarmEditScreen() {
       snoozeMinutes: snooze,
       maxSnoozes,
       challenge,
+      challengeData: data,
+      weatherLink: link,
       onceDate:
         days.length === 0
           ? !existing && date && combine(date, time).getTime() > Date.now()
@@ -73,6 +81,69 @@ export default function AlarmEditScreen() {
   };
 
   const ch = CHALLENGE_LABELS[challenge];
+
+  const pickMyLocation = async () => {
+    setLocBusy(true);
+    setLocMsg("");
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        setLocMsg("لم يُمنح إذن الموقع");
+        return;
+      }
+      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setData((d) => ({ ...d, lat: p.coords.latitude, lng: p.coords.longitude, radius: d.radius ?? LOCATION_RADIUS_DEFAULT }));
+      setLocMsg("تم حفظ موقعك الحالي");
+    } catch {
+      setLocMsg("تعذّر تحديد الموقع");
+    } finally {
+      setLocBusy(false);
+    }
+  };
+
+  const configContent =
+    challenge === "steps" ? (
+      <View className="flex-row flex-wrap gap-2">
+        {[20, 30, 50, 80].map((n) => (
+          <Chip key={n} label={`${n} خطوة`} selected={(data.steps ?? STEPS_DEFAULT) === n} color={RED} onPress={() => setData((d) => ({ ...d, steps: n }))} />
+        ))}
+      </View>
+    ) : challenge === "qr" ? (
+      <View style={{ gap: 10 }}>
+        <Pressable onPress={() => setQrOpen(true)} style={s.action}>
+          <Ionicons name="qr-code-outline" size={20} color="#fff" />
+          <Text w="bold" style={{ color: "#fff" }}>
+            {data.qr ? "إعادة تسجيل الكود" : "مسح الكود وتسجيله"}
+          </Text>
+        </Pressable>
+        <Text style={{ fontSize: 12, color: "#6B6B6B" }}>
+          {data.qr ? "تم تسجيل كود: " + (data.qr.length > 24 ? data.qr.slice(0, 24) + "…" : data.qr) : "ألصق أي باركود أو QR في مكان بعيد عن سريرك وسجّله هنا"}
+        </Text>
+      </View>
+    ) : challenge === "location" ? (
+      <View style={{ gap: 10 }}>
+        <Pressable onPress={pickMyLocation} disabled={locBusy} style={[s.action, locBusy && { opacity: 0.6 }]}>
+          <Ionicons name="location-outline" size={20} color="#fff" />
+          <Text w="bold" style={{ color: "#fff" }}>
+            {data.lat != null ? "تحديث الموقع من مكاني الآن" : "استخدم موقعي الحالي"}
+          </Text>
+        </Pressable>
+        <Text style={{ fontSize: 12, color: "#6B6B6B" }}>
+          {locMsg || (data.lat != null ? "الموقع محفوظ. قف في المكان المطلوب ثم اضغط للتحديث إن أردت" : "قف في المكان الذي تريد الذهاب إليه صباحًا ثم اضغط")}
+        </Text>
+        <View className="flex-row flex-wrap gap-2">
+          {[50, 100, 150, 300].map((n) => (
+            <Chip key={n} label={`${n} م`} selected={(data.radius ?? LOCATION_RADIUS_DEFAULT) === n} color={RED} onPress={() => setData((d) => ({ ...d, radius: n }))} />
+          ))}
+        </View>
+      </View>
+    ) : null;
+
+  const modes: { key: "rain" | "heat" | "cold"; label: string }[] = [
+    { key: "rain", label: "قبل المطر" },
+    { key: "heat", label: "قبل الحر الشديد" },
+    { key: "cold", label: "قبل البرد القارس" },
+  ];
 
   return (
     <View style={s.root}>
@@ -135,6 +206,7 @@ export default function AlarmEditScreen() {
         cards={[
           { key: "t", tone: "red", title: "طريقة الإيقاف", hint: "اضغط للاختيار · اضغط مطوّلًا للتجربة" },
           { key: "m", tone: "cream", title: "المهمة", content: <MissionCards value={challenge} onSelect={setChallenge} onPreview={setPreview} /> },
+          ...(configContent ? [{ key: "c", tone: "cream" as const, title: "إعداد المهمة", content: configContent }] : []),
           { key: "s", tone: "yellow", title: "مدة الغفوة", content: <SnoozeDurationCards options={SNOOZES} value={snooze} onSelect={setSnooze} /> },
           { key: "n", tone: "blue", title: "أقصى عدد للغفوات", content: <SnoozeCountCards options={SNOOZE_LIMITS} value={maxSnoozes} onSelect={setMaxSnoozes} /> },
         ]}
@@ -165,8 +237,33 @@ export default function AlarmEditScreen() {
               </View>
             ),
           },
+          {
+            key: "w",
+            tone: "cream",
+            title: "ربط بالطقس",
+            hint: "يُقدَّم الرنين إن توقّع الطقس الحالة خلال 3 ساعات بعد وقت المنبّه",
+            content: (
+              <View style={{ gap: 10 }}>
+                <View className="flex-row flex-wrap gap-2">
+                  <Chip label="بدون" selected={!link} color={RED} onPress={() => setLink(undefined)} />
+                  {modes.map((m) => (
+                    <Chip key={m.key} label={m.label} selected={link?.mode === m.key} color={RED} onPress={() => setLink({ mode: m.key, shiftMin: link?.shiftMin ?? 20 })} />
+                  ))}
+                </View>
+                {link ? (
+                  <View className="flex-row flex-wrap gap-2">
+                    {[10, 20, 30, 45].map((n) => (
+                      <Chip key={n} label={`قبل ${n} د`} selected={link.shiftMin === n} color={RED} onPress={() => setLink({ mode: link.mode, shiftMin: n })} />
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            ),
+          },
         ]}
       />
+
+      {qrOpen ? <LazyQrScan onClose={() => setQrOpen(false)} onScan={(v) => { setData((d) => ({ ...d, qr: v })); setQrOpen(false); }} /> : null}
 
       {/* تجربة المهمة (ضغط مطوّل على البطاقة) */}
       <Modal visible={preview !== null} animationType="fade" onRequestClose={() => setPreview(null)}>
@@ -182,11 +279,24 @@ export default function AlarmEditScreen() {
           <Text w="semi" style={{ color: "#FFEDD5", marginBottom: 24 }}>
             تجربة المهمة
           </Text>
-          {preview ? <ChallengeView key={preview} kind={preview} onSolved={() => setPreview(null)} /> : null}
+          {preview ? <ChallengeView key={preview} kind={preview} data={data} onSolved={() => setPreview(null)} /> : null}
         </View>
       </Modal>
     </View>
   );
+}
+
+/** نافذة مسح الكود تُحمَّل عند الطلب حتى لا ينهار المحرّر إن غابت وحدة الكاميرا */
+function LazyQrScan({ onClose, onScan }: { onClose: () => void; onScan: (v: string) => void }) {
+  let mod: typeof import("@/components/alarm/CameraChallenges") | null = null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    mod = require("@/components/alarm/CameraChallenges");
+  } catch {
+    mod = null;
+  }
+  if (!mod) return null;
+  return <mod.QrScanModal visible onClose={onClose} onScan={onScan} />;
 }
 
 function Pill({
@@ -242,6 +352,15 @@ const s = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 14,
+  },
+  action: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: RED,
+    borderRadius: 18,
+    paddingVertical: 12,
   },
   side: {
     width: 56,

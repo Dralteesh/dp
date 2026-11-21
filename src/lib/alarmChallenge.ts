@@ -7,7 +7,24 @@ export const CHALLENGE_LABELS: Record<AlarmChallenge, { label: string; hint: str
   phrase: { label: "كتابة جملة", hint: "اكتب الجملة المعروضة حرفيًا", icon: "create-outline" },
   memory: { label: "ذاكرة", hint: "أعد ترتيب المربعات التي أضاءت", icon: "grid-outline" },
   shake: { label: "هزّ الهاتف", hint: "هزّ الهاتف 30 مرة", icon: "phone-portrait-outline" },
+  steps: { label: "امشِ خطوات", hint: "امشِ العدد المطلوب من الخطوات وهاتفك معك", icon: "walk-outline" },
+  qr: { label: "مسح باركود", hint: "امسح الباركود/QR الذي سجّلته (مثلًا في الحمّام)", icon: "qr-code-outline" },
+  photo: { label: "التقاط صورة", hint: "التقط صورة بالكاميرا (لا يتحقق التطبيق من محتواها)", icon: "camera-outline" },
+  location: { label: "اذهب لمكان", hint: "اذهب إلى الموقع الذي حدّدته", icon: "location-outline" },
 };
+
+export const STEPS_DEFAULT = 30;
+export const LOCATION_RADIUS_DEFAULT = 150;
+
+/** المسافة بالأمتار بين نقطتين (Haversine) */
+export function distanceM(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1);
+  const dLng = rad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+}
 
 export const MAX_SNOOZES_DEFAULT = 2;
 export const HOLD_SECONDS = 10;

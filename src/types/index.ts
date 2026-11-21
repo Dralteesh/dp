@@ -91,9 +91,35 @@ export type AlarmItem = {
   challenge?: AlarmChallenge;
   /** أقصى عدد غفوات مسموح (الافتراضي 2) */
   maxSnoozes?: number;
+  /** إعدادات التحدّي (الكود المسجّل، الموقع، عدد الخطوات) */
+  challengeData?: AlarmChallengeData;
+  /** ربط المنبّه بالطقس: يُقدَّم الرنين shiftMin دقيقة إن توقّع الطقس الحالة خلال 3 ساعات بعده */
+  weatherLink?: { mode: "rain" | "heat" | "cold"; shiftMin: number };
 };
 
-export type AlarmChallenge = "none" | "math" | "hold" | "phrase" | "memory" | "shake";
+export type AlarmChallenge =
+  | "none"
+  | "math"
+  | "hold"
+  | "phrase"
+  | "memory"
+  | "shake"
+  | "steps"
+  | "qr"
+  | "photo"
+  | "location";
+
+export type AlarmChallengeData = {
+  /** محتوى الباركود/QR المسجّل */
+  qr?: string;
+  /** الموقع المطلوب الوصول إليه */
+  lat?: number;
+  lng?: number;
+  /** نصف القطر بالأمتار */
+  radius?: number;
+  /** عدد الخطوات المطلوبة */
+  steps?: number;
+};
 
 // ---------- العيادة الخاصة ----------
 

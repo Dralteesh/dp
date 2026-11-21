@@ -2,9 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Accelerometer } from "expo-sensors";
+import * as Location from "expo-location";
 import { Text } from "@/components/ui/Text";
 import {
   HOLD_SECONDS,
+  LOCATION_RADIUS_DEFAULT,
+  STEPS_DEFAULT,
+  distanceM,
   MATH_ROUNDS,
   MEMORY_ROUNDS,
   MEMORY_START,
@@ -14,9 +18,9 @@ import {
   normalizeDigits,
   randomPhrase,
 } from "@/lib/alarmChallenge";
-import type { AlarmChallenge } from "@/types";
+import type { AlarmChallenge, AlarmChallengeData } from "@/types";
 
-type Props = { kind: Exclude<AlarmChallenge, "none">; onSolved: () => void };
+type Props = { kind: Exclude<AlarmChallenge, "none">; onSolved: () => void; data?: AlarmChallengeData };
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "✓"];
 
@@ -338,10 +342,178 @@ function ShakeChallenge({ onSolved }: { onSolved: () => void }) {
   );
 }
 
-export function ChallengeView({ kind, onSolved }: Props) {
+/** امشِ عدد الخطوات المطلوب: عدّ الخطوات من مقياس التسارع (بلا إذن إضافي). يُستبدل بالنقر إن غاب الحسّاس */
+function StepsChallenge({ target, onSolved }: { target: number; onSolved: () => void }) {
+  const [count, setCount] = useState(0);
+  const [sensor, setSensor] = useState(true);
+  const n = useRef(0);
+  const last = useRef(0);
+  const above = useRef(false);
+
+  const bump = () => {
+    if (n.current >= target) return;
+    n.current += 1;
+    setCount(n.current);
+    if (n.current === target) onSolved();
+  };
+
+  useEffect(() => {
+    let sub: { remove: () => void } | null = null;
+    let alive = true;
+    (async () => {
+      try {
+        if (!(await Accelerometer.isAvailableAsync())) throw new Error("no sensor");
+        Accelerometer.setUpdateInterval(50);
+        sub = Accelerometer.addListener(({ x, y, z }) => {
+          const g = Math.sqrt(x * x + y * y + z * z);
+          const isAbove = g > 1.18;
+          const t = Date.now();
+          if (alive && isAbove && !above.current && t - last.current > 350) {
+            last.current = t;
+            bump();
+          }
+          above.current = isAbove;
+        });
+      } catch {
+        if (alive) setSensor(false);
+      }
+    })();
+    return () => {
+      alive = false;
+      sub?.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pct = Math.min(1, count / target);
+  return (
+    <View className="items-center">
+      <Text w="semi" className="text-red-100 mb-4">
+        {sensor ? "امشِ وهاتفك معك" : "الحسّاس غير متوفر: اضغط الزر عند كل خطوة"}
+      </Text>
+      <Pressable disabled={sensor} onPress={bump}>
+        <View
+          style={{
+            width: 190,
+            height: 190,
+            borderRadius: 95,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(255,255,255,0.25)",
+            borderWidth: 6,
+            borderColor: "rgba(255,255,255,0.5)",
+            overflow: "hidden",
+          }}
+        >
+          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: `${pct * 100}%`, backgroundColor: "#FDBA74" }} />
+          <Text w="bold" style={{ fontSize: 44, color: "#FFFFFF" }}>
+            {Math.max(0, target - count)}
+          </Text>
+          <Ionicons name="walk" size={30} color="#FFFFFF" />
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+/** اذهب إلى الموقع المحدّد. إن تعذّر تحديد الموقع يُستبدل بالمسائل الحسابية حتى لا يبقى المنبّه بلا مخرج */
+function LocationChallenge({ data, onSolved }: { data?: AlarmChallengeData; onSolved: () => void }) {
+  const [dist, setDist] = useState<number | null>(null);
+  const [fallback, setFallback] = useState(false);
+  const radius = data?.radius ?? LOCATION_RADIUS_DEFAULT;
+  const hasTarget = typeof data?.lat === "number" && typeof data?.lng === "number";
+
+  useEffect(() => {
+    if (!hasTarget) {
+      setFallback(true);
+      return;
+    }
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const tick = async () => {
+      try {
+        const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (!alive) return;
+        const d = distanceM(p.coords.latitude, p.coords.longitude, data!.lat as number, data!.lng as number);
+        setDist(d);
+        if (d <= radius) {
+          onSolved();
+          return;
+        }
+      } catch {
+        if (alive) {
+          setFallback(true);
+          return;
+        }
+      }
+      if (alive) timer = setTimeout(tick, 4000);
+    };
+    (async () => {
+      try {
+        const perm = await Location.requestForegroundPermissionsAsync();
+        if (!perm.granted) throw new Error("denied");
+        await tick();
+      } catch {
+        if (alive) setFallback(true);
+      }
+    })();
+    return () => {
+      alive = false;
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (fallback) {
+    return (
+      <View className="items-center">
+        <Text className="text-red-100 text-sm mb-2">تعذّر تحديد الموقع، حُلّ المسائل بدلًا منه</Text>
+        <MathChallenge onSolved={onSolved} />
+      </View>
+    );
+  }
+  return (
+    <View className="items-center">
+      <Ionicons name="location" size={64} color="#FFFFFF" />
+      <Text w="semi" className="text-white text-lg mt-3">
+        اذهب إلى الموقع المحدّد
+      </Text>
+      <Text w="bold" className="text-white text-4xl mt-2" style={{ fontVariant: ["tabular-nums"] }}>
+        {dist == null ? "…" : dist >= 1000 ? `${(dist / 1000).toFixed(1)} كم` : `${Math.round(dist)} م`}
+      </Text>
+      <Text className="text-red-100 text-sm mt-1">يُوقَف المنبّه عند الوصول (ضمن {radius} م)</Text>
+    </View>
+  );
+}
+
+/** مهام الكاميرا تُحمَّل عند الحاجة، فلا ينهار التطبيق إن غابت الوحدة الأصلية */
+function CameraKind({ kind, data, onSolved }: { kind: "qr" | "photo"; data?: AlarmChallengeData; onSolved: () => void }) {
+  let mod: typeof import("./CameraChallenges") | null = null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    mod = require("./CameraChallenges");
+  } catch {
+    mod = null;
+  }
+  if (!mod || (kind === "qr" && !data?.qr)) {
+    return (
+      <View className="items-center">
+        <Text className="text-red-100 text-sm mb-2">{mod ? "لم يُسجَّل كود لهذا المنبّه، حُلّ المسائل" : "الكاميرا غير متاحة، حُلّ المسائل"}</Text>
+        <MathChallenge onSolved={onSolved} />
+      </View>
+    );
+  }
+  if (kind === "qr") return <mod.QrChallenge expected={data?.qr as string} onSolved={onSolved} />;
+  return <mod.PhotoChallenge onSolved={onSolved} />;
+}
+
+export function ChallengeView({ kind, onSolved, data }: Props) {
   if (kind === "math") return <MathChallenge onSolved={onSolved} />;
   if (kind === "hold") return <HoldChallenge onSolved={onSolved} />;
   if (kind === "memory") return <MemoryChallenge onSolved={onSolved} />;
   if (kind === "shake") return <ShakeChallenge onSolved={onSolved} />;
+  if (kind === "steps") return <StepsChallenge target={data?.steps ?? STEPS_DEFAULT} onSolved={onSolved} />;
+  if (kind === "location") return <LocationChallenge data={data} onSolved={onSolved} />;
+  if (kind === "qr" || kind === "photo") return <CameraKind kind={kind} data={data} onSolved={onSolved} />;
   return <PhraseChallenge onSolved={onSolved} />;
 }

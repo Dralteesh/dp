@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { Text } from "@/components/ui/Text";
-import { fmt12, hourOf, type HourPoint, type Theme } from "@/lib/weather";
+import { hourOf, type HourPoint, type Theme } from "@/lib/weather";
+import { DEFAULT_UNITS, fmtHourLabel, fmtTemp, type Units } from "@/lib/weatherInsights";
 
 const COL = 62;
 const CH = 120; // ارتفاع المنحنى
@@ -14,11 +15,13 @@ export function HourlyChart({
   selected,
   onSelect,
   theme,
+  units = DEFAULT_UNITS,
 }: {
   hours: HourPoint[];
   selected: number;
   onSelect: (i: number) => void;
   theme: Theme;
+  units?: Units;
 }) {
   const ref = useRef<ScrollView>(null);
   const n = hours.length;
@@ -70,10 +73,10 @@ export function HourlyChart({
             return (
               <Pressable key={h.time} onPress={() => onSelect(i)} style={{ width: COL, alignItems: "center", paddingVertical: 6 }} hitSlop={4}>
                 <Text w={on ? "bold" : "semi"} style={{ fontSize: 11, color: theme.ink, opacity: on ? 1 : 0.5 }}>
-                  {i === 0 ? "الآن" : fmt12(hourOf(h.time))}
+                  {i === 0 ? "الآن" : fmtHourLabel(hourOf(h.time), units)}
                 </Text>
                 <Text w="bold" style={{ fontSize: 13, color: theme.ink, opacity: on ? 1 : 0.75, marginTop: 2 }}>
-                  {Math.round(h.temp)}°
+                  {fmtTemp(h.temp, units)}
                 </Text>
                 {h.pop >= 20 ? (
                   <Text w="semi" style={{ fontSize: 10, color: theme.accent, marginTop: 1 }}>

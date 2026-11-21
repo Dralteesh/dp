@@ -110,6 +110,13 @@ export default function AlarmsScreen() {
 
   const header = (
     <View style={{ gap: 12, marginBottom: 12 }}>
+      <Pressable onPress={() => router.push("/sleep")} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#0F1B3D", borderRadius: 20, padding: 14 }}>
+        <Ionicons name="moon" size={22} color="#A5B4FC" />
+        <Text w="bold" style={{ color: "#fff", flex: 1 }}>
+          النوم والصحة: سجل نومك وأفضل وقت للنوم
+        </Text>
+        <Ionicons name="chevron-back" size={18} color="#fff" />
+      </Pressable>
       {!supported ? (
         <Card className="bg-amber-50 border-amber-200">
           <View className="flex-row gap-3">
@@ -450,6 +457,7 @@ function AlarmRow({
       <View style={[s.row, { gap: 14, flexWrap: "wrap" }]}>
         <Tag icon="calendar-outline" text={describe(alarm)} color={RED} alpha={a} />
         <Tag icon={ch.icon as IconName} text={ch.label} color={MUTED} alpha={a} />
+        {alarm.weatherLink ? <Tag icon="cloud-outline" text="مرتبط بالطقس" color={MUTED} alpha={a} /> : null}
         {alarm.label ? <Tag icon="pricetag-outline" text={alarm.label} color={MUTED} alpha={a} /> : null}
       </View>
     </Pressable>

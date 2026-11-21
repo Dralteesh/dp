@@ -19,6 +19,9 @@ import { MAX_SNOOZES_DEFAULT, bumpSnooze, clearSnooze, getSnoozeCount } from "@/
 import { fmtTimeDate } from "@/lib/dates";
 import { useAlarms } from "@/store/useAlarms";
 import { useSettings } from "@/store/useSettings";
+import { useWeather } from "@/store/useWeather";
+import { buildAdvice, fmtTemp } from "@/lib/weatherInsights";
+import { labelOf } from "@/lib/weather";
 import type { AlarmChallenge } from "@/types";
 
 /** شاشة الرنين: لا يظهر زر «إيقاف» قبل إتمام التحدّي، والغفوة محدودة، وزر الرجوع معطّل */
@@ -37,6 +40,18 @@ export default function RingingScreen() {
   const challenge: AlarmChallenge = alarm?.challenge ?? defaultChallenge ?? "math";
 
   const [solved, setSolved] = useState(challenge === "none");
+
+  // ملخّص الاستيقاظ: الطقس والتوصيات بعد إتمام المهمة
+  const cities = useWeather((s) => s.cities);
+  const cache = useWeather((s) => s.cache);
+  const units = useWeather((s) => s.units);
+  const wx = cities[0] ? cache[cities[0].id] : undefined;
+  const brief = wx
+    ? {
+        line: `${cities[0].name}: ${labelOf(wx.now.code, wx.now.isDay)} · ${fmtTemp(wx.now.temp, units)}`,
+        tips: buildAdvice(wx, (c) => fmtTemp(c, units)).filter((a) => a.tone !== "ok").slice(0, 3),
+      }
+    : null;
   const [, force] = useState(0);
   const key = id ?? "x";
   const used = getSnoozeCount(key);
@@ -97,8 +112,21 @@ export default function RingingScreen() {
           </View>
         </View>
       ) : (
-        <ChallengeView kind={challenge as Exclude<AlarmChallenge, "none">} onSolved={() => setSolved(true)} />
+        <ChallengeView kind={challenge as Exclude<AlarmChallenge, "none">} data={alarm?.challengeData} onSolved={() => setSolved(true)} />
       )}
+
+      {solved && brief ? (
+        <View style={{ width: "100%", backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 22, padding: 14, gap: 4 }}>
+          <Text w="bold" className="text-white text-base">
+            صباح الخير ☀️ {brief.line}
+          </Text>
+          {brief.tips.map((t, i) => (
+            <Text key={i} className="text-orange-50 text-sm">
+              • {t.text}
+            </Text>
+          ))}
+        </View>
+      ) : null}
 
       <View className="w-full gap-3">
         {solved ? (

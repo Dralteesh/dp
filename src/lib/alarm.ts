@@ -1,6 +1,7 @@
 import { NativeModules, Platform } from "react-native";
 import { occursOn } from "@/lib/agenda";
 import { addDays, combine, localISOString, toISO } from "@/lib/dates";
+import { useWeather } from "@/store/useWeather";
 import type { AlarmItem, PlannerEvent } from "@/types";
 
 /**
@@ -55,6 +56,35 @@ const HORIZON_DAYS = 14;
 
 type Wanted = { id: string; at: Date; title: string; body: string; snooze: number };
 
+const RAIN_CODES = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99]);
+const MODE_TEXT = { rain: "المطر", heat: "الحر الشديد", cold: "البرد القارس" } as const;
+
+/** إن كان المنبّه مرتبطًا بالطقس وتحقّق الشرط خلال 3 ساعات بعد وقته يُقدَّم shiftMin دقيقة */
+function weatherShift(a: AlarmItem, at: Date): number {
+  const link = a.weatherLink;
+  if (!link) return 0;
+  try {
+    const st = useWeather.getState();
+    const city = st.cities[0];
+    const w = city ? st.cache[city.id] : undefined;
+    if (!w) return 0;
+    // يعمل فقط إن كانت منطقة مدينة الطقس هي منطقة الجهاز تقريبًا
+    if (Math.abs(new Date(w.now.time).getTime() - Date.now()) > 2 * 3600 * 1000) return 0;
+    const from = at.getTime();
+    const to = from + 3 * 3600 * 1000;
+    for (const h of w.hours) {
+      const t = new Date(h.time).getTime();
+      if (t < from - 3600 * 1000 || t > to) continue;
+      if (link.mode === "rain" && (h.pop >= 50 || RAIN_CODES.has(h.code))) return link.shiftMin;
+      if (link.mode === "heat" && h.temp >= 38) return link.shiftMin;
+      if (link.mode === "cold" && h.temp <= 2) return link.shiftMin;
+    }
+  } catch {
+    /* تجاهل */
+  }
+  return 0;
+}
+
 function collectAlarms(alarms: AlarmItem[], events: PlannerEvent[]): Wanted[] {
   const wanted: Wanted[] = [];
   const now = Date.now();
@@ -65,13 +95,19 @@ function collectAlarms(alarms: AlarmItem[], events: PlannerEvent[]): Wanted[] {
     if (!a.enabled) continue;
     if (a.days.length === 0) {
       if (!a.onceDate) continue;
-      const at = combine(a.onceDate, a.time);
+      const base = combine(a.onceDate, a.time);
+      let shift = weatherShift(a, base);
+      let at = new Date(base.getTime() - shift * 60000);
+      if (at.getTime() <= now && base.getTime() > now) {
+        shift = 0;
+        at = base;
+      }
       if (at.getTime() > now) {
         wanted.push({
           id: `${PREFIX}a:${a.id}:${a.onceDate}`,
           at,
           title: a.label || "منبّه",
-          body: "اضغط لإيقاف المنبّه",
+          body: shift && a.weatherLink ? `قُدِّم ${shift} د بسبب ${MODE_TEXT[a.weatherLink.mode]}` : "اضغط لإيقاف المنبّه",
           snooze: a.snoozeMinutes,
         });
       }
@@ -81,13 +117,19 @@ function collectAlarms(alarms: AlarmItem[], events: PlannerEvent[]): Wanted[] {
       const iso = addDays(today, i);
       const wd = new Date(iso + "T12:00:00").getDay();
       if (!a.days.includes(wd)) continue;
-      const at = combine(iso, a.time);
+      const base = combine(iso, a.time);
+      let shift = weatherShift(a, base);
+      let at = new Date(base.getTime() - shift * 60000);
+      if (at.getTime() <= now && base.getTime() > now) {
+        shift = 0;
+        at = base;
+      }
       if (at.getTime() <= now) continue;
       wanted.push({
         id: `${PREFIX}a:${a.id}:${iso}`,
         at,
         title: a.label || "منبّه",
-        body: "اضغط لإيقاف المنبّه",
+        body: shift && a.weatherLink ? `قُدِّم ${shift} د بسبب ${MODE_TEXT[a.weatherLink.mode]}` : "اضغط لإيقاف المنبّه",
         snooze: a.snoozeMinutes,
       });
     }

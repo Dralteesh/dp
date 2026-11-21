@@ -27,18 +27,59 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-location", { "locationWhenInUsePermission": "لتحديد مواقيت الصلاة واتجاه القبلة لموقعك." }],
-      ["expo-local-authentication", { "faceIDPermission": "للسماح بفتح التطبيق بالبصمة." }],
-      ["expo-speech-recognition", { "microphonePermission": "للإملاء الصوتي لملاحظاتك.", "speechRecognitionPermission": "للإملاء الصوتي لملاحظاتك.", "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"] }],
-      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 200, "resizeMode": "contain", "backgroundColor": "#FFFFFF" }],
-      ["expo-image-picker", { "photosPermission": "للسماح باختيار شعار التطبيق أو العيادة من الصور." }],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "لتحديد مواقيت الصلاة واتجاه القبلة لموقعك."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "لمسح الباركود والتقاط الصور لإيقاف المنبّه.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "للسماح بفتح التطبيق بالبصمة."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "للإملاء الصوتي لملاحظاتك.",
+          "speechRecognitionPermission": "للإملاء الصوتي لملاحظاتك.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "للسماح باختيار شعار التطبيق أو العيادة من الصور."
+        }
+      ],
       [
         "expo-notifications",
         {
           "color": "#2563EB",
           "icon": "./assets/notification-icon.png",
           "defaultChannel": "events",
-          "sounds": ["./assets/sounds/adhan.mp3"]
+          "sounds": [
+            "./assets/sounds/adhan.mp3"
+          ]
         }
       ],
       [

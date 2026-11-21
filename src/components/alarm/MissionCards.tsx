@@ -21,7 +21,10 @@ const MISSIONS: Mission[] = [
   { key: "memory", label: "ذاكرة" },
   { key: "phrase", label: "كتابة" },
   { key: "shake", label: "هزّ" },
-  { key: "walk", label: "مشي", soon: true },
+  { key: "steps", label: "مشي" },
+  { key: "qr", label: "باركود" },
+  { key: "photo", label: "صورة" },
+  { key: "location", label: "موقع" },
   { key: "pushups", label: "ضغط", soon: true },
   { key: "hold", label: CHALLENGE_LABELS.hold.label },
   { key: "none", label: CHALLENGE_LABELS.none.label },
@@ -77,7 +80,7 @@ function Art({ kind }: { kind: ArtKind }) {
           <Path d="M110 18 Q124 40 110 62" stroke={YELLOW} strokeWidth={4} strokeLinecap="round" fill="none" />
         </>
       )}
-      {kind === "walk" && (
+      {(kind === "walk" || kind === "steps") && (
         <>
           <Circle cx={60} cy={14} r={8} fill={CREAM} />
           <Path
@@ -88,6 +91,30 @@ function Art({ kind }: { kind: ArtKind }) {
             strokeLinejoin="round"
             fill="none"
           />
+        </>
+      )}
+      {kind === "qr" && (
+        <>
+          <Rect x={30} y={14} width={26} height={26} rx={5} fill={CREAM} />
+          <Rect x={64} y={14} width={26} height={26} rx={5} fill={YELLOW} />
+          <Rect x={30} y={48} width={26} height={26} rx={5} fill={ORANGE} />
+          <Rect x={66} y={50} width={10} height={10} rx={2} fill={CREAM} />
+          <Rect x={80} y={62} width={10} height={10} rx={2} fill={CREAM} />
+        </>
+      )}
+      {kind === "photo" && (
+        <>
+          <Rect x={18} y={26} width={84} height={48} rx={12} fill={CREAM} />
+          <Rect x={42} y={16} width={30} height={14} rx={5} fill={CREAM} />
+          <Circle cx={60} cy={50} r={16} fill={ORANGE} />
+          <Circle cx={60} cy={50} r={7} fill={YELLOW} />
+        </>
+      )}
+      {kind === "location" && (
+        <>
+          <Path d="M60 76 C40 52 34 44 34 32 A26 26 0 0 1 86 32 C86 44 80 52 60 76 Z" fill={ORANGE} />
+          <Circle cx={60} cy={32} r={10} fill={CREAM} />
+          <Circle cx={96} cy={66} r={5} fill={YELLOW} />
         </>
       )}
       {kind === "pushups" && (

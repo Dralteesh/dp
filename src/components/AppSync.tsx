@@ -11,6 +11,7 @@ import { useAlarms } from "@/store/useAlarms";
 import { usePrayerLog } from "@/store/usePrayerLog";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
+import { useWeather } from "@/store/useWeather";
 import { refreshWidgets } from "@/widgets/updateWidgets";
 import type { Settings } from "@/types";
 
@@ -23,6 +24,8 @@ export function AppSync() {
   const agenda = useAgendaInput();
   const tasks = usePlanner((s) => s.tasks);
   const alarms = useAlarms((s) => s.alarms);
+  // تحديث الطقس يعيد جدولة المنبّهات المرتبطة به (تقديم الرنين قبل المطر مثلًا)
+  const weatherCache = useWeather((s) => s.cache);
 
   const doctorName = useSettings((s) => s.doctorName);
   const prayerMethod = useSettings((s) => s.prayerMethod);
@@ -72,8 +75,17 @@ export function AppSync() {
     },
     // prayerDone/prayerSnooze: لا تُقرأ هنا لكنها تعيد الجدولة عند تغيّرها (syncNotifications تقرؤها من المتجر)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [agenda, tasks, settings, alarms, prayerDone, prayerSnooze],
+    [agenda, tasks, settings, alarms, prayerDone, prayerSnooze, weatherCache],
   );
+
+  // تحديث الطقس عند الفتح وعند العودة للواجهة (لتنبيهات المطر والمنبّهات المرتبطة)
+  useEffect(() => {
+    useWeather.getState().refresh();
+    const sub = AppState.addEventListener("change", (st) => {
+      if (st === "active") useWeather.getState().refresh();
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(run, 1500);
