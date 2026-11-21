@@ -309,7 +309,7 @@ export type MosqueProfile = { name: string; iqama: Partial<Record<PrayerKey, num
 /** تذكيرات الصلاة: قبل الصلاة، عند الأذان، وتكرار بعد الأذان حتى الصلاة التالية */
 export type PrayerReminders = {
   before: { enabled: boolean; minutes: number };
-  atAdhan: { enabled: boolean };
+  atAdhan: { enabled: boolean; /** صوت الأذان الكامل بدل نغمة الإشعار */ sound: boolean };
   repeat: { enabled: boolean; everyMin: number; quietFrom: string; quietTo: string };
   /** وضع «عدم الإزعاج» الذكي: تُرسَل إشعارات المواعيد والمهام بصمت داخل نافذة الصلاة (من الأذان حتى بعده بـ minutes) */
   quiet: { enabled: boolean; minutes: number };

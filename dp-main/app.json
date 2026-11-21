@@ -37,7 +37,8 @@
         {
           "color": "#2563EB",
           "icon": "./assets/notification-icon.png",
-          "defaultChannel": "events"
+          "defaultChannel": "events",
+          "sounds": ["./assets/sounds/adhan.mp3"]
         }
       ],
       [

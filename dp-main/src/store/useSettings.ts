@@ -16,7 +16,7 @@ export const DEFAULT_DHIKR_TEXTS = [
 
 export const DEFAULT_PRAYER_REMINDERS: PrayerReminders = {
   before: { enabled: true, minutes: 30 },
-  atAdhan: { enabled: true },
+  atAdhan: { enabled: true, sound: true },
   repeat: { enabled: true, everyMin: 10, quietFrom: "23:30", quietTo: "04:00" },
   quiet: { enabled: true, minutes: 20 },
 };

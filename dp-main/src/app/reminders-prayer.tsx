@@ -122,8 +122,16 @@ export default function PrayerRemindersScreen() {
         <ToggleRow
           title="إشعار وقت الصلاة"
           value={prayerReminders.atAdhan.enabled}
-          onChange={(v) => setReminders({ atAdhan: { enabled: v } })}
+          onChange={(v) => setReminders({ atAdhan: { ...prayerReminders.atAdhan, enabled: v } })}
         />
+        {prayerReminders.atAdhan.enabled && (
+          <ToggleRow
+            title="صوت الأذان"
+            hint="يُشغَّل الأذان كاملًا عند دخول الوقت (صوت الإشعار يتبع مستوى الرنين في هاتفك)"
+            value={prayerReminders.atAdhan.sound}
+            onChange={(v) => setReminders({ atAdhan: { ...prayerReminders.atAdhan, sound: v } })}
+          />
+        )}
       </Card>
 
       {/* عدم الإزعاج الذكي */}
