@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button } from "@/components/ui/Button";
@@ -18,7 +18,8 @@ export function QuickSession({ patientId }: { patientId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [tooth, setTooth] = useState("");
-  const prices = useExtras((s) => s.priceList.filter((p) => p.active));
+  const priceList = useExtras((s) => s.priceList);
+  const prices = useMemo(() => priceList.filter((p) => p.active), [priceList]);
   const addSession = useClinic((s) => s.addSession);
   const currency = useSettings((s) => s.currency);
   const rate = useSettings((s) => s.usdRate);

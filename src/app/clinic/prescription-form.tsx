@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,7 +24,8 @@ export default function PrescriptionForm() {
   const router = useRouter();
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
   const patient = useClinic((s) => s.patients.find((p) => p.id === patientId));
-  const drugs = useClinic((s) => s.drugs.filter((d) => d.active));
+  const allDrugs = useClinic((s) => s.drugs);
+  const drugs = useMemo(() => allDrugs.filter((d) => d.active), [allDrugs]);
   const addPrescription = useClinic((s) => s.addPrescription);
 
   const [date, setDate] = useState(todayISO());
