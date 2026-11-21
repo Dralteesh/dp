@@ -5,6 +5,7 @@ import Svg, { Circle, Line, Path, Text as SvgText } from "react-native-svg";
 import { Screen } from "@/components/ui/Screen";
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
+import { useSettings } from "@/store/useSettings";
 import { CITY } from "@/lib/prayer";
 import { angleDiff, qiblaBearing, tiltCompensatedHeading } from "@/lib/qibla";
 
@@ -12,7 +13,8 @@ const SIZE = 280;
 const C = SIZE / 2;
 
 export default function QiblaScreen() {
-  const bearing = useMemo(() => qiblaBearing(), []);
+  const location = useSettings((s) => s.location);
+  const bearing = useMemo(() => qiblaBearing(CITY.lat, CITY.lng), [location]);
   const [heading, setHeading] = useState<number | null>(null);
   const [available, setAvailable] = useState(true);
   const mag = useRef({ x: 0, y: 0, z: 0 });

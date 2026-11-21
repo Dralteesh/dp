@@ -27,6 +27,7 @@
     },
     "plugins": [
       "expo-router",
+      ["expo-location", { "locationWhenInUsePermission": "لتحديد مواقيت الصلاة واتجاه القبلة لموقعك." }],
       ["expo-local-authentication", { "faceIDPermission": "للسماح بفتح التطبيق بالبصمة." }],
       ["expo-speech-recognition", { "microphonePermission": "للإملاء الصوتي لملاحظاتك.", "speechRecognitionPermission": "للإملاء الصوتي لملاحظاتك.", "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"] }],
       ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 200, "resizeMode": "contain", "backgroundColor": "#FFFFFF" }],

@@ -293,7 +293,18 @@ export type PrayerMethodKey =
   | "egyptian"
   | "umm_al_qura"
   | "karachi"
-  | "turkey";
+  | "turkey"
+  | "dubai"
+  | "kuwait"
+  | "qatar"
+  | "north_america"
+  | "singapore";
+
+/** موقع حساب الأوقات (null = حماه الافتراضي) */
+export type PrayerLocation = { name: string; lat: number; lng: number };
+
+/** مسجد محلي: الإقامة بعد الأذان بالدقائق لكل صلاة */
+export type MosqueProfile = { name: string; iqama: Partial<Record<PrayerKey, number>> };
 
 /** تذكيرات الصلاة: قبل الصلاة، عند الأذان، وتكرار بعد الأذان حتى الصلاة التالية */
 export type PrayerReminders = {
@@ -343,6 +354,12 @@ export type Settings = {
   prayerAdjust: Partial<Record<PrayerKey, number>>;
   /** تفعيل إشعار كل صلاة */
   prayerNotify: Record<PrayerKey, boolean>;
+  /** موقع الصلاة والقبلة؛ null = حماه */
+  location: PrayerLocation | null;
+  /** مسجدي: أوقات الإقامة */
+  mosque: MosqueProfile | null;
+  /** ترجمة القرآن: none أو معرّف إصدار alquran.cloud مثل en.sahih */
+  quranTranslation: string;
   /** تذكيرات الصلاة (قبل/أذان/تكرار) */
   prayerReminders: PrayerReminders;
   /** تذكير الأذكار */

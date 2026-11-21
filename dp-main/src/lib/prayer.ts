@@ -7,8 +7,12 @@ import {
 } from "adhan";
 import type { PrayerKey, PrayerMethodKey, Settings } from "@/types";
 
-/** حماه، سوريا */
-export const CITY = { name: "حماه", lat: 35.1318, lng: 36.7578 };
+export const DEFAULT_CITY = { name: "حماه", lat: 35.1318, lng: 36.7578 };
+/** الموقع الحالي (يُحدَّث من الإعدادات عبر setCity). كائن واحد يُعدَّل في مكانه. */
+export const CITY = { ...DEFAULT_CITY };
+export function setCity(loc: { name: string; lat: number; lng: number } | null | undefined) {
+  Object.assign(CITY, loc ?? DEFAULT_CITY);
+}
 
 export const PRAYER_LABELS: Record<PrayerKey, string> = {
   fajr: "الفجر",
@@ -32,6 +36,11 @@ export const PRAYER_METHODS: Record<
   umm_al_qura: { label: "أم القرى (مكة)", make: () => CalculationMethod.UmmAlQura() },
   karachi: { label: "جامعة العلوم الإسلامية - كراتشي", make: () => CalculationMethod.Karachi() },
   turkey: { label: "رئاسة الشؤون الدينية التركية", make: () => CalculationMethod.Turkey() },
+  dubai: { label: "دبي", make: () => CalculationMethod.Dubai() },
+  kuwait: { label: "الكويت", make: () => CalculationMethod.Kuwait() },
+  qatar: { label: "قطر", make: () => CalculationMethod.Qatar() },
+  north_america: { label: "أمريكا الشمالية (ISNA)", make: () => CalculationMethod.NorthAmerica() },
+  singapore: { label: "سنغافورة", make: () => CalculationMethod.Singapore() },
 };
 
 export type PrayerSettings = Pick<Settings, "prayerMethod" | "madhab" | "prayerAdjust">;
