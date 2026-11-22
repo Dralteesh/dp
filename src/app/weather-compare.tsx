@@ -41,7 +41,7 @@ export default function WeatherCompareScreen() {
 
   const COL = 118;
   return (
-    <View style={{ flex: 1, backgroundColor: "#F2F8FC", paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: "#F4F4F4", paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
         <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="رجوع" style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="chevron-forward" size={22} color="#0A3A57" />

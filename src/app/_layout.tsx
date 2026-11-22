@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { AmiriQuran_400Regular } from "@expo-google-fonts/amiri-quran";
 import {
   Cairo_400Regular,
   Cairo_600SemiBold,
@@ -38,7 +39,7 @@ const RTL_OK = setupRTL();
 
 export default function RootLayout() {
   const router = useRouter();
-  const [fontsLoaded] = useFonts({ Cairo_400Regular, Cairo_600SemiBold, Cairo_700Bold });
+  const [fontsLoaded] = useFonts({ Cairo_400Regular, Cairo_600SemiBold, Cairo_700Bold, AmiriQuran_400Regular });
   const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms, useDevice, usePrayerLog, useExtras]);
   const ready = fontsLoaded && hydrated;
 
@@ -86,7 +87,7 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <AppSync />
       <CloudSync />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#F2F8FC" } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#F4F4F4" } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="ringing" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
       </Stack>

@@ -14,7 +14,7 @@ type Props = {
 };
 
 /** زر عائم أسفل الشاشة (فوق شريط التبويبات) */
-export function Fab({ onPress, icon = "add", color = "#0B4F73", iconColor = "#FFF9C9", bottom = 104 }: Props) {
+export function Fab({ onPress, icon = "add", color = "#6366F1", iconColor = "#FFFFFF", bottom = 104 }: Props) {
   return (
     <View style={{ position: "absolute", bottom, ...fabSide() }} pointerEvents="box-none">
       <PressableScale
@@ -22,8 +22,8 @@ export function Fab({ onPress, icon = "add", color = "#0B4F73", iconColor = "#FF
         className="w-14 h-14 rounded-full items-center justify-center"
         style={{
           backgroundColor: color,
-          borderWidth: 2.5,
-          borderColor: "#0B4F73",
+          borderWidth: 0,
+          borderColor: "#6366F1",
           elevation: 6,
           shadowColor: "#000",
           shadowOpacity: 0.2,

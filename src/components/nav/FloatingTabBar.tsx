@@ -42,7 +42,7 @@ const ICON_KEY: Record<Exclude<Name, "clinic">, keyof typeof NAV_ICONS> = {
 const OWNER: Record<string, Name> = { calendar: "index", tasks: "index", documents: "index", docs: "index" };
 
 const BLUE = "#0E6FA5";
-const INK = "#0A3A57";
+const INK = "#0F1B3D";
 const MUTED = "#94A3B8";
 
 /** شريط تنقل عائم: الرئيسية كبيرة في المنتصف، والعيادة بشعارها، والضغط المطوّل على الرئيسية = إضافة سريعة */
@@ -92,8 +92,8 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
           shadowOpacity: 0.14,
           shadowRadius: 16,
           shadowOffset: { width: 0, height: 6 },
-          borderWidth: 2.5,
-          borderColor: "#0B4F73",
+          borderWidth: 1,
+          borderColor: "#E3E6EB",
         }}
       >
         {ORDER.map((name) => {

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
@@ -8,7 +8,9 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import { agendaFor, type AgendaInput, type AgendaItem } from "@/lib/agenda";
 import { addDays, fromISO, todayISO, toMinutes, weekdayOf } from "@/lib/dates";
 
-const BLUE = "#0E6FA5";
+const BLUE = "#6366F1";
+const GAP_H = 30; // ارتفاع شريط الساعات الفارغة المطويّة
+const isShift = (it: AgendaItem) => it.type === "maxillo" || !!it.continuation || it.endsNextDay;
 const PX_PER_MIN = 0.95; // ارتفاع الدقيقة
 const MIN_H = 40;
 const HOUR_COL = 34;
@@ -70,38 +72,89 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
   const today = todayISO();
   const d = fromISO(selected);
 
-  const perDay = useMemo(() => days.map((iso) => ({ iso, placed: layout(agendaFor(iso, input)) })), [days, input]);
+  const perDayAll = useMemo(() => days.map((iso) => ({ iso, placed: layout(agendaFor(iso, input)) })), [days, input]);
+  const [openGaps, setOpenGaps] = useState<Set<number>>(new Set());
 
-  // نطاق الساعات المعروض: من أبكر عنصر إلى آخر عنصر (حدّ أدنى 8 ساعات)
-  const { from, to } = useMemo(() => {
-    let lo = 24 * 60;
-    let hi = 0;
-    for (const day of perDay) for (const p of day.placed) {
-      lo = Math.min(lo, p.s);
-      hi = Math.max(hi, p.e);
-    }
-    if (lo > hi) {
-      lo = 8 * 60;
-      hi = 17 * 60;
-    }
-    let f = Math.max(0, Math.floor((lo - 30) / 60) * 60);
-    let t = Math.min(24 * 60, Math.ceil((hi + 30) / 60) * 60);
-    if (t - f < 8 * 60) t = Math.min(24 * 60, f + 8 * 60);
-    if (t - f < 8 * 60) f = Math.max(0, t - 8 * 60);
-    return { from: f, to: t };
-  }, [perDay]);
+  // أيام المناوبة: يُختصر العرض إلى نطاق المناوبة فقط
+  const shiftRange = useMemo(() => {
+    const sel = perDayAll.find((d) => d.iso === selected)?.placed.filter((p) => isShift(p.it)) ?? [];
+    if (!sel.length) return null;
+    return { lo: Math.min(...sel.map((p) => p.s)), hi: Math.max(...sel.map((p) => p.e)) };
+  }, [perDayAll, selected]);
+  const perDay = useMemo(
+    () => (shiftRange ? perDayAll.map((d) => ({ ...d, placed: d.placed.filter((p) => p.e > shiftRange.lo && p.s < shiftRange.hi) })) : perDayAll),
+    [perDayAll, shiftRange],
+  );
 
-  const height = (to - from) * PX_PER_MIN;
-  const hours: number[] = [];
-  for (let h = from / 60; h <= to / 60; h++) hours.push(h);
-  const nowY = (nowMin - from) * PX_PER_MIN;
+  // مقاطع الساعات: مغطّاة بالأحداث، أو فارغة (تُطوى في شريط صغير قابل للفتح)
+  const segs = useMemo(() => {
+    const iv: Array<[number, number]> = [];
+    if (shiftRange) iv.push([shiftRange.lo, shiftRange.hi]);
+    else for (const day of perDay) for (const p of day.placed) iv.push([p.s, p.e]);
+    if (!iv.length) iv.push([8 * 60, 17 * 60]);
+    const padded = iv
+      .map(([a, b]) => [Math.max(0, Math.floor((a - 30) / 60) * 60), Math.min(1440, Math.ceil((b + 30) / 60) * 60)] as [number, number])
+      .sort((a, b) => a[0] - b[0]);
+    const cover: Array<[number, number]> = [];
+    for (const r of padded) {
+      const last = cover[cover.length - 1];
+      // فجوة أقل من ساعتين لا تُطوى
+      if (last && r[0] - last[1] < 120) last[1] = Math.max(last[1], r[1]);
+      else cover.push([r[0], r[1]]);
+    }
+    const out: Array<{ from: number; to: number; gap: boolean }> = [];
+    let cur = 0;
+    for (const [a, b] of cover) {
+      if (a - cur >= 120) out.push({ from: cur, to: a, gap: true });
+      else if (a > cur && out.length) out[out.length - 1].to = a;
+      else if (a > cur) out.push({ from: cur, to: a, gap: false });
+      out.push({ from: a, to: b, gap: false });
+      cur = b;
+    }
+    if (1440 - cur >= 120) out.push({ from: cur, to: 1440, gap: true });
+    else if (cur < 1440) out[out.length - 1].to = 1440;
+    return out;
+  }, [perDay, shiftRange]);
+
+  const laid = useMemo(() => {
+    let off = 0;
+    return segs.map((sg) => {
+      const collapsed = sg.gap && !openGaps.has(sg.from);
+      const h = collapsed ? GAP_H : (sg.to - sg.from) * PX_PER_MIN;
+      const r = { ...sg, collapsed, h, off };
+      off += h;
+      return r;
+    });
+  }, [segs, openGaps]);
+  const height = laid.reduce((a, s) => a + s.h, 0);
+  const y = (min: number) => {
+    for (const sg of laid) {
+      if (min <= sg.to) {
+        const f = (min - sg.from) / (sg.to - sg.from);
+        return sg.off + Math.max(0, f) * sg.h;
+      }
+    }
+    return height;
+  };
+  const toggleGap = (from: number) =>
+    setOpenGaps((prev) => {
+      const n = new Set(prev);
+      if (n.has(from)) n.delete(from);
+      else n.add(from);
+      return n;
+    });
+  const hourLabels: number[] = [];
+  for (const sg of laid) if (!sg.collapsed) for (let m = sg.from; m <= sg.to; m += 60) if (!hourLabels.includes(m)) hourLabels.push(m);
+  const nowY = y(nowMin);
+  const nowVisible = laid.some((sg) => !sg.collapsed && nowMin >= sg.from && nowMin <= sg.to);
+  const emptyHours = (sg: { from: number; to: number }) => Math.round((sg.to - sg.from) / 60);
 
   return (
-    <View className="bg-surface rounded-[28px] border border-line p-3 mb-3">
+    <View className="bg-surface rounded-[26px] border border-line p-3 mb-3">
       {/* الشهر والتنقل */}
       <View className="flex-row items-center justify-between mb-3">
-        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, -7))} className="w-9 h-9 rounded-full border border-line items-center justify-center">
-          <Ionicons name="chevron-forward" size={18} color="#0F172A" />
+        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, -7))} className="w-9 h-9 rounded-full bg-bg items-center justify-center">
+          <Ionicons name="chevron-forward" size={18} color="#111111" />
         </Pressable>
         <Pressable onPress={onOpenCalendar} className="flex-row items-center gap-1.5" hitSlop={8}>
           <Text w="bold" className="text-lg">
@@ -109,10 +162,17 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
           </Text>
           <Ionicons name="calendar-outline" size={17} color={BLUE} />
         </Pressable>
-        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, 7))} className="w-9 h-9 rounded-full border border-line items-center justify-center">
-          <Ionicons name="chevron-back" size={18} color="#0F172A" />
+        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, 7))} className="w-9 h-9 rounded-full bg-bg items-center justify-center">
+          <Ionicons name="chevron-back" size={18} color="#111111" />
         </Pressable>
       </View>
+
+      {shiftRange ? (
+        <View className="self-center flex-row items-center gap-1.5 rounded-full px-3 py-1 mb-2" style={{ backgroundColor: "#EEF2FF" }}>
+          <Ionicons name="medkit-outline" size={13} color={BLUE} />
+          <Text w="semi" className="text-[11px]" style={{ color: BLUE }}>يوم مناوبة: يُعرض نطاق المناوبة فقط</Text>
+        </View>
+      ) : null}
 
       {/* رؤوس الأيام */}
       <View className="flex-row" style={{ marginStart: HOUR_COL }}>
@@ -143,32 +203,29 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
 
       {/* الشبكة */}
       <View className="flex-row mt-2" style={{ height }}>
-        {/* عمود الساعات */}
         <View style={{ width: HOUR_COL }}>
-          {hours.map((h) => (
-            <Text key={h} className="text-[10px] text-muted" style={{ position: "absolute", top: (h * 60 - from) * PX_PER_MIN - 6, width: HOUR_COL - 4 }}>
-              {String(h % 24).padStart(2, "0")}:00
+          {hourLabels.map((m) => (
+            <Text key={m} className="text-[10px] text-muted" style={{ position: "absolute", top: y(m) - 6, width: HOUR_COL - 4 }}>
+              {String((m / 60) % 24).padStart(2, "0")}:00
             </Text>
           ))}
         </View>
         <View style={{ flex: 1, flexDirection: "row" }}>
-          {/* خطوط الساعات */}
-          {hours.map((h) => (
-            <View key={h} pointerEvents="none" style={{ position: "absolute", start: 0, end: 0, top: (h * 60 - from) * PX_PER_MIN, height: 1, backgroundColor: "#E2E8F0", opacity: 0.6 }} />
+          {hourLabels.map((m) => (
+            <View key={m} pointerEvents="none" style={{ position: "absolute", start: 0, end: 0, top: y(m), height: 1, backgroundColor: "#E5E7EB", opacity: 0.8 }} />
           ))}
           {perDay.map(({ iso, placed }) => {
             const isSel = iso === selected;
             return (
-              <View key={iso} style={{ flex: 1, backgroundColor: isSel ? "rgba(14,111,165,0.06)" : undefined, borderRadius: 14 }}>
-                {/* الخيط الرأسي */}
-                <View pointerEvents="none" style={{ position: "absolute", top: 0, bottom: 0, left: "50%", width: 2, marginLeft: -1, backgroundColor: "#E2E8F0", opacity: 0.8 }} />
-                {iso === today && nowY >= 0 && nowY <= height ? (
+              <View key={iso} style={{ flex: 1, backgroundColor: isSel ? "rgba(99,102,241,0.06)" : undefined, borderRadius: 14 }}>
+                <View pointerEvents="none" style={{ position: "absolute", top: 0, bottom: 0, left: "50%", width: 2, marginLeft: -1, backgroundColor: "#E5E7EB", opacity: 0.8 }} />
+                {iso === today && nowVisible ? (
                   <View pointerEvents="none" style={{ position: "absolute", start: 0, end: 0, top: nowY, height: 2, backgroundColor: "#22C55E", zIndex: 5 }} />
                 ) : null}
                 {placed.map((p) => {
                   const m = TYPE_META[p.it.type];
-                  const top = (p.s - from) * PX_PER_MIN;
-                  const h = Math.max(MIN_H, (p.e - p.s) * PX_PER_MIN) - 4;
+                  const top = y(p.s);
+                  const h = Math.max(MIN_H, y(p.e) - y(p.s)) - 4;
                   const w = 100 / p.lanes;
                   return (
                     <Pressable
@@ -206,6 +263,24 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
             );
           })}
         </View>
+
+        {/* الساعات الفارغة: شريط صغير قابل للفتح/الطيّ */}
+        {laid
+          .filter((sg) => sg.gap)
+          .map((sg) => (
+            <Pressable
+              key={sg.from}
+              onPress={() => toggleGap(sg.from)}
+              style={{ position: "absolute", start: HOUR_COL, end: 0, top: sg.off + (sg.collapsed ? 2 : 0), height: sg.collapsed ? GAP_H - 4 : 22, zIndex: 8, alignItems: "center", justifyContent: "center" }}
+            >
+              <View className="flex-row items-center gap-1 rounded-full px-3" style={{ height: 24, backgroundColor: sg.collapsed ? "#EEF2FF" : "rgba(238,242,255,0.9)" }}>
+                <Ionicons name={sg.collapsed ? "chevron-down" : "chevron-up"} size={13} color={BLUE} />
+                <Text w="semi" className="text-[11px]" style={{ color: BLUE }}>
+                  {sg.collapsed ? `${emptyHours(sg)} ساعات فارغة` : "طيّ"}
+                </Text>
+              </View>
+            </Pressable>
+          ))}
       </View>
     </View>
   );

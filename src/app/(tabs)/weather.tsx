@@ -398,8 +398,8 @@ export default function WeatherScreen() {
             </Text>
             <View className="flex-row flex-wrap gap-2">
               {g.opts.map(([k, label]) => (
-                <Pressable key={k} onPress={() => g.set(k)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: "#0B4F73", backgroundColor: g.cur === k ? "#0A3A57" : "#FFFFFF" }}>
-                  <Text w="semi" style={{ color: g.cur === k ? "#FFFFFF" : "#0A3A57" }}>
+                <Pressable key={k} onPress={() => g.set(k)} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: "#E3E6EB", backgroundColor: g.cur === k ? "#0F1B3D" : "#FFFFFF" }}>
+                  <Text w="semi" style={{ color: g.cur === k ? "#FFFFFF" : "#0F1B3D" }}>
                     {label}
                   </Text>
                 </Pressable>
@@ -487,7 +487,7 @@ function CitiesSheet({
 
   return (
     <Sheet visible={visible} onClose={onClose} title="المدن">
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 2, borderColor: "#0B4F73", borderRadius: 16, paddingHorizontal: 12, marginBottom: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 2, borderColor: "#E3E6EB", borderRadius: 16, paddingHorizontal: 12, marginBottom: 12 }}>
         <Ionicons name="search" size={18} color="#94A3B8" />
         <TextInput
           value={q}

@@ -2,7 +2,6 @@ import { TagPills } from "@/components/clinic/TagPills";
 import { Logo } from "@/components/Logo";
 import { FreeSlotBanner } from "@/components/clinic/FreeSlotBanner";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
-import { WeekStrip } from "@/components/home/WeekStrip";
 import { useTheme } from "@/hooks/useTheme";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useEffect, useMemo, useState } from "react";
@@ -17,6 +16,8 @@ import { Fab } from "@/components/ui/Fab";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
+import { DaySchedule } from "@/components/clinic/DaySchedule";
+import { useAgendaInput } from "@/hooks/useAgenda";
 import { Text } from "@/components/ui/Text";
 import { STATUS_META } from "@/constants/clinic";
 import { addDays, fmtDateFull, fmtDateShort, fmtTime, minutesToTime, relativeDay, toISO, toMinutes } from "@/lib/dates";
@@ -62,6 +63,7 @@ export default function ClinicScreen() {
     }
   }, [toolsPending, consumeTools]);
 
+  const agendaInput = useAgendaInput();
   const today = toISO(new Date());
   const byId = useMemo(() => new Map(patients.map((p) => [p.id, p])), [patients]);
 
@@ -237,11 +239,15 @@ export default function ClinicScreen() {
       {/* ---------------- اليوم ---------------- */}
       {tab === "day" && (
         <View className="mt-4">
-          <WeekStrip
-            selected={date}
-            onSelect={setDate}
-            onOpenCalendar={() => setDate(today)}
-            dotsFor={(iso) => (apptDays.has(iso) ? (["private"] as ShiftType[]) : [])}
+          <DaySchedule
+            date={date}
+            onDate={setDate}
+            today={today}
+            appts={dayAppts.filter((a) => a.status !== "cancelled" && a.status !== "postponed")}
+            patients={byId}
+            input={agendaInput}
+            dotDays={apptDays}
+            onOpenPatient={(id) => router.push({ pathname: "/clinic/patient/[id]", params: { id } })}
           />
 
           {dayAppts.length === 0 ? (

@@ -25,7 +25,7 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
   const router = useRouter();
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#F2F8FC" }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#F4F4F4" }}>
       {(title || back) && (
         <View className="flex-row items-center gap-3 px-4 pt-2 pb-3">
           {back && (

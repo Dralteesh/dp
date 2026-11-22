@@ -4,9 +4,9 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      // أسلوب الشعار: خطوط سميكة وزوايا مدوّرة كبيرة
-      borderWidth: { DEFAULT: "2px" },
-      borderRadius: { xl: "16px", "2xl": "22px", "3xl": "30px" },
+      // لغة المنبّه والنوم: حدود خفيفة وزوايا مدوّرة كبيرة
+      borderWidth: { DEFAULT: "1px" },
+      borderRadius: { xl: "18px", "2xl": "26px", "3xl": "32px" },
       colors: {
         // الأنواع الأربعة: DEFAULT للّون الكامل، soft للخلفية الفاتحة، ink للنص الغامق
         hospital: {
@@ -69,11 +69,11 @@ module.exports = {
           soft: "rgb(var(--c-w8-soft) / <alpha-value>)",
           ink: "rgb(var(--c-w8-ink) / <alpha-value>)",
         },
-        bg: "#F2F8FC",
+        bg: "#F4F4F4",
         surface: "#FFFFFF",
-        line: "#0B4F73",
-        muted: "#4F7189",
-        ink: "#0A3A57",
+        line: "#E3E6EB",
+        muted: "#6B7280",
+        ink: "#111111",
         danger: "#DC2626",
       },
       fontFamily: {
