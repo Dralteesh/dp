@@ -6,7 +6,7 @@ import { kindOf, labelOf } from "@/lib/weather";
 export type Units = { temp: "c" | "f"; wind: "kmh" | "mph" | "ms"; clock24: boolean };
 export const DEFAULT_UNITS: Units = { temp: "c", wind: "kmh", clock24: false };
 
-export const fmtTemp = (c: number, u: Units) => `${Math.round(u.temp === "f" ? (c * 9) / 5 + 32 : c)}°`;
+export const fmtTemp = (c: number, u: Units) => `\u200E${Math.round(u.temp === "f" ? (c * 9) / 5 + 32 : c)}°\u200E`;
 export const fmtWind = (kmh: number, u: Units) =>
   u.wind === "mph" ? `${Math.round(kmh * 0.621371)} ميل/س` : u.wind === "ms" ? `${Math.round(kmh / 3.6)} م/ث` : `${Math.round(kmh)} كم/س`;
 export const fmtDist = (m: number, u: Units) =>
