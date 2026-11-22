@@ -131,3 +131,13 @@ ${o.reason ? `<p><b>التشخيص/السبب:</b> ${nl2br(o.reason)}</p>` : ""}
 <p>أعطي هذا التقرير بناءً على طلبه.</p>`;
   return page(ctx, "إجازة مرضية", body);
 }
+
+/** نموذج موافقة مستنيرة مع مكان توقيع المريض والطبيب */
+export function consentHtml(ctx: DocCtx, patient: Patient, title: string, body: string): string {
+  const doc = ctx.doctorName ? `د. ${esc(ctx.doctorName.replace(/^د\.?\s*/, ""))}` : "الطبيب";
+  const html = `${patientBlock(patient)}<div style="font-size:16px;line-height:2">${nl2br(body)}</div>
+<div style="display:flex;justify-content:space-between;margin-top:56px;gap:24px">
+<div style="flex:1;text-align:center;border-top:1px solid #94a3b8;padding-top:6px">توقيع المريض / الولي<br/><small>${esc(patient.name)}</small></div>
+<div style="flex:1;text-align:center;border-top:1px solid #94a3b8;padding-top:6px">${doc}</div></div>`;
+  return page(ctx, title, html, { signature: false });
+}

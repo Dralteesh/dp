@@ -18,7 +18,7 @@ export const CLINIC_KEYS = [
 ] as const;
 
 /** بيانات العيادة الإضافية (store منفصل: useExtras) */
-export const EXTRAS_KEYS = ["priceList", "waitlist", "sterilization"] as const;
+export const EXTRAS_KEYS = ["priceList", "waitlist", "sterilization", "orthoCases", "consents", "installPlans", "labOrders"] as const;
 
 export type BackupData = {
   planner: Record<(typeof PLANNER_KEYS)[number], unknown[]>;

@@ -79,6 +79,10 @@ const SLICES: Slice[] = [
   listSlice("clinic_price_list", useExtras as any, "priceList" as any),
   listSlice("clinic_waitlist", useExtras as any, "waitlist" as any),
   listSlice("clinic_sterilization", useExtras as any, "sterilization" as any),
+  listSlice("clinic_ortho_cases", useExtras as any, "orthoCases" as any),
+  listSlice("clinic_consents", useExtras as any, "consents" as any),
+  listSlice("clinic_install_plans", useExtras as any, "installPlans" as any),
+  listSlice("clinic_lab_orders", useExtras as any, "labOrders" as any),
   settingsSlice,
 ];
 

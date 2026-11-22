@@ -1,3 +1,4 @@
+import { TagPills } from "@/components/clinic/TagPills";
 import { Logo } from "@/components/Logo";
 import { FreeSlotBanner } from "@/components/clinic/FreeSlotBanner";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
@@ -120,7 +121,7 @@ export default function ClinicScreen() {
     return patients.filter((p) => {
       if (pFilter !== "all" && p.status !== pFilter) return false;
       if (!q) return true;
-      return p.name.includes(q) || (p.phone ?? "").includes(q);
+      return p.name.includes(q) || (p.phone ?? "").includes(q) || (p.tags ?? []).some((t) => t.includes(q));
     });
   }, [patients, query, pFilter]);
 
@@ -373,6 +374,7 @@ export default function ClinicScreen() {
                       {p.medicalAlerts ? <Ionicons name="warning" size={15} color="#DC2626" /> : null}
                     </View>
                     <Text className="text-xs text-muted">{p.phone || "بدون هاتف"}</Text>
+                    {p.tags?.length ? <View className="mt-1"><TagPills tags={p.tags} /></View> : null}
                   </View>
                   {bal > 0 ? (
                     <View className="rounded-full bg-red-50 px-2.5 py-1">
@@ -485,6 +487,8 @@ export default function ClinicScreen() {
             { t: "قائمة الأسعار", i: "pricetags", h: "/clinic/prices" },
             { t: "قائمة الانتظار", i: "hourglass", h: "/clinic/waitlist" },
             { t: "سجل التعقيم", i: "flask", h: "/clinic/sterilization" },
+            { t: "الأقساط", i: "calendar", h: "/clinic/installments" },
+            { t: "المخبر", i: "construct-outline", h: "/clinic/lab" },
             { t: "تعديل الإجراءات", i: "construct", h: "/clinic/procedures" },
           ].map((x) => (
             <PressableScale

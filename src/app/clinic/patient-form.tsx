@@ -11,6 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { toWesternDigits } from "@/lib/format";
+import { parseTags, tagColor } from "@/lib/tags";
 import type { AlertFlag } from "@/types";
 import { useClinic } from "@/store/useClinic";
 
@@ -33,6 +34,9 @@ export default function PatientFormScreen() {
   const [alerts, setAlerts] = useState(existing?.medicalAlerts ?? "");
   const [flags, setFlags] = useState<AlertFlag[]>(existing?.alertFlags ?? []);
   const [notes, setNotes] = useState(existing?.notes ?? "");
+  const [tags, setTags] = useState(existing?.tags?.join("، ") ?? "");
+  const allPatients = useClinic((s) => s.patients);
+  const known = [...new Set(allPatients.flatMap((p) => p.tags ?? []))].slice(0, 12);
 
   const save = () => {
     const n = name.trim();
@@ -50,6 +54,7 @@ export default function PatientFormScreen() {
       medicalAlerts: alerts.trim() || undefined,
       alertFlags: flags.length ? flags : undefined,
       notes: notes.trim() || undefined,
+      tags: parseTags(tags).length ? parseTags(tags) : undefined,
     };
     if (existing) {
       updatePatient(existing.id, payload);
@@ -96,6 +101,24 @@ export default function PatientFormScreen() {
           multiline
         />
         <AlertFlagPicker value={flags} onChange={setFlags} />
+        <Field label="وسوم (افصل بفاصلة)" value={tags} onChangeText={setTags} placeholder="VIP، تقويم، قلق من الإبر" />
+        {known.length ? (
+          <View className="flex-row flex-wrap gap-2 mb-3">
+            {known.map((t) => {
+              const cur = parseTags(tags);
+              const on = cur.includes(t);
+              return (
+                <Chip
+                  key={t}
+                  label={t}
+                  selected={on}
+                  color={tagColor(t)}
+                  onPress={() => setTags((on ? cur.filter((x) => x !== t) : [...cur, t]).join("، "))}
+                />
+              );
+            })}
+          </View>
+        ) : null}
         <DictateField label="ملاحظات" value={notes} onChangeText={setNotes} placeholder="ملاحظات عامة" multiline />
       </Card>
 

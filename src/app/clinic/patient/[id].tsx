@@ -8,6 +8,7 @@ import { DictateField } from "@/components/DictateField";
 import { MoneyField, useMoneyInput } from "@/components/MoneyField";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
 import { PatientDocs } from "@/components/clinic/PatientDocs";
+import { TagPills } from "@/components/clinic/TagPills";
 import { QuickSession } from "@/components/clinic/QuickSession";
 import { Odontogram } from "@/components/Odontogram";
 import { DateField } from "@/components/pickers";
@@ -207,6 +208,11 @@ export default function PatientScreen() {
       }
     >
       <MedicalAlertBar patient={patient} />
+      {patient.tags?.length ? (
+        <View className="mb-3">
+          <TagPills tags={patient.tags} />
+        </View>
+      ) : null}
 
       {patient.fileNumber || patient.phone ? (
         <View className="flex-row flex-wrap gap-2 mb-3">
@@ -272,6 +278,22 @@ export default function PatientScreen() {
       {/* ---------------- نظرة عامة ---------------- */}
       {section === "overview" && (
         <View className="mt-4">
+          <View className="flex-row flex-wrap gap-2 mb-3">
+            {[
+              { l: "التقويم", i: "git-compare-outline", h: "/clinic/ortho" },
+              { l: "الموافقات", i: "document-attach-outline", h: "/clinic/consents" },
+              { l: "الأقساط", i: "calendar-outline", h: "/clinic/installments" },
+              { l: "المخبر", i: "construct-outline", h: "/clinic/lab" },
+            ].map((x) => (
+              <Chip
+                key={x.h}
+                label={x.l}
+                icon={x.i as never}
+                color={TYPE_META.private.hex}
+                onPress={() => router.push({ pathname: x.h as never, params: { patientId: patient.id } })}
+              />
+            ))}
+          </View>
           <View className="flex-row gap-2.5">
             <View className="flex-1 rounded-2xl bg-hospital-soft p-3">
               <Text className="text-xs text-hospital-ink">المستحق</Text>

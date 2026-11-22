@@ -167,6 +167,8 @@ export type Patient = {
   medicalAlerts?: string;
   /** تنبيهات طبية مصنّفة (تُضاف لما يُستنتج من نص medicalAlerts) */
   alertFlags?: AlertFlag[];
+  /** وسوم ملوّنة حرة (VIP، تقويم، يحتاج تخديراً حذراً...) */
+  tags?: string[];
   notes?: string;
   /** رمز السن (FDI) -> الحالة. غير المذكور = سليم */
   teeth: Record<string, ToothStatus>;
