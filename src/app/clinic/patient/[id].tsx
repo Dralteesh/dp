@@ -7,7 +7,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { DictateField } from "@/components/DictateField";
 import { MoneyField, useMoneyInput } from "@/components/MoneyField";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
-import { PatientDocs } from "@/components/clinic/PatientDocs";
 import { TagPills } from "@/components/clinic/TagPills";
 import { QuickSession } from "@/components/clinic/QuickSession";
 import { Odontogram } from "@/components/Odontogram";
@@ -27,11 +26,12 @@ import { fmtDateShort, fmtTime, toISO } from "@/lib/dates";
 import { fmtMoney, initial, parseAmount } from "@/lib/format";
 import { telLink, whatsappLink } from "@/lib/phone";
 import { patientBalance, useClinic } from "@/store/useClinic";
+import { useExtras } from "@/store/useExtras";
 import { useSettings } from "@/store/useSettings";
 import type { ToothStatus } from "@/types";
 import { useProcedures } from "@/hooks/useProcedures";
 
-type Section = "overview" | "teeth" | "sessions" | "rx" | "payments";
+type Section = "overview" | "teeth" | "sessions" | "payments";
 
 export default function PatientScreen() {
   const procedures = useProcedures();
@@ -59,6 +59,13 @@ export default function PatientScreen() {
   const patient = patients.find((p) => p.id === id);
 
   const [section, setSection] = useState<Section>("overview");
+  const [addFile, setAddFile] = useState(false);
+  const orthoCases = useExtras((s) => s.orthoCases);
+  const perioCharts = useExtras((s) => s.perioCharts);
+  const labOrders = useExtras((s) => s.labOrders);
+  const hasOrtho = orthoCases.some((o) => o.patientId === id);
+  const hasPerio = perioCharts.some((o) => o.patientId === id);
+  const hasLab = labOrders.some((o) => o.patientId === id);
   const [tooth, setToothSel] = useState<string | undefined>();
 
   // نماذج الجلسة والدفعة
@@ -270,7 +277,6 @@ export default function PatientScreen() {
           { value: "overview", label: "نظرة" },
           { value: "teeth", label: "الأسنان" },
           { value: "sessions", label: "الجلسات" },
-          { value: "rx", label: "الوصفات" },
           { value: "payments", label: "الدفعات" },
         ]}
       />
@@ -280,22 +286,23 @@ export default function PatientScreen() {
         <View className="mt-4">
           <View className="flex-row flex-wrap gap-2 mb-3">
             {[
-              { l: "التقويم", i: "git-compare-outline", h: "/clinic/ortho" },
-              { l: "الموافقات", i: "document-attach-outline", h: "/clinic/consents" },
-              { l: "الأقساط", i: "calendar-outline", h: "/clinic/installments" },
-              { l: "المخبر", i: "construct-outline", h: "/clinic/lab" },
-              { l: "اللثة", i: "pulse-outline", h: "/clinic/perio" },
-              { l: "الفحوصات", i: "clipboard-outline", h: "/clinic/exams" },
-              { l: "الفواتير", i: "receipt-outline", h: "/clinic/invoices" },
-            ].map((x) => (
-              <Chip
-                key={x.h}
-                label={x.l}
-                icon={x.i as never}
-                color={TYPE_META.private.hex}
-                onPress={() => router.push({ pathname: x.h as never, params: { patientId: patient.id } })}
-              />
-            ))}
+              { l: "التقويم", i: "git-compare-outline", h: "/clinic/ortho", on: hasOrtho },
+              { l: "اللثة", i: "pulse-outline", h: "/clinic/perio", on: hasPerio },
+              { l: "المخبر والتعويضات", i: "construct-outline", h: "/clinic/lab", on: hasLab },
+            ]
+              .filter((x) => x.on)
+              .map((x) => (
+                <Chip
+                  key={x.h}
+                  label={x.l}
+                  icon={x.i as never}
+                  color={TYPE_META.private.hex}
+                  onPress={() => router.push({ pathname: x.h as never, params: { patientId: patient.id } })}
+                />
+              ))}
+            {!(hasOrtho && hasPerio && hasLab) ? (
+              <Chip label="إضافة ملف" icon="add" color="#64748B" onPress={() => setAddFile(true)} />
+            ) : null}
           </View>
           <View className="flex-row gap-2.5">
             <View className="flex-1 rounded-2xl bg-hospital-soft p-3">
@@ -343,8 +350,6 @@ export default function PatientScreen() {
             </View>
           </Card>
 
-          <PatientDocs patient={patient} />
-
           <SectionHeader title="المواعيد" />
           {nextAppt ? (
             <Card accent="private" className="mb-2">
@@ -354,23 +359,6 @@ export default function PatientScreen() {
               </Text>
             </Card>
           ) : null}
-          <Pressable
-            onPress={() => router.push({ pathname: "/clinic/plan", params: { patientId: patient.id } })}
-            className="flex-row items-center justify-between bg-surface border border-line rounded-2xl px-4 py-3 mb-3"
-          >
-            <View className="flex-row items-center gap-3">
-              <Ionicons name="clipboard" size={22} color={TYPE_META.private.hex} />
-              <View>
-                <Text w="semi">خطط العلاج</Text>
-                <Text className="text-xs text-muted">
-                  {patientPlans.length === 0
-                    ? "لا خطط بعد"
-                    : `${patientPlans.length} خطة • ${patientPlans.reduce((a, p) => a + p.items.filter((i) => i.done).length, 0)}/${patientPlans.reduce((a, p) => a + p.items.length, 0)} بند منجز`}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-back" size={18} color="#94A3B8" />
-          </Pressable>
           {appts.length === 0 ? (
             <EmptyState icon="calendar-outline" title="لا مواعيد" />
           ) : (
@@ -398,8 +386,19 @@ export default function PatientScreen() {
             })
           )}
 
-          <View className="mt-4">
-            <Button label="حذف المريض" variant="danger" icon="trash-outline" onPress={confirmDelete} />
+          <View className="mt-4 flex-row gap-2">
+            <View className="flex-1">
+              <Button
+                label="مستندات PDF"
+                icon="document-text"
+                variant="soft"
+                type="private"
+                onPress={() => router.push({ pathname: "/clinic/patient-docs", params: { patientId: patient.id } })}
+              />
+            </View>
+            <View className="flex-1">
+              <Button label="حذف المريض" variant="danger" icon="trash-outline" onPress={confirmDelete} />
+            </View>
           </View>
         </View>
       )}
@@ -531,13 +530,14 @@ export default function PatientScreen() {
               ))
             )}
           </View>
-        </View>
-      )}
 
-      {/* ---------------- الدفعات ---------------- */}
-      {/* ---------------- الوصفات ---------------- */}
-      {section === "rx" && (
-        <View className="mt-4">
+          <SectionHeader title="الفحص والتخطيط" />
+          <View className="flex-row flex-wrap gap-2 mb-3">
+            <Chip label="خطط العلاج" icon="clipboard" color={TYPE_META.private.hex} onPress={() => router.push({ pathname: "/clinic/plan", params: { patientId: patient.id } })} />
+            <Chip label="الفحوصات والتشخيص" icon="clipboard-outline" color={TYPE_META.private.hex} onPress={() => router.push({ pathname: "/clinic/exams", params: { patientId: patient.id } })} />
+            <Chip label="الموافقات" icon="document-attach-outline" color={TYPE_META.private.hex} onPress={() => router.push({ pathname: "/clinic/consents", params: { patientId: patient.id } })} />
+          </View>
+          <SectionHeader title="الوصفات" />
           <Button
             label="وصفة جديدة"
             icon="document-text"
@@ -579,10 +579,15 @@ export default function PatientScreen() {
         </View>
       )}
 
+      {/* ---------------- الدفعات ---------------- */}
       {section === "payments" && (
         <View className="mt-4">
           <View className="mb-3">
             <Button label="مشاركة كشف الحساب" icon="share-social" variant="soft" small onPress={shareStatement} />
+          </View>
+          <View className="flex-row flex-wrap gap-2 mb-3">
+            <Chip label="الفواتير" icon="receipt-outline" color={TYPE_META.private.hex} onPress={() => router.push({ pathname: "/clinic/invoices", params: { patientId: patient.id } })} />
+            <Chip label="الأقساط" icon="calendar-outline" color={TYPE_META.private.hex} onPress={() => router.push({ pathname: "/clinic/installments", params: { patientId: patient.id } })} />
           </View>
           <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: money.balance > 0 ? "#FEE2E2" : "#DCFCE7" }}>
             <Text className="text-sm" style={{ color: money.balance > 0 ? "#DC2626" : "#14532D" }}>
@@ -652,6 +657,28 @@ export default function PatientScreen() {
         <MoneyField label="المبلغ" m={pMoney} autoFocus />
         <Field label="ملاحظة" value={pNote} onChangeText={setPNote} placeholder="مثال: دفعة أولى" />
         <Button label="حفظ الدفعة" icon="checkmark" type="private" onPress={savePayment} />
+      </Sheet>
+
+      <Sheet visible={addFile} onClose={() => setAddFile(false)} title="إضافة ملف للمريض">
+        {[
+          { l: "ملف تقويم", d: "فحص وخطة وسجل زيارات", h: "/clinic/ortho", show: !hasOrtho },
+          { l: "قياسات لثة", d: "عمق الجيوب والنزف", h: "/clinic/perio", show: !hasPerio },
+          { l: "طلب مخبر / تعويضات", d: "ثابتة، متحركة، فوق الزرع", h: "/clinic/lab", show: !hasLab },
+        ]
+          .filter((x) => x.show)
+          .map((x) => (
+            <Pressable
+              key={x.h}
+              className="py-3.5 border-b border-line"
+              onPress={() => {
+                setAddFile(false);
+                router.push({ pathname: x.h as never, params: { patientId: patient.id } });
+              }}
+            >
+              <Text w="semi">{x.l}</Text>
+              <Text className="text-xs text-muted">{x.d}</Text>
+            </Pressable>
+          ))}
       </Sheet>
     </Screen>
   );

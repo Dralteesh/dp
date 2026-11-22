@@ -172,3 +172,11 @@ export function invoiceHtml(ctx: DocCtx, patient: Patient, inv: InvoiceDoc): str
 <div class="tot">المجموع: ${fmtMoney(sub, ctx.currency)}${inv.discount ? `<br/>الحسم: ${fmtMoney(inv.discount, ctx.currency)}` : ""}<br/>الصافي: ${fmtMoney(total, ctx.currency)}<br/>رصيد حساب المريض الحالي: ${fmtMoney(inv.balance, ctx.currency)}</div>${inv.notes ? `<div class="meta" style="margin-top:12px">${nl2br(inv.notes)}</div>` : ""}`;
   return page(ctx, "فاتورة", body);
 }
+
+/** يدمج عدة مستندات HTML في ملف واحد، كل مستند في صفحة مستقلة */
+export function combineHtml(docs: string[]): string {
+  if (docs.length <= 1) return docs[0] ?? "";
+  const css = /<style>([\s\S]*?)<\/style>/.exec(docs[0])?.[1] ?? "";
+  const bodies = docs.map((d) => /<body>([\s\S]*?)<\/body>/.exec(d)?.[1] ?? "");
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/><style>${css}.pg{page-break-after:always}.pg:last-child{page-break-after:auto}</style></head><body>${bodies.map((b) => `<div class="pg">${b}</div>`).join("")}</body></html>`;
+}

@@ -5,9 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
 import { PrayerCard } from "@/components/PrayerCard";
 import { RecentDocs } from "@/components/home/RecentDocs";
-import { TaskItem } from "@/components/TaskItem";
+import { TaskStack } from "@/components/home/TaskStack";
 import { TimelineCard, remainingMinutes } from "@/components/home/TimelineRow";
-import { WeekStrip } from "@/components/home/WeekStrip";
+import { WeekTimeline } from "@/components/home/WeekTimeline";
 import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
 import { Card } from "@/components/ui/Card";
 import { Screen } from "@/components/ui/Screen";
@@ -18,7 +18,6 @@ import { useAgenda, useAgendaInput } from "@/hooks/useAgenda";
 import { useNow } from "@/hooks/useNow";
 import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
 import { useTheme } from "@/hooks/useTheme";
-import { typesOn } from "@/lib/agenda";
 import { relativeDay, toISO, toMinutes } from "@/lib/dates";
 import { nextPrayer } from "@/lib/prayer";
 import { usePlanner } from "@/store/usePlanner";
@@ -80,29 +79,15 @@ export default function HomeScreen() {
       tasks
         .filter((t) => !t.done && (!t.dueDate || t.dueDate <= today))
         .sort((a, b) => (a.priority === "high" ? -1 : 0) - (b.priority === "high" ? -1 : 0))
-        .slice(0, 3),
+        .slice(0, 5),
     [tasks, today],
   );
 
+  /** الجاري الآن، وإلا أول ما لم يبدأ بعد، وإلا أول عنصر في اليوم */
+  const focus = agenda.find((a) => state(a).live) ?? agenda.find((a) => !state(a).past) ?? agenda[0];
+
   const hour = now.getHours();
   const greeting = hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء النور";
-
-  // مكان شارة «الآن»: قبل أول عنصر لم يبدأ بعد، إن لم يكن هناك عنصر جارٍ
-  const firstUpcoming = isToday
-    ? agenda.findIndex((a) => !state(a).past && !state(a).live && !a.continuation)
-    : -1;
-  const hasLive = agenda.some((a) => state(a).live);
-
-  const NowPill = (
-    <View key="now" className="flex-row items-center mb-2" style={{ gap: 10 }}>
-      <View className="rounded-full px-3 py-1" style={{ backgroundColor: "#22C55E" }}>
-        <Text w="bold" className="text-xs" style={{ color: "#FFFFFF" }}>
-          الآن
-        </Text>
-      </View>
-      <View style={{ flex: 1, height: 2, backgroundColor: "#22C55E", opacity: 0.35 }} />
-    </View>
-  );
 
   return (
     <Screen
@@ -135,15 +120,17 @@ export default function HomeScreen() {
       {/* بطاقة الصلاة في الأعلى */}
       <PrayerCard next={np} now={now} onPress={() => router.push("/prayer")} />
 
-      {/* الأسبوع */}
-      <WeekStrip
+      {/* الأسبوع: جدول زمني بأعمدة */}
+      <WeekTimeline
         selected={selected}
         onSelect={setSelected}
         onOpenCalendar={() => router.push("/calendar")}
-        dotsFor={(iso) => typesOn(iso, input)}
+        onOpenItem={open}
+        input={input}
+        nowMin={nowMin}
       />
 
-      {/* جدول اليوم المحدّد */}
+      {/* اليوم المحدّد: العنصر الجاري أو التالي */}
       <View className="bg-surface rounded-[28px] border border-line p-4">
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-1">
@@ -167,39 +154,17 @@ export default function HomeScreen() {
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </Pressable>
         </View>
-
         {agenda.length === 0 ? (
           <EmptyState icon="sunny-outline" title="يوم هادئ" hint="اضغط + لإضافة دوام أو موعد أو مهمة" />
-        ) : (
-          agenda.map((it, i) => {
-            const st = state(it);
-            const rail = st.past || st.live ? "#22C55E" : "#CFCBBF";
-            return (
-              <View key={it.key}>
-                {isToday && !hasLive && i === firstUpcoming ? NowPill : null}
-                <View className="flex-row items-stretch mb-2.5" style={{ gap: 10 }}>
-                  <View style={{ width: 52, alignItems: "center" }}>
-                    <Text w="bold" className="text-xs" style={{ fontVariant: ["tabular-nums"] }}>
-                      {it.startTime}
-                    </Text>
-                    <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: rail, marginTop: 5 }} />
-                    {i < agenda.length - 1 ? <View style={{ width: 2, flex: 1, backgroundColor: rail, opacity: 0.45, marginTop: 2 }} /> : null}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <TimelineCard
-                      item={it}
-                      live={st.live}
-                      past={st.past}
-                      remainingMin={st.live ? remainingMinutes(it, nowMin) : undefined}
-                      onPress={() => open(it)}
-                    />
-                  </View>
-                </View>
-              </View>
-            );
-          })
-        )}
-        {isToday && !hasLive && agenda.length > 0 && firstUpcoming === -1 ? NowPill : null}
+        ) : focus ? (
+          <TimelineCard
+            item={focus}
+            live={state(focus).live}
+            past={state(focus).past}
+            remainingMin={state(focus).live ? remainingMinutes(focus, nowMin) : undefined}
+            onPress={() => open(focus)}
+          />
+        ) : null}
       </View>
 
       {/* المهام */}
@@ -211,9 +176,7 @@ export default function HomeScreen() {
               <EmptyState icon="checkmark-done-outline" title="لا مهام معلّقة" hint="اضغط + ثم «مهمة» لإضافة واحدة" />
             </Card>
           ) : (
-            todayTasks.map((t) => (
-              <TaskItem key={t.id} task={t} onToggle={() => toggleTask(t.id)} onPress={() => router.push("/tasks")} />
-            ))
+            <TaskStack tasks={todayTasks} onToggle={toggleTask} onOpen={() => router.push("/tasks")} />
           )}
         </>
       ) : null}

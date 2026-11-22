@@ -75,6 +75,12 @@ export default function SleepScreen() {
         <Text w="bold" style={{ color: "#fff", fontSize: 18, flex: 1 }}>
           النوم والصحة
         </Text>
+        <Pressable onPress={() => router.push("/sleep-track")} accessibilityLabel="تعقّب النوم" hitSlop={10}>
+          <Ionicons name="moon" size={24} color="#fff" />
+        </Pressable>
+        <Pressable onPress={() => router.push("/sleep-report")} accessibilityLabel="تقرير النوم" hitSlop={10}>
+          <Ionicons name="stats-chart-outline" size={24} color="#fff" />
+        </Pressable>
         <Pressable onPress={exportPdf} accessibilityLabel="تصدير PDF" hitSlop={10}>
           <Ionicons name="document-text-outline" size={24} color="#fff" />
         </Pressable>

@@ -6,16 +6,44 @@ import { storage } from "@/lib/storage";
 /** سجل نوم يدوي: تاريخ الاستيقاظ + وقت النوم + وقت الاستيقاظ + تقييم ذاتي 1..5 */
 export type SleepLog = { id: string; date: string; bed: string; wake: string; quality: number };
 
+/** جلسة تعقب جارية: بدأت عند start (ms) والمنبّه المتوقع alarm بصيغة HH:MM */
+export type SleepSession = { start: number; alarm?: string };
+
 type State = {
   logs: SleepLog[];
+  session: SleepSession | null;
+  startSession: (alarm?: string) => void;
+  /** يُنهي الجلسة ويحفظ سجلًا ويعيده (أو null إن كانت قصيرة جدًا) */
+  stopSession: () => SleepLog | null;
+  cancelSession: () => void;
   add: (l: Omit<SleepLog, "id">) => void;
   remove: (id: string) => void;
 };
 
 export const useSleep = create<State>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       logs: [],
+      session: null,
+      startSession: (alarm) => set({ session: { start: Date.now(), alarm } }),
+      cancelSession: () => set({ session: null }),
+      stopSession: () => {
+        const cur = get().session;
+        set({ session: null });
+        if (!cur) return null;
+        const end = Date.now();
+        // أقل من 20 دقيقة لا يُعدّ نومًا
+        if (end - cur.start < 20 * 60000) return null;
+        const hm = (t: number) => {
+          const d = new Date(t);
+          return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+        };
+        const d = new Date(end);
+        const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const log: SleepLog = { id: uid(), date, bed: hm(cur.start), wake: hm(end), quality: 4 };
+        get().add({ date, bed: log.bed, wake: log.wake, quality: 4 });
+        return log;
+      },
       add: (l) =>
         set((s) => ({
           // سجل واحد لكل تاريخ: الجديد يستبدل القديم
@@ -23,7 +51,7 @@ export const useSleep = create<State>()(
         })),
       remove: (id) => set((s) => ({ logs: s.logs.filter((x) => x.id !== id) })),
     }),
-    { name: "dp.sleep.v1", storage, partialize: (s) => ({ logs: s.logs }) },
+    { name: "dp.sleep.v1", storage, partialize: (s) => ({ logs: s.logs, session: s.session }) },
   ),
 );
 
