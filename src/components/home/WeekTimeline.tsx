@@ -15,8 +15,9 @@ const PX_REF = 0.45; // مرجع لتوزيع المسارات فقط
 const TARGET_H = 250; // الارتفاع المستهدف للشبكة كي يظهر اليوم كاملًا بلا تمرير
 const PX_MIN = 0.22;
 const PX_MAX = 0.5;
-const MIN_H = 28;
+const MIN_H = 36;
 const HOUR_COL = 30;
+const DAYS_N = 5;
 
 type Props = {
   selected: string;
@@ -69,9 +70,9 @@ function layout(items: AgendaItem[]): Placed[] {
  * تتصل على خيط رفيع. السبت أول الأسبوع (يمين).
  */
 export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, input, nowMin }: Props) {
-  const back = (weekdayOf(selected) + 1) % 7;
-  const start = addDays(selected, -back);
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
+  // خمسة أيام فقط: اليوم المحدّد (الحالي افتراضيًا) في المنتصف
+  const start = addDays(selected, -Math.floor(DAYS_N / 2));
+  const days = useMemo(() => Array.from({ length: DAYS_N }, (_, i) => addDays(start, i)), [start]);
   const today = todayISO();
   const d = fromISO(selected);
 
@@ -160,15 +161,13 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
     });
   const hourLabels: number[] = [];
   for (const sg of laid) if (!sg.collapsed) for (let m = sg.from; m <= sg.to; m += 60) if (!hourLabels.includes(m)) hourLabels.push(m);
-  const nowY = y(nowMin);
-  const nowVisible = laid.some((sg) => !sg.collapsed && nowMin >= sg.from && nowMin <= sg.to);
   const emptyHours = (sg: { from: number; to: number }) => Math.round((sg.to - sg.from) / 60);
 
   return (
     <View className="bg-surface rounded-[26px] border border-line px-3 py-2 mb-3">
       {/* الشهر والتنقل */}
       <View className="flex-row items-center justify-between mb-1.5">
-        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, -7))} className="w-8 h-8 rounded-full bg-bg items-center justify-center">
+        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, -DAYS_N))} className="w-8 h-8 rounded-full bg-bg items-center justify-center">
           <Ionicons name="chevron-forward" size={18} color="#111111" />
         </Pressable>
         <Pressable onPress={onOpenCalendar} className="flex-row items-center gap-1.5" hitSlop={8}>
@@ -177,7 +176,7 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
           </Text>
           <Ionicons name="calendar-outline" size={17} color={BLUE} />
         </Pressable>
-        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, 7))} className="w-8 h-8 rounded-full bg-bg items-center justify-center">
+        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, DAYS_N))} className="w-8 h-8 rounded-full bg-bg items-center justify-center">
           <Ionicons name="chevron-back" size={18} color="#111111" />
         </Pressable>
       </View>
@@ -197,10 +196,10 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
           const types = [...new Set(placed.map((p) => p.it.type))].slice(0, 2);
           return (
             <Pressable key={iso} onPress={() => (isSel ? onOpenCalendar() : onSelect(iso))} style={{ flex: 1, alignItems: "center" }}>
-              <Text className="text-[11px] text-muted">{DAYS_SHORT[weekdayOf(iso)]}</Text>
+              <Text className="text-xs text-muted">{DAYS_SHORT[weekdayOf(iso)]}</Text>
               <View
                 className="items-center justify-center"
-                style={{ width: 26, height: 26, borderRadius: 13, marginTop: 1, backgroundColor: isSel ? BLUE : "transparent", borderWidth: isToday && !isSel ? 1.5 : 0, borderColor: BLUE }}
+                style={{ width: 30, height: 30, borderRadius: 15, marginTop: 1, backgroundColor: isSel ? BLUE : "transparent", borderWidth: isToday && !isSel ? 1.5 : 0, borderColor: BLUE }}
               >
                 <Text w="bold" className="text-sm" style={{ color: isSel ? "#FFFFFF" : undefined }}>
                   {fromISO(iso).getDate()}
@@ -234,9 +233,6 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
             return (
               <View key={iso} style={{ flex: 1, backgroundColor: isSel ? "rgba(99,102,241,0.06)" : undefined, borderRadius: 14 }}>
                 <View pointerEvents="none" style={{ position: "absolute", top: 0, bottom: 0, left: "50%", width: 2, marginLeft: -1, backgroundColor: "#E5E7EB", opacity: 0.8 }} />
-                {iso === today && nowVisible ? (
-                  <View pointerEvents="none" style={{ position: "absolute", start: 0, end: 0, top: nowY, height: 2, backgroundColor: "#22C55E", zIndex: 5 }} />
-                ) : null}
                 {placed.map((p) => {
                   const m = TYPE_META[p.it.type];
                   const top = y(p.s);
@@ -262,12 +258,12 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
                       }}
                     >
                       {p.it.source === "appointment" ? (
-                        <ProcedureBadge name={p.it.procedure} size={h > 40 ? 22 : 18} color={m.onSolid} />
+                        <ProcedureBadge name={p.it.procedure} size={h > 40 ? 34 : 26} color={m.onSolid} />
                       ) : (
-                        <Ionicons name={m.icon} size={h > 40 ? 18 : 15} color={m.onSolid} />
+                        <Ionicons name={m.icon} size={h > 40 ? 26 : 20} color={m.onSolid} />
                       )}
-                      {h > 64 ? (
-                        <Text className="text-[9px]" numberOfLines={2} style={{ color: m.onSolid, textAlign: "center", paddingHorizontal: 2, marginTop: 2 }}>
+                      {h > 56 ? (
+                        <Text className="text-[10px]" numberOfLines={2} style={{ color: m.onSolid, textAlign: "center", paddingHorizontal: 2, marginTop: 2 }}>
                           {p.it.title}
                         </Text>
                       ) : null}
