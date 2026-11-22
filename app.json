@@ -97,6 +97,16 @@
               "updatePeriodMillis": 1800000
             },
             {
+              "name": "WeatherWidget",
+              "label": "الطقس",
+              "description": "طقس مدينتك برسمة مجسّمة تتغيّر بحسب الحالة",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            },
+            {
               "name": "PrayerWidget",
               "label": "الصلاة القادمة",
               "description": "الصلاة القادمة ووقتها في حماه",

@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { DEFAULT_CITY, fetchWeather, type City, type Weather } from "@/lib/weather";
 import { scheduleWeatherAlerts } from "@/lib/weatherAlerts";
+import { refreshWidgets } from "@/widgets/updateWidgets";
 import { DEFAULT_UNITS, type Units } from "@/lib/weatherInsights";
 
 type State = {
@@ -88,6 +89,7 @@ export const useWeather = create<State>()(
         try {
           const w = await fetchWeather(city);
           set((s) => ({ cache: { ...s.cache, [city.id]: w }, loading: false }));
+          refreshWidgets().catch(() => {});
           // التنبيهات تُحسب للمدينة الأولى (مدينتك) فقط
           if (city.id === cities[0]?.id) {
             scheduleWeatherAlerts(w, city, { rain: get().rainAlert, severe: get().severeAlert }).catch(() => {});

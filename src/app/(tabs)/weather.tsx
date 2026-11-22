@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { HourlyChart } from "@/components/weather/HourlyChart";
+import { PurpleToday } from "@/components/weather/PurpleToday";
 import { WeatherGlyph } from "@/components/weather/WeatherGlyph";
 import { Glass } from "@/components/ui/Glass";
 import { Sheet } from "@/components/ui/Sheet";
@@ -363,7 +364,7 @@ export default function WeatherScreen() {
                       </Pressable>
                     ))}
                     <View style={{ flex: 1 }} />
-                    <Pressable onPress={() => goPage(1)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Pressable onPress={() => goPage(2)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                       <Text w="semi" style={{ fontSize: 12.5, color: W, opacity: 0.75 }}>
                         7 أيام
                       </Text>
@@ -396,7 +397,27 @@ export default function WeatherScreen() {
                 </Glass>
               </View>
 
-              {/* ───────── الصفحة 2: غدًا + الأسبوع ───────── */}
+              {/* ───────── الصفحة 2: اليوم (نيلي) ───────── */}
+              <View style={{ height: H }}>
+                <PurpleToday
+                  w={w}
+                  cityName={city.name}
+                  units={units}
+                  T={T}
+                  hours={hours}
+                  sel={sel}
+                  setSel={setSel}
+                  code={code}
+                  temp={temp}
+                  isDay={isDay}
+                  dayAt={(iso) => isDayAt(iso, w.days, true)}
+                  onWeek={() => goPage(2)}
+                  topPad={topPad}
+                  botPad={botPad}
+                />
+              </View>
+
+              {/* ───────── الصفحة 3: غدًا + الأسبوع ───────── */}
               <View style={{ height: H, paddingTop: topPad, paddingBottom: botPad, paddingHorizontal: 16, gap: 12 }}>
                 {tmr ? (
                   <Glass colors={skyOf(kindOf(tmr.code), true)} style={{ padding: 16 }} radius={32}>
@@ -465,7 +486,7 @@ export default function WeatherScreen() {
                 </Glass>
               </View>
 
-              {/* ───────── الصفحة 3: العدّاد والتفاصيل ───────── */}
+              {/* ───────── الصفحة 4: العدّاد والتفاصيل ───────── */}
               <View style={{ height: H, paddingTop: topPad, paddingBottom: botPad }}>
                 <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12, gap: 14 }}>
                   <Glass colors={["#6D5BF0", "#3A2E9E"]} style={{ paddingVertical: 18, paddingHorizontal: 12, alignItems: "center", gap: 12 }} radius={34}>
@@ -580,7 +601,7 @@ export default function WeatherScreen() {
 
           {/* مؤشر الصفحات العمودي */}
           <View pointerEvents="box-none" style={{ position: "absolute", end: 6, top: 0, bottom: 0, justifyContent: "center", gap: 8, zIndex: 15 }}>
-            {[0, 1, 2].map((p) => (
+            {[0, 1, 2, 3].map((p) => (
               <Pressable key={p} hitSlop={8} onPress={() => goPage(p)}>
                 <View style={{ width: 5, height: page === p ? 22 : 7, borderRadius: 3, backgroundColor: W, opacity: page === p ? 0.95 : 0.35 }} />
               </Pressable>

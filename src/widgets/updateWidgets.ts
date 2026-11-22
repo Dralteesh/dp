@@ -1,6 +1,6 @@
 import React from "react";
 import { Platform } from "react-native";
-import { loadWidgetData } from "@/widgets/widgetData";
+import { loadWeatherWidgetData, loadWidgetData } from "@/widgets/widgetData";
 
 /**
  * يطلب تحديث الودجت فور تغيّر البيانات داخل التطبيق.
@@ -16,7 +16,16 @@ export async function refreshWidgets(): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PrayerWidget } = require("@/widgets/PrayerWidget");
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { WeatherWidget } = require("@/widgets/WeatherWidget");
+
     const data = await loadWidgetData(4);
+    const wdata = await loadWeatherWidgetData(false);
+    await requestWidgetUpdate({
+      widgetName: "WeatherWidget",
+      renderWidget: () => React.createElement(WeatherWidget, { data: wdata }),
+      widgetNotFound: () => {},
+    });
     await requestWidgetUpdate({
       widgetName: "TodayWidget",
       renderWidget: () => React.createElement(TodayWidget, { data }),

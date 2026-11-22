@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { agendaFor, type AgendaItem } from "@/lib/agenda";
 import { fmtDateLong, fmtTime, fmtTimeDate, toISO } from "@/lib/dates";
 import { PRAYER_LABELS, nextPrayer } from "@/lib/prayer";
+import { fetchWeather, kindOf, labelOf, type City, type Kind, type Weather } from "@/lib/weather";
+import { DEFAULT_UNITS, fmtTemp, type Units } from "@/lib/weatherInsights";
 import { applyTypeSettings } from "@/constants/shiftTypes";
 import { DEFAULT_SETTINGS } from "@/store/useSettings";
 import { STORAGE_KEYS } from "@/lib/storage";
@@ -63,5 +65,31 @@ export async function loadWidgetData(maxItems = 4): Promise<WidgetData> {
     items: upcoming.slice(0, maxItems).map((it) => ({ ...it, timeLabel: fmtTime(it.startTime) })),
     moreCount: Math.max(0, upcoming.length - maxItems),
     prayer: { label: PRAYER_LABELS[np.key], time: fmtTimeDate(np.time), remaining },
+  };
+}
+
+export type WeatherWidgetData = { city: string; dateLabel: string; temp: string; label: string; kind: Kind; isDay: boolean };
+
+/** بيانات ودجت الطقس: يحاول جلب طقس جديد (8 ثوانٍ كحد أقصى) وإلا يعرض آخر طقس محفوظ */
+export async function loadWeatherWidgetData(fresh = false): Promise<WeatherWidgetData> {
+  const st = await readPersisted<{ cities: City[]; index: number; cache: Record<string, Weather>; units: Units }>("dp.weather.v1");
+  const city = st.cities?.[st.index ?? 0] ?? st.cities?.[0];
+  let w: Weather | undefined = city ? st.cache?.[city.id] : undefined;
+  if (fresh && city) {
+    try {
+      w = await Promise.race([fetchWeather(city), new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000))]);
+    } catch {
+      // نبقى على المحفوظ
+    }
+  }
+  const dateLabel = fmtDateLong(toISO(new Date()));
+  if (!city || !w) return { city: city?.name ?? "الطقس", dateLabel, temp: "--°", label: "افتح التطبيق", kind: "cloudy", isDay: true };
+  return {
+    city: city.name,
+    dateLabel,
+    temp: fmtTemp(w.now.temp, st.units ?? DEFAULT_UNITS),
+    label: labelOf(w.now.code, w.now.isDay),
+    kind: kindOf(w.now.code),
+    isDay: w.now.isDay,
   };
 }

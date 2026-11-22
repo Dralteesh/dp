@@ -1,8 +1,9 @@
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import { PrayerWidget } from "@/widgets/PrayerWidget";
 import { TodayWidget } from "@/widgets/TodayWidget";
+import { WeatherWidget } from "@/widgets/WeatherWidget";
 import { refreshPrayerSchedule } from "@/lib/notifications";
-import { loadWidgetData } from "@/widgets/widgetData";
+import { loadWeatherWidgetData, loadWidgetData } from "@/widgets/widgetData";
 
 /**
  * معالج الودجت: يُستدعى عند إضافة الودجت أو تحديثه الدوري (حتى والتطبيق مغلق).
@@ -15,6 +16,10 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
     case "WIDGET_ADDED":
     case "WIDGET_UPDATE":
     case "WIDGET_RESIZED": {
+      if (name === "WeatherWidget") {
+        props.renderWidget(<WeatherWidget data={await loadWeatherWidgetData(props.widgetAction === "WIDGET_UPDATE")} />);
+        break;
+      }
       const data = await loadWidgetData(name === "TodayWidget" ? 4 : 1);
       if (name === "TodayWidget") props.renderWidget(<TodayWidget data={data} />);
       else if (name === "PrayerWidget") props.renderWidget(<PrayerWidget data={data} />);
