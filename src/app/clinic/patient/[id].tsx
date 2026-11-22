@@ -9,6 +9,7 @@ import { MoneyField, useMoneyInput } from "@/components/MoneyField";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
 import { TagPills } from "@/components/clinic/TagPills";
 import { QuickSession } from "@/components/clinic/QuickSession";
+import { AffectedTeethTable } from "@/components/clinic/AffectedTeethTable";
 import { ToothPanel } from "@/components/clinic/ToothPanel";
 import { Odontogram } from "@/components/Odontogram";
 import { DateField } from "@/components/pickers";
@@ -406,7 +407,15 @@ export default function PatientScreen() {
       {/* ---------------- الأسنان ---------------- */}
       {section === "teeth" && (
         <View className="mt-4">
-          <Odontogram teeth={patient.teeth} selected={tooth} onSelect={setToothSel} birthYear={patient.birthYear} />
+          <Odontogram
+            teeth={patient.teeth}
+            selected={tooth}
+            onSelect={setToothSel}
+            birthYear={patient.birthYear}
+            marks={patient.toothMarks}
+            bridges={patient.bridges}
+            onBridgesChange={(b) => updatePatient(patient.id, { bridges: b })}
+          />
 
           {tooth ? (
             <ToothPanel
@@ -414,6 +423,14 @@ export default function PatientScreen() {
               tooth={tooth}
               sessions={sessions}
               onSetStatus={(st) => setTooth(patient.id, tooth, st)}
+              onToggleMark={(mk) => {
+                const all = { ...(patient.toothMarks ?? {}) };
+                const cur = all[tooth] ?? [];
+                const next = cur.includes(mk) ? cur.filter((x) => x !== mk) : [...cur, mk];
+                if (next.length) all[tooth] = next;
+                else delete all[tooth];
+                updatePatient(patient.id, { toothMarks: all });
+              }}
               onSaveNote={(note) => {
                 const notes = { ...(patient.toothNotes ?? {}) };
                 if (note) notes[tooth] = note;
@@ -432,6 +449,8 @@ export default function PatientScreen() {
               <Text className="text-muted">اضغط على أي سن في المخطط أعلاه لعرض حالته وسجل علاجه وملاحظاته.</Text>
             </>
           )}
+
+          <AffectedTeethTable patient={patient} onPick={setToothSel} />
 
           {toothCount > 0 ? (
             <>

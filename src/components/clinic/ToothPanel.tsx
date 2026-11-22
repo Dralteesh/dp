@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
-import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
+import Svg, { Defs, G, LinearGradient, Path, Stop } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { Chip } from "@/components/ui/Chip";
 import { Card } from "@/components/ui/Card";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Text } from "@/components/ui/Text";
-import { ODONTO_BG, TOOTH_STATUS } from "@/constants/clinic";
+import { ODONTO_BG, TOOTH_MARKS, TOOTH_STATUS } from "@/constants/clinic";
 import { TYPE_META } from "@/constants/shiftTypes";
-import { PRIMARY_SHAPES, TOOTH_SHAPES } from "@/constants/toothShapes";
 import { fmtDateShort } from "@/lib/dates";
 import { toothName } from "@/lib/odontogram";
-import type { ClinicSession, Patient, ToothStatus } from "@/types";
+import { placedShape } from "@/lib/toothmap";
+import type { ClinicSession, Patient, ToothMark, ToothStatus } from "@/types";
 
 type Props = {
   patient: Patient;
@@ -20,6 +20,8 @@ type Props = {
   /** جلسات هذا المريض (كلها) — يُصفّى منها ما يخص السن */
   sessions: ClinicSession[];
   onSetStatus: (status: ToothStatus | null) => void;
+  /** تبديل علامة رسم على السن */
+  onToggleMark: (mark: ToothMark) => void;
   onSaveNote: (note: string) => void;
   onAddSession: () => void;
 };
@@ -30,7 +32,7 @@ const LINE = "#D3E6F7";
 
 /** رسم السن المحدّد بشكله الحقيقي ولون حالته */
 function ToothArt({ code, status }: { code: string; status?: ToothStatus }) {
-  const sh = TOOTH_SHAPES[code] ?? PRIMARY_SHAPES[code];
+  const sh = placedShape(code, Number(code[0]) >= 5 ? "primary" : "permanent");
   if (!sh) return <Ionicons name="medical" size={48} color={BLUE} />;
   const pad = 14;
   const size = Math.max(sh.w, sh.h) + pad * 2;
@@ -41,16 +43,22 @@ function ToothArt({ code, status }: { code: string; status?: ToothStatus }) {
       <Defs>
         <LinearGradient id="toothGrad" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#FFFFFF" />
-          <Stop offset="1" stopColor="#CFE3F5" />
+          <Stop offset="1" stopColor="#E6DFCB" />
         </LinearGradient>
       </Defs>
-      <Path d={sh.d} fill={fill} fillOpacity={gone ? 0.35 : 1} stroke={BLUE} strokeOpacity={0.35} strokeWidth={3} strokeLinejoin="round" strokeDasharray={gone ? "8,5" : undefined} />
+      <G transform={`matrix(${sh.m.join(",")})`}>
+        {gone ? null : <Path d={sh.type.shadow} fill="#1E3A4F" fillOpacity={0.12} />}
+        <Path d={sh.type.outline} fill={fill} fillOpacity={gone ? 0.35 : 1} stroke="#7B8794" strokeWidth={2} strokeLinejoin="round" strokeDasharray={gone ? "8,5" : undefined} />
+        {sh.type.lines.map((ld, i) => (
+          <Path key={i} d={ld} fill="none" stroke={status ? "#FFFFFF" : "#7B8794"} strokeOpacity={0.85} strokeWidth={1.4} strokeLinecap="round" />
+        ))}
+      </G>
     </Svg>
   );
 }
 
 /** لوح تفاصيل السن: حالته، سجل علاجاته، وملاحظته السريرية */
-export function ToothPanel({ patient, tooth, sessions, onSetStatus, onSaveNote, onAddSession }: Props) {
+export function ToothPanel({ patient, tooth, sessions, onSetStatus, onToggleMark, onSaveNote, onAddSession }: Props) {
   const status = patient.teeth[tooth];
   const meta = status ? TOOTH_STATUS[status] : null;
   const history = sessions.filter((x) => x.tooth === tooth); // مرتّبة مسبقًا: الأحدث أولًا
@@ -109,6 +117,16 @@ export function ToothPanel({ patient, tooth, sessions, onSetStatus, onSaveNote, 
         <Chip label="سليم" selected={!status} color="#64748B" onPress={() => onSetStatus(null)} />
         {(Object.keys(TOOTH_STATUS) as ToothStatus[]).map((s) => (
           <Chip key={s} label={TOOTH_STATUS[s].label} selected={status === s} color={TOOTH_STATUS[s].hex} onPress={() => onSetStatus(s)} />
+        ))}
+      </View>
+
+      {/* علامات الرسم */}
+      <Text w="bold" className="mt-5 mb-2" style={{ color: BLUE }}>
+        علامات على السن
+      </Text>
+      <View className="flex-row flex-wrap gap-2">
+        {(Object.keys(TOOTH_MARKS) as ToothMark[]).map((m) => (
+          <Chip key={m} label={TOOTH_MARKS[m].label} selected={!!patient.toothMarks?.[tooth]?.includes(m)} color={TOOTH_MARKS[m].hex} onPress={() => onToggleMark(m)} />
         ))}
       </View>
 

@@ -132,6 +132,9 @@ export type ToothStatus =
   | "missing"
   | "extraction";
 
+/** علامات رسم إضافية على السن (من Toothmap): تُجمع مع حالة السن */
+export type ToothMark = "x" | "slash" | "pin" | "circle" | "mesial" | "distal" | "two" | "dot";
+
 /** تنبيهات طبية مصنّفة: تظهر بشريط بارز وتفحص الوصفات والإجراءات */
 export type AlertFlag =
   | "anesthesia_allergy"
@@ -174,6 +177,10 @@ export type Patient = {
   teeth: Record<string, ToothStatus>;
   /** ملاحظة سريرية لكل سن (FDI -> نص). غير المذكور = بلا ملاحظة */
   toothNotes?: Record<string, string>;
+  /** علامات رسم على الأسنان (FDI -> علامات). غير المذكور = بلا علامات */
+  toothMarks?: Record<string, ToothMark[]>;
+  /** جسور/تجبير: كل جسر قائمة أسنان مرتّبة (FDI) */
+  bridges?: string[][];
   createdAt: number;
   /** آخر مرة أُرسلت له رسالة استدعاء (متابعة) */
   recalledAt?: number;

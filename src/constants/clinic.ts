@@ -1,4 +1,4 @@
-import type { AppointmentStatus, ProcedureDef, ToothStatus } from "@/types";
+import type { AppointmentStatus, ProcedureDef, ToothMark, ToothStatus } from "@/types";
 
 /** الإجراءات الافتراضية (قيم افتراضية فقط؛ يعدّلها المستخدم من «تعديل الإجراءات») */
 export const DEFAULT_PROCEDURES: ProcedureDef[] = [
@@ -43,6 +43,23 @@ export const TOOTH_STATUS: Record<
   missing: { label: "مفقود", hex: "#6B7280", soft: "#E5E7EB" },
   extraction: { label: "مطلوب قلعه", hex: "#334155", soft: "#D1D5DB" },
 };
+
+/** علامات الرسم على السن (أدوات Toothmap) */
+export const TOOTH_MARKS: Record<ToothMark, { label: string; hex: string }> = {
+  x: { label: "علامة ×", hex: "#DC2626" },
+  slash: { label: "شطب أحمر", hex: "#DC2626" },
+  pin: { label: "دبوس / وتد", hex: "#7C3AED" },
+  circle: { label: "دائرة تمييز", hex: "#7C3AED" },
+  mesial: { label: "سطح إنسي", hex: "#F59E0B" },
+  distal: { label: "سطح وحشي", hex: "#14B8A6" },
+  two: { label: "نقطتان", hex: "#7C3AED" },
+  dot: { label: "نقطة متابعة", hex: "#EC4899" },
+};
+/** لون الجسور/التجبير على المخطط */
+export const BRIDGE_COLOR = "#7C3AED";
+
+/** بطاقة مخطط الأسنان: ورقية فاتحة (بدل الأزرق) */
+export const ODONTO_PAPER = "#F7F4EC";
 
 /** خلفية بطاقة مخطط الأسنان (أزرق من شعار العيادة) — سهل التعديل */
 export const ODONTO_BG = "#1F6B94";
