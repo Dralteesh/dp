@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { PrayerScene, SkyGradient } from "@/components/prayer/PrayerScene";
+import { PrayerToolsSheet } from "@/components/prayer/PrayerToolsSheet";
 import { StarField } from "@/components/prayer/StarField";
 import { Text } from "@/components/ui/Text";
 import { PRAYER_THEMES, skyKey } from "@/constants/prayerThemes";
@@ -12,6 +13,7 @@ import { useNow } from "@/hooks/useNow";
 import { addDays, combine, fmtCountdown, fmtDateFull, fmtTimeDate, todayISO } from "@/lib/dates";
 import { CITY, PRAYER_LABELS, PRAYER_METHODS, PRAYER_ORDER, getPrayerTimes, nextPrayer } from "@/lib/prayer";
 import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
+import { usePrayerTools } from "@/store/usePrayerTools";
 import { useSettings } from "@/store/useSettings";
 
 export default function PrayerScreen() {
@@ -29,6 +31,17 @@ export default function PrayerScreen() {
   const doneLog = usePrayerLog((s) => s.done);
   const markDone = usePrayerLog((s) => s.markDone);
   const unmark = usePrayerLog((s) => s.unmark);
+
+  // ضغط مطوّل على تبويب الصلاة يفتح نافذة الأدوات (حتى لو كانت الشاشة تُفتح للتو)
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsPending = usePrayerTools((s) => s.pending);
+  const consumeTools = usePrayerTools((s) => s.consume);
+  useEffect(() => {
+    if (toolsPending) {
+      setToolsOpen(true);
+      consumeTools();
+    }
+  }, [toolsPending, consumeTools]);
 
   // الشاشة داكنة: نجعل أيقونات شريط الحالة فاتحة وهي ظاهرة فقط
   const [focused, setFocused] = useState(true);
@@ -84,23 +97,16 @@ export default function PrayerScreen() {
       {/* الترويسة */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16 }}>
         <View className="flex-row items-center justify-between">
-          <View className="flex-row gap-2">
-            {([
-              ["alarm-outline", "/reminders-prayer"],
-              ["compass-outline", "/qibla"],
-              ["stats-chart-outline", "/prayer-stats"],
-              ["book-outline", "/quran"],
-            ] as const).map(([icon, route]) => (
-              <Pressable
-                key={route}
-                onPress={() => router.push(route)}
-                hitSlop={8}
-                className="w-9 h-9 rounded-full items-center justify-center"
-                style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-              >
-                <Ionicons name={icon} size={18} color="#FFFFFF" />
-              </Pressable>
-            ))}
+          <View style={{ width: 84, alignItems: "flex-start" }}>
+            <Pressable
+              onPress={() => setToolsOpen(true)}
+              hitSlop={8}
+              className="w-9 h-9 rounded-full items-center justify-center"
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              accessibilityLabel="أدوات الصلاة"
+            >
+              <Ionicons name="apps-outline" size={18} color="#FFFFFF" />
+            </Pressable>
           </View>
           <View className="items-center">
             <Text w="semi" className="text-white">
@@ -110,14 +116,26 @@ export default function PrayerScreen() {
               {location?.name ?? CITY.name} • {PRAYER_METHODS[prayerMethod].label}
             </Text>
           </View>
-          <Pressable
-            onPress={() => router.push("/settings")}
-            hitSlop={8}
-            className="w-9 h-9 rounded-full items-center justify-center"
-            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-          >
-            <Ionicons name="settings-outline" size={18} color="#FFFFFF" />
-          </Pressable>
+          <View className="flex-row gap-2" style={{ width: 84, justifyContent: "flex-end" }}>
+            <Pressable
+              onPress={() => router.push({ pathname: "/reminders-prayer", params: { only: "dhikr" } } as never)}
+              hitSlop={8}
+              className="w-9 h-9 rounded-full items-center justify-center"
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              accessibilityLabel="الأذكار"
+            >
+              <Ionicons name="sparkles-outline" size={18} color="#FFFFFF" />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/prayer-settings" as never)}
+              hitSlop={8}
+              className="w-9 h-9 rounded-full items-center justify-center"
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              accessibilityLabel="إعدادات الصلاة"
+            >
+              <Ionicons name="settings-outline" size={18} color="#FFFFFF" />
+            </Pressable>
+          </View>
         </View>
 
         <Text
@@ -231,11 +249,12 @@ export default function PrayerScreen() {
           w="semi"
           className="text-white text-xs text-center mt-2"
           style={{ opacity: 0.85 }}
-          onPress={() => router.push("/settings")}
+          onPress={() => router.push("/prayer-settings" as never)}
         >
           قارن الأوقات بمسجدك، وعدّل طريقة الحساب من إعدادات الصلاة
         </Text>
       </View>
+      <PrayerToolsSheet visible={toolsOpen} onClose={() => setToolsOpen(false)} />
     </View>
   );
 }

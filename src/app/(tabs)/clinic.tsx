@@ -16,6 +16,7 @@ import { Fab } from "@/components/ui/Fab";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
+import { ClinicToolsSheet } from "@/components/clinic/ClinicToolsSheet";
 import { DaySchedule } from "@/components/clinic/DaySchedule";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { Text } from "@/components/ui/Text";
@@ -482,41 +483,7 @@ export default function ClinicScreen() {
         </View>
       </Sheet>
 
-      <Sheet visible={toolsOpen} onClose={() => setToolsOpen(false)} title="أدوات العيادة">
-        <View className="flex-row flex-wrap" style={{ gap: 10 }}>
-          {[
-            { t: "المتابعة والاستدعاء", i: "logo-whatsapp", h: "/clinic/followups" },
-            { t: "دليل الأدوية", i: "medkit", h: "/clinic/drugs" },
-            { t: "المصاريف", i: "wallet", h: "/clinic/expenses" },
-            { t: "التقارير", i: "stats-chart", h: "/clinic/reports" },
-            { t: "المخزون", i: "cube", h: "/clinic/inventory" },
-            { t: "قائمة الأسعار", i: "pricetags", h: "/clinic/prices" },
-            { t: "قائمة الانتظار", i: "hourglass", h: "/clinic/waitlist" },
-            { t: "سجل التعقيم", i: "flask", h: "/clinic/sterilization" },
-            { t: "الأقساط", i: "calendar", h: "/clinic/installments" },
-            { t: "الفواتير", i: "receipt", h: "/clinic/invoices" },
-            { t: "إحصاءات", i: "pie-chart", h: "/clinic/insights" },
-            { t: "المخبر", i: "construct-outline", h: "/clinic/lab" },
-            { t: "تعديل الإجراءات", i: "construct", h: "/clinic/procedures" },
-          ].map((x) => (
-            <PressableScale
-              key={x.h}
-              containerClassName="w-[31%]"
-              className="rounded-2xl py-4 items-center gap-2"
-              style={{ backgroundColor: TYPE_META.private.soft }}
-              onPress={() => {
-                setToolsOpen(false);
-                router.push(x.h as never);
-              }}
-            >
-              <Ionicons name={x.i as never} size={26} color={TYPE_META.private.hex} />
-              <Text w="semi" className="text-xs text-center" style={{ color: TYPE_META.private.inkHex }}>
-                {x.t}
-              </Text>
-            </PressableScale>
-          ))}
-        </View>
-      </Sheet>
+      <ClinicToolsSheet visible={toolsOpen} onClose={() => setToolsOpen(false)} />
     </Screen>
   );
 }

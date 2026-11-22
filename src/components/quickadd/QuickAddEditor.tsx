@@ -55,13 +55,14 @@ type RowProps = {
   overIdx: SharedValue<number>;
   dragY: SharedValue<number>;
   onReorder: (from: number, to: number) => void;
+  onMove: (d: -1 | 1) => void;
   onScroll: (enabled: boolean) => void;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
 };
 
-function EditRow({ item, index, count, activeIdx, overIdx, dragY, onReorder, onScroll, onToggle, onEdit, onDelete }: RowProps) {
+function EditRow({ item, index, count, activeIdx, overIdx, dragY, onReorder, onMove, onScroll, onToggle, onEdit, onDelete }: RowProps) {
   const look = itemLook(item);
 
   const pan = Gesture.Pan()
@@ -128,6 +129,14 @@ function EditRow({ item, index, count, activeIdx, overIdx, dragY, onReorder, onS
           </Text>
         </Pressable>
 
+        <View className="items-center justify-center" style={{ width: 22 }}>
+          <Pressable onPress={() => onMove(-1)} hitSlop={6} disabled={index === 0} style={{ opacity: index === 0 ? 0.25 : 1 }} accessibilityLabel="أعلى">
+            <Ionicons name="chevron-up" size={18} color="#475569" />
+          </Pressable>
+          <Pressable onPress={() => onMove(1)} hitSlop={6} disabled={index === count - 1} style={{ opacity: index === count - 1 ? 0.25 : 1 }} accessibilityLabel="أسفل">
+            <Ionicons name="chevron-down" size={18} color="#475569" />
+          </Pressable>
+        </View>
         <Switch value={item.visible} onValueChange={onToggle} trackColor={{ true: BLUE, false: "#CBD5E1" }} thumbColor="#FFFFFF" />
         {item.kind === "route" ? (
           <Pressable onPress={onDelete} hitSlop={8} className="w-8 h-10 items-center justify-center" accessibilityLabel="حذف">
@@ -345,7 +354,7 @@ export function QuickAddEditor({ items }: { items: QuickAddItem[] }) {
   // ───── القائمة ─────
   return (
     <ScrollView scrollEnabled={scrollOn} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <Text className="text-xs text-muted mb-2">اسحب المقبض لإعادة الترتيب، واضغط على البند لتعديله.</Text>
+      <Text className="text-xs text-muted mb-2">اسحب المقبض أو استخدم الأسهم لإعادة الترتيب، واضغط على البند لتعديله.</Text>
       <View style={{ height: items.length * ROW_H }}>
         {items.map((it, i) => (
           <EditRow
@@ -357,6 +366,7 @@ export function QuickAddEditor({ items }: { items: QuickAddItem[] }) {
             overIdx={overIdx}
             dragY={dragY}
             onReorder={reorder}
+            onMove={(d) => reorder(i, Math.max(0, Math.min(items.length - 1, i + d)))}
             onScroll={setScrollOn}
             onToggle={() => toggle(it.id)}
             onEdit={() => openEdit(it)}

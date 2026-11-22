@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, Linking, Pressable, Switch, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -53,6 +54,8 @@ function ToggleRow({
 }
 
 export default function PrayerRemindersScreen() {
+  const { only } = useLocalSearchParams<{ only?: string }>();
+  const dhikrOnly = only === "dhikr";
   const prayerReminders = useSettings((s) => s.prayerReminders);
   const dhikr = useSettings((s) => s.dhikr);
   const update = useSettings((s) => s.update);
@@ -89,7 +92,9 @@ export default function PrayerRemindersScreen() {
   };
 
   return (
-    <Screen title="تذكيرات الصلاة والأذكار" back>
+    <Screen title={dhikrOnly ? "الأذكار" : "تذكيرات الصلاة والأذكار"} back>
+      {!dhikrOnly && (
+      <>
       {/* قبل الصلاة */}
       <SectionHeader title="قبل الصلاة" />
       <Card>
@@ -212,6 +217,9 @@ export default function PrayerRemindersScreen() {
           onPress={() => test(() => sendTestPrayerReminder(5), "سيصلك إشعار بعد ثوانٍ. أغلق التطبيق وجرّب الأزرار.")}
         />
       </Card>
+
+      </>
+      )}
 
       {/* الأذكار */}
       <SectionHeader title="الأذكار" />

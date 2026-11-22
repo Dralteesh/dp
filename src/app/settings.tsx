@@ -44,30 +44,6 @@ function SettingsLink({ icon, title, hint, href, last }: LinkProps) {
 export default function SettingsScreen() {
   const s = useSettings();
 
-  const locate = async () => {
-    try {
-      const Location = await import("expo-location");
-      const perm = await Location.requestForegroundPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert("الإذن مطلوب", "فعّل إذن الموقع للتطبيق من إعدادات الهاتف.");
-        return;
-      }
-      const pos =
-        (await Location.getLastKnownPositionAsync()) ??
-        (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
-      const { latitude: lat, longitude: lng } = pos.coords;
-      let name = "موقعي";
-      try {
-        const g = (await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng }))[0];
-        name = g?.city || g?.subregion || g?.region || name;
-      } catch {}
-      s.update({ location: { name, lat, lng } });
-      setCity({ name, lat, lng });
-      Alert.alert("تم", `الموقع: ${name}`);
-    } catch {
-      Alert.alert("تعذّر تحديد الموقع", "شغّل GPS وجرّب مجددًا.");
-    }
-  };
   const resetPlanner = usePlanner((p) => p.resetAll);
   const resetClinic = useClinic((c) => c.resetAll);
 
@@ -149,77 +125,9 @@ export default function SettingsScreen() {
         </FieldRow>
       </Card>
 
-      <SectionHeader title={`الصلاة • ${s.location?.name ?? CITY.name}`} />
+      <SectionHeader title="الصلاة" />
       <Card>
-        <FieldRow label="الموقع (للمواقيت والقبلة)">
-          <View className="flex-row gap-2">
-            <View className="flex-1">
-              <Button label="تحديد موقعي" icon="locate" variant="soft" onPress={locate} />
-            </View>
-            <View className="flex-1">
-              <Button label="حماه (الافتراضي)" icon="refresh" variant="soft" onPress={() => { s.update({ location: null }); setCity(null); }} />
-            </View>
-          </View>
-          <Text className="text-xs text-muted mt-1">
-            يُحفظ الموقع على الجهاز، وتعمل المواقيت والقبلة بعدها بلا إنترنت.
-          </Text>
-        </FieldRow>
-        <FieldRow label="طريقة الحساب">
-          {(Object.keys(PRAYER_METHODS) as PrayerMethodKey[]).map((k) => {
-            const active = s.prayerMethod === k;
-            return (
-              <Pressable
-                key={k}
-                onPress={() => s.update({ prayerMethod: k })}
-                className="flex-row items-center gap-3 py-2.5"
-              >
-                <Ionicons
-                  name={active ? "radio-button-on" : "radio-button-off"}
-                  size={22}
-                  color={active ? "#16A34A" : "#94A3B8"}
-                />
-                <Text w={active ? "bold" : "regular"}>{PRAYER_METHODS[k].label}</Text>
-              </Pressable>
-            );
-          })}
-        </FieldRow>
-
-        <FieldRow label="المذهب (وقت العصر)">
-          <View className="flex-row gap-2">
-            <Chip label="جمهور (ظل مثل)" selected={s.madhab === "shafi"} color="#16A34A" onPress={() => s.update({ madhab: "shafi" })} />
-            <Chip label="حنفي (ظلان)" selected={s.madhab === "hanafi"} color="#16A34A" onPress={() => s.update({ madhab: "hanafi" })} />
-          </View>
-        </FieldRow>
-
-        <FieldRow label="تعديل يدوي بالدقائق (لمطابقة تقويم الأوقاف)">
-          {PRAYER_ORDER.map((k) => {
-            const v = s.prayerAdjust[k] ?? 0;
-            return (
-              <View key={k} className="flex-row items-center justify-between py-1.5">
-                <Text w="semi">{PRAYER_LABELS[k]}</Text>
-                <View className="flex-row items-center gap-3">
-                  <Pressable
-                    onPress={() => s.setAdjust(k, v - 1)}
-                    className="w-9 h-9 rounded-full bg-slate-100 items-center justify-center"
-                  >
-                    <Ionicons name="remove" size={18} color="#0F172A" />
-                  </Pressable>
-                  <Text w="bold" className="w-10 text-center" style={{ fontVariant: ["tabular-nums"] }}>
-                    {v > 0 ? `+${v}` : v}
-                  </Text>
-                  <Pressable
-                    onPress={() => s.setAdjust(k, v + 1)}
-                    className="w-9 h-9 rounded-full bg-slate-100 items-center justify-center"
-                  >
-                    <Ionicons name="add" size={18} color="#0F172A" />
-                  </Pressable>
-                </View>
-              </View>
-            );
-          })}
-        </FieldRow>
-        <SettingsLink icon="business" title="مسجدي" hint="أوقات الإقامة في مسجدك" href="/mosque" />
-        <SettingsLink icon="book" title="القرآن الكريم" hint="قراءة واستماع وترجمة" href="/quran" last />
+        <SettingsLink icon="moon-outline" title="إعدادات الصلاة" hint="الموقع، طريقة الحساب، المذهب، المسجد، التذكيرات والأذكار" href="/prayer-settings" last />
       </Card>
 
       <SectionHeader title="التذكيرات" />

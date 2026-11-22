@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { NAV_ICONS } from "@/constants/icons";
 import { useClinicTools } from "@/store/useClinicTools";
+import { usePrayerTools } from "@/store/usePrayerTools";
 import { useQuickAdd } from "@/store/useQuickAdd";
 
 const CLINIC_LOGO = require("../../../assets/clinic-logo.png");
@@ -50,6 +51,7 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
   const insets = useSafeAreaInsets();
   const showQuickAdd = useQuickAdd((s) => s.show);
   const requestTools = useClinicTools((s) => s.request);
+  const requestPrayerTools = usePrayerTools((s) => s.request);
   const [kb, setKb] = useState(false);
 
   useEffect(() => {
@@ -144,10 +146,15 @@ export function FloatingTabBar({ state, navigation }: BarProps) {
                       press("clinic");
                       requestTools();
                     }
-                  : undefined
+                  : name === "prayer"
+                    ? () => {
+                        press("prayer");
+                        requestPrayerTools();
+                      }
+                    : undefined
               }
               delayLongPress={350}
-              accessibilityLabel={name === "clinic" ? "العيادة (اضغط مطوّلًا لأدوات العيادة)" : m.label}
+              accessibilityLabel={name === "clinic" ? "العيادة (اضغط مطوّلًا لأدوات العيادة)" : name === "prayer" ? "الصلاة (اضغط مطوّلًا لأدوات الصلاة)" : m.label}
               style={{ flex: 1, alignItems: "center", paddingVertical: 6 }}
             >
               <View
