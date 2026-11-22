@@ -6,7 +6,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -48,6 +48,11 @@ export default function ClinicScreen() {
   const setStatus = useClinic((s) => s.setAppointmentStatus);
 
   const [tab, setTab] = useState<Tab>("day");
+  // فتح قسم محدّد من الرئيسية (اليوم / المرضى / المالية)
+  const params = useLocalSearchParams<{ tab?: string; t?: string }>();
+  useEffect(() => {
+    if (params.tab === "day" || params.tab === "patients" || params.tab === "money") setTab(params.tab);
+  }, [params.tab, params.t]);
   const [date, setDate] = useState(toISO(new Date()));
   const [query, setQuery] = useState("");
   const [pFilter, setPFilter] = useState<PFilter>("active");

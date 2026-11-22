@@ -13,6 +13,7 @@ import { alarmSupported, ensureAlarmPermissions, nextAlarmFire, scheduleTestAlar
 import { CHALLENGE_LABELS } from "@/lib/alarmChallenge";
 import { addDays, combine, fmtTime, toISO } from "@/lib/dates";
 import { useAlarms } from "@/store/useAlarms";
+import { useOnFabRequest } from "@/store/useFabRequest";
 import type { AlarmItem } from "@/types";
 
 // ---------- ألوان تصميم Clucky ----------
@@ -60,6 +61,8 @@ export default function AlarmsScreen() {
 
   const openEdit = (id: string, date?: string) =>
     router.push({ pathname: "/alarm/[id]", params: date ? { id, date } : { id } });
+  // الضغط المطوّل على الزر العائم = منبّه جديد
+  useOnFabRequest("alarms", () => openEdit("new"));
 
   // اليوم المحدّد في شريط الأسبوع (null = عرض الكل)
   const [selDay, setSelDay] = useState<number | null>(null);
@@ -151,9 +154,18 @@ export default function AlarmsScreen() {
             المنبّه
           </Text>
         </View>
-        <Text style={{ fontSize: 12, color: MUTED }}>
-          {alarms.filter((a) => a.enabled).length} من {alarms.length} فعّال
-        </Text>
+        <View style={[s.row, { gap: 10 }]}>
+          <Text style={{ fontSize: 12, color: MUTED }}>
+            {alarms.filter((a) => a.enabled).length} من {alarms.length} فعّال
+          </Text>
+          <Pressable
+            onPress={() => openEdit("new")}
+            accessibilityLabel="إضافة منبّه"
+            style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: RED, alignItems: "center", justifyContent: "center" }}
+          >
+            <Ionicons name="add" size={28} color="#fff" />
+          </Pressable>
+        </View>
       </View>
 
       <WeekStrip
@@ -235,9 +247,6 @@ export default function AlarmsScreen() {
         </Svg>
       </View>
 
-      <Pressable onPress={() => openEdit("new")} accessibilityLabel="إضافة منبّه" style={s.fab}>
-        <Ionicons name="add" size={36} color="#fff" />
-      </Pressable>
     </View>
   );
 }

@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { AddEventSheet } from "@/components/AddEventSheet";
 import { AgendaRow } from "@/components/AgendaRow";
 import { DayCards } from "@/components/calendar/DayCards";
 import { WeekSchedule } from "@/components/calendar/WeekSchedule";
+import { TasksPanel } from "@/components/tasks/TasksPanel";
 import { Segmented } from "@/components/ui/Chip";
 import { MonthGrid } from "@/components/MonthGrid";
 import { Card } from "@/components/ui/Card";
@@ -19,6 +21,8 @@ import { typesOn } from "@/lib/agenda";
 import { addDays, fmtDateLong, monthCells, todayISO } from "@/lib/dates";
 import type { ShiftType } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
+import { useOnFabRequest } from "@/store/useFabRequest";
+import { usePlanner } from "@/store/usePlanner";
 
 export default function CalendarScreen() {
   useTheme();
@@ -35,6 +39,20 @@ export default function CalendarScreen() {
   const [addDate, setAddDate] = useState<string | null>(null);
   const [mode, setMode] = useState<"month" | "days" | "week">("month");
   const [weekStart, setWeekStart] = useState(todayISO());
+
+  // أقسام: التقويم • المهام • الملاحظات (المهام والملاحظات انتقلت إلى هنا)
+  type Section = "calendar" | "tasks" | "notes";
+  const params = useLocalSearchParams<{ section?: string; t?: string }>();
+  const [section, setSection] = useState<Section>("calendar");
+  const [addSignal, setAddSignal] = useState(0);
+  useEffect(() => {
+    if (params.section === "calendar" || params.section === "tasks" || params.section === "notes") setSection(params.section);
+  }, [params.section, params.t]);
+  const openCount = usePlanner((s) => s.tasks.filter((t) => !t.done).length);
+  const notesCount = usePlanner((s) => s.notes.length);
+  const addHere = () => (section === "calendar" ? setAddOpen(true) : setAddSignal((n) => n + 1));
+  // الضغط المطوّل على الزر العائم = إضافة (حدث أو مهمة أو ملاحظة حسب القسم)
+  useOnFabRequest("calendar", addHere);
 
   const dayAgenda = useAgenda(selected);
 
@@ -64,13 +82,31 @@ export default function CalendarScreen() {
     <Screen
       title="التقويم"
       back
+      subtitle={section === "tasks" ? `${openCount} مهمة مفتوحة` : section === "notes" ? `${notesCount} ملاحظة` : undefined}
       right={
-        <Text w="semi" className="text-hospital" onPress={goToday}>
-          اليوم
-        </Text>
+        section === "calendar" ? (
+          <Text w="semi" className="text-hospital" onPress={goToday}>
+            اليوم
+          </Text>
+        ) : undefined
       }
-      overlay={<Fab onPress={() => setAddOpen(true)} />}
+      overlay={<Fab onPress={addHere} />}
     >
+      <Segmented
+        value={section}
+        onChange={setSection}
+        options={[
+          { value: "calendar", label: "التقويم" },
+          { value: "tasks", label: "المهام" },
+          { value: "notes", label: "الملاحظات" },
+        ]}
+      />
+      <View className="h-4" />
+
+      {section !== "calendar" ? (
+        <TasksPanel mode={section} addSignal={addSignal} />
+      ) : (
+        <>
       <Segmented
         value={mode}
         onChange={(m) => {
@@ -149,6 +185,8 @@ export default function CalendarScreen() {
         dayAgenda.map((it) => <AgendaRow key={it.key} item={it} onPress={() => open(it)} />)
       )}
 
+        </>
+      )}
         </>
       )}
 

@@ -13,10 +13,12 @@ type Props = {
   next: { key: PrayerKey; time: Date; previous: Date };
   now: Date;
   onPress: () => void;
+  /** نصف العرض بجانب بطاقة الطقس */
+  compact?: boolean;
 };
 
 /** بطاقة الصلاة القادمة في شاشة اليوم: نفس سماء شاشة الصلاة بمقياس مصغّر */
-export function PrayerCard({ next, now, onPress }: Props) {
+export function PrayerCard({ next, now, onPress, compact }: Props) {
   const prayerMethod = useSettings((s) => s.prayerMethod);
   const madhab = useSettings((s) => s.madhab);
   useSettings((s) => s.location); // إعادة الرسم عند تغيّر الموقع
@@ -38,8 +40,8 @@ export function PrayerCard({ next, now, onPress }: Props) {
   return (
     <PressableScale
       onPress={onPress}
-      containerClassName="mb-4"
-      className="rounded-3xl overflow-hidden"
+      containerClassName={compact ? "flex-1" : "mb-4"}
+      className="rounded-[28px] overflow-hidden"
       style={{ height: 158 }}
     >
       <SkyGradient colors={t.sky} />
@@ -51,7 +53,7 @@ export function PrayerCard({ next, now, onPress }: Props) {
       </View>
 
       <View style={{ padding: 18 }}>
-        <Text className="text-white text-xs" style={{ opacity: 0.9 }}>
+        <Text className="text-white text-xs" style={{ opacity: 0.9 }} numberOfLines={1}>
           الصلاة القادمة • {CITY.name}
         </Text>
         <Text w="bold" className="text-white" style={{ fontSize: 32, lineHeight: 44 }}>

@@ -9,12 +9,12 @@ type Props = {
   icon?: IconName;
   color?: string;
   iconColor?: string;
-  /** المسافة من الأسفل (الافتراضي يرفعه فوق الشريط العائم) */
+  /** المسافة من الأسفل (الافتراضي بمحاذاة الزر العائم الأوسط) */
   bottom?: number;
 };
 
 /** زر عائم أسفل الشاشة (فوق شريط التبويبات) */
-export function Fab({ onPress, icon = "add", color = "#6366F1", iconColor = "#FFFFFF", bottom = 104 }: Props) {
+export function Fab({ onPress, icon = "add", color = "#6366F1", iconColor = "#FFFFFF", bottom = 28 }: Props) {
   return (
     <View style={{ position: "absolute", bottom, ...fabSide() }} pointerEvents="box-none">
       <PressableScale

@@ -10,6 +10,7 @@ import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { fmtDateShort, toISO } from "@/lib/dates";
 import { inputAlign } from "@/lib/rtl";
+import { useOnFabRequest } from "@/store/useFabRequest";
 import { KIND_ICON, KIND_META, kindOf, mimeOf, useDocs, type DocItem, type DocKind } from "@/store/useDocs";
 
 const BLUE = "#0E6FA5";
@@ -47,6 +48,8 @@ export default function DocsTab() {
       Alert.alert("تعذّر الاستيراد", String((e as Error)?.message ?? e));
     }
   };
+  // الضغط المطوّل على الزر العائم = إضافة ملف
+  useOnFabRequest("documents", add);
 
   const share = async (d: DocItem) => {
     if (!(await Sharing.isAvailableAsync())) return Alert.alert("غير متاح", "المشاركة غير متاحة على هذا الجهاز.");

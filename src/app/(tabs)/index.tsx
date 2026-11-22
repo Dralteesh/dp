@@ -4,12 +4,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
 import { PrayerCard } from "@/components/PrayerCard";
+import { ClinicHomeCard } from "@/components/home/ClinicHomeCard";
 import { RecentDocs } from "@/components/home/RecentDocs";
-import { TaskStack } from "@/components/home/TaskStack";
+import { UpcomingAlarmsCard } from "@/components/home/UpcomingAlarmsCard";
+import { WeatherTile } from "@/components/home/WeatherTile";
 import { TimelineCard, remainingMinutes } from "@/components/home/TimelineRow";
 import { WeekTimeline } from "@/components/home/WeekTimeline";
-import { EmptyState, SectionHeader } from "@/components/ui/EmptyState";
-import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { NAV_ICONS } from "@/constants/icons";
@@ -20,10 +21,8 @@ import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
 import { useTheme } from "@/hooks/useTheme";
 import { relativeDay, toISO, toMinutes } from "@/lib/dates";
 import { nextPrayer } from "@/lib/prayer";
-import { usePlanner } from "@/store/usePlanner";
 import { useQuickAdd } from "@/store/useQuickAdd";
 import { useSettings } from "@/store/useSettings";
-import type { Task } from "@/types";
 
 const BLUE = "#0E6FA5";
 
@@ -50,8 +49,6 @@ export default function HomeScreen() {
   const input = useAgendaInput();
   const agenda = useAgenda(selected);
   const open = useOpenAgendaItem();
-  const tasks = usePlanner((s) => s.tasks);
-  const toggleTask = usePlanner((s) => s.toggleTask);
 
   const np = useMemo(
     () => nextPrayer(new Date(), { prayerMethod, madhab, prayerAdjust }),
@@ -73,15 +70,6 @@ export default function HomeScreen() {
   };
 
   const doneCount = agenda.filter((a) => state(a).past || a.status === "done").length;
-
-  const todayTasks: Task[] = useMemo(
-    () =>
-      tasks
-        .filter((t) => !t.done && (!t.dueDate || t.dueDate <= today))
-        .sort((a, b) => (a.priority === "high" ? -1 : 0) - (b.priority === "high" ? -1 : 0))
-        .slice(0, 5),
-    [tasks, today],
-  );
 
   /** الجاري الآن، وإلا أول ما لم يبدأ بعد، وإلا أول عنصر في اليوم */
   const focus = agenda.find((a) => state(a).live) ?? agenda.find((a) => !state(a).past) ?? agenda[0];
@@ -117,8 +105,11 @@ export default function HomeScreen() {
         </View>
       }
     >
-      {/* بطاقة الصلاة في الأعلى */}
-      <PrayerCard next={np} now={now} onPress={() => router.push("/prayer")} />
+      {/* الصلاة + الطقس جنبًا إلى جنب */}
+      <View className="flex-row gap-3 mb-4">
+        <PrayerCard compact next={np} now={now} onPress={() => router.push("/prayer")} />
+        <WeatherTile />
+      </View>
 
       {/* الأسبوع: جدول زمني بأعمدة */}
       <WeekTimeline
@@ -167,25 +158,17 @@ export default function HomeScreen() {
         ) : null}
       </View>
 
-      {/* المهام */}
-      {showTasks ? (
-        <>
-          <SectionHeader title="مهام اليوم" action="كل المهام" onAction={() => router.push("/tasks")} />
-          {todayTasks.length === 0 ? (
-            <Card>
-              <EmptyState icon="checkmark-done-outline" title="لا مهام معلّقة" hint="اضغط + ثم «مهمة» لإضافة واحدة" />
-            </Card>
-          ) : (
-            <TaskStack tasks={todayTasks} onToggle={toggleTask} onOpen={() => router.push("/tasks")} />
-          )}
-        </>
-      ) : null}
+      {/* العيادة: أرقام وأدوات */}
+      <ClinicHomeCard />
+
+      {/* المنبّهات القادمة */}
+      {showTasks ? <UpcomingAlarmsCard now={now} /> : null}
 
       {/* المستندات: مدخل دائم في الرئيسية (صار تبويب الطقس مكانها في الشريط) */}
       <Pressable
         onPress={() => router.push("/documents")}
         accessibilityLabel="المستندات"
-        className="flex-row items-center gap-3 bg-surface border border-line rounded-[24px] p-3"
+        className="flex-row items-center gap-3 bg-surface border border-line rounded-[24px] p-3 mt-4"
       >
         <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: "#D6EBF7" }}>
           <Image source={NAV_ICONS.docs.on} style={{ width: 44, height: 44 }} resizeMode="contain" />

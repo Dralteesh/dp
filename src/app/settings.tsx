@@ -85,7 +85,7 @@ export default function SettingsScreen() {
       <Card>
         <View className="flex-row items-center justify-between">
           <View className="flex-1 pe-3">
-            <Text w="semi">إظهار مهام اليوم</Text>
+            <Text w="semi">إظهار المنبّهات القادمة</Text>
             <Text className="text-xs text-muted">أخفها إن أردت رئيسية أخف</Text>
           </View>
           <Switch

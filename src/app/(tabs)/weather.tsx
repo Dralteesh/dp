@@ -31,6 +31,7 @@ import {
   severeAlerts,
   whenText,
 } from "@/lib/weatherInsights";
+import { useOnFabRequest } from "@/store/useFabRequest";
 import { useWeather } from "@/store/useWeather";
 
 const HOURS_SHOWN = 48;
@@ -155,6 +156,8 @@ export default function WeatherScreen() {
   const [sel, setSel] = useState(0);
   const [tab, setTab] = useState<"today" | "tomorrow">("today");
   const [sheet, setSheet] = useState(false);
+  // الضغط المطوّل على الزر العائم = قائمة المدن
+  useOnFabRequest("weather", () => setSheet(true));
   const [optSheet, setOptSheet] = useState(false);
   const [daysCount, setDaysCount] = useState(7);
   const [H, setH] = useState(0);

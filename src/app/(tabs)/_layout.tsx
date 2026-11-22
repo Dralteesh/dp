@@ -1,16 +1,17 @@
 import { Tabs } from "expo-router";
-import { FloatingTabBar } from "@/components/nav/FloatingTabBar";
+import { HomeFab } from "@/components/nav/HomeFab";
 
 /**
- * الشريط: المنبّه • العيادة • الرئيسية (المنتصف) • الصلاة • الطقس.
- * المستندات صارت تُفتح من الرئيسية (مخفية من الشريط).
- * التقويم والمهام شاشات داخل التبويبات لكنها مخفية من الشريط (تُفتح من الرئيسية).
+ * بلا شريط سفلي: الرئيسية هي المدخل لكل الأقسام (الصلاة، الطقس، المنبّه، العيادة، التقويم، المستندات).
+ * زر عائم وحيد في الأسفل: ضغطة = الرئيسية، ومطوّلة = إجراء القسم الحالي.
+ * زر الرجوع في أندرويد يعيد إلى الرئيسية.
  */
 export default function TabsLayout() {
   return (
     <Tabs
       initialRouteName="index"
-      tabBar={(props) => <FloatingTabBar {...(props as never)} />}
+      backBehavior="initialRoute"
+      tabBar={(props) => <HomeFab {...(props as never)} />}
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" options={{ title: "الرئيسية" }} />
@@ -18,10 +19,10 @@ export default function TabsLayout() {
       <Tabs.Screen name="alarms" options={{ title: "المنبّه" }} />
       <Tabs.Screen name="prayer" options={{ title: "الصلاة" }} />
       <Tabs.Screen name="weather" options={{ title: "الطقس" }} />
-      <Tabs.Screen name="documents" options={{ title: "المستندات", href: null }} />
+      <Tabs.Screen name="documents" options={{ title: "المستندات" }} />
       <Tabs.Screen name="focus" options={{ href: null }} />
-      <Tabs.Screen name="calendar" options={{ title: "التقويم", href: null }} />
-      <Tabs.Screen name="tasks" options={{ title: "المهام", href: null }} />
+      <Tabs.Screen name="calendar" options={{ title: "التقويم" }} />
+      <Tabs.Screen name="tasks" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { ToolsSheet, type Tool } from "@/components/ui/ToolsSheet";
 import { useSettings } from "@/store/useSettings";
 
-const CLINIC_TOOLS: Tool[] = [
+export const CLINIC_TOOLS: Tool[] = [
   { id: "followups", label: "المتابعة والاستدعاء", icon: "logo-whatsapp", path: "/clinic/followups" },
   { id: "drugs", label: "دليل الأدوية", icon: "medkit", path: "/clinic/drugs" },
   { id: "expenses", label: "المصاريف", icon: "wallet", path: "/clinic/expenses" },
@@ -17,6 +18,16 @@ const CLINIC_TOOLS: Tool[] = [
   { id: "procedures", label: "تعديل الإجراءات", icon: "construct", path: "/clinic/procedures" },
 ];
 const DEFAULT_IDS = CLINIC_TOOLS.map((t) => t.id);
+
+/** أدوات العيادة المحفوظة بترتيب المستخدم (للصف الأفقي في الرئيسية) */
+export function useClinicToolList(): Tool[] {
+  const saved = useSettings((s) => s.clinicTools);
+  return useMemo(() => {
+    const known = new Set(CLINIC_TOOLS.map((t) => t.id));
+    const base = saved && Array.isArray(saved) ? saved.filter((i) => known.has(i)) : DEFAULT_IDS;
+    return [...new Set(base)].map((id) => CLINIC_TOOLS.find((t) => t.id === id)!);
+  }, [saved]);
+}
 
 /** أدوات العيادة (ضغط مطوّل على تبويب العيادة): قابلة للإضافة والإزالة والترتيب */
 export function ClinicToolsSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
