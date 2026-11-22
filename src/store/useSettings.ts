@@ -45,6 +45,7 @@ export const DEFAULT_SETTINGS: Settings = {
     maghrib: true,
     isha: true,
   },
+  incomeSplit: { doctorPct: 0, materialsPct: 0 },
   location: null,
   mosque: null,
   quranTranslation: "none",
@@ -98,6 +99,7 @@ export const useSettings = create<SettingsState>()(
         prayerAdjust: s.prayerAdjust,
         prayerNotify: s.prayerNotify,
         prayerReminders: s.prayerReminders,
+        incomeSplit: s.incomeSplit,
         location: s.location,
         mosque: s.mosque,
         quranTranslation: s.quranTranslation,
@@ -133,6 +135,7 @@ export const useSettings = create<SettingsState>()(
             repeat: { ...DEFAULT_PRAYER_REMINDERS.repeat, ...p.prayerReminders?.repeat },
             quiet: { ...DEFAULT_PRAYER_REMINDERS.quiet, ...p.prayerReminders?.quiet },
           },
+          incomeSplit: { ...DEFAULT_SETTINGS.incomeSplit, ...p.incomeSplit },
           dhikr: { ...DEFAULT_DHIKR, ...p.dhikr, texts: p.dhikr?.texts ?? DEFAULT_DHIKR_TEXTS },
         };
       },

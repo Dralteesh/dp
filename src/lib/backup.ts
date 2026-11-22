@@ -46,6 +46,14 @@ export async function pickBackup(): Promise<{ backup?: Backup; error?: string; c
 
 /** يستبدل بيانات الهاتف بمحتوى النسخة (المزامنة السحابية ستتبع الحالة الجديدة) */
 export function applyBackup(b: Backup) {
+  // نسخة أمان تلقائية بالحالة الحالية قبل الاستبدال (للتراجع إن اخترت ملفًا خاطئًا)
+  try {
+    const safe = JSON.stringify(snapshot());
+    const uri = `${FileSystem.documentDirectory}pre-restore-backup.json`;
+    void FileSystem.writeAsStringAsync(uri, safe).catch(() => undefined);
+  } catch {
+    // لا نمنع الاستعادة بسبب فشل نسخة الأمان
+  }
   const planner: Record<string, unknown> = {};
   for (const k of PLANNER_KEYS) planner[k] = b.data.planner[k];
   usePlanner.setState(planner as never);

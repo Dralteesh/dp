@@ -146,3 +146,56 @@ export type LabOrder = {
   notes?: string;
   createdAt: number;
 };
+
+/** قياسات لثة لسن واحد: عمق الجيب (مم) على 6 مواقع، النزف، التراجع، الحركة */
+export type PerioTooth = {
+  /** [دهليزي-وحشي, دهليزي-وسط, دهليزي-أنسي, لساني-وحشي, لساني-وسط, لساني-أنسي] */
+  pd: Array<number | null>;
+  /** نزف عند الجس (أي موقع) */
+  bop: boolean;
+  /** تراجع لثوي (مم) */
+  rec?: number;
+  /** حركة السن 0..3 */
+  mob?: number;
+};
+
+export type PerioChart = {
+  id: string;
+  patientId: string;
+  /** YYYY-MM-DD */
+  date: string;
+  teeth: Record<string, PerioTooth>;
+  notes?: string;
+  createdAt: number;
+};
+
+export type ExamDiagnosis = { id: string; tooth?: string; code: string; label: string };
+
+/** فحص سريري مؤرَّخ: لقطة لحالة الأسنان + تشخيصات ICD-10 */
+export type DentalExam = {
+  id: string;
+  patientId: string;
+  date: string;
+  /** نسخة من patient.teeth وقت الفحص */
+  teeth: Record<string, string>;
+  diagnoses: ExamDiagnosis[];
+  notes?: string;
+  createdAt: number;
+};
+
+export type InvoiceLine = { id: string; desc: string; qty: number; price: number };
+
+/** فاتورة مرقّمة للمريض */
+export type Invoice = {
+  id: string;
+  /** رقم تسلسلي */
+  number: number;
+  patientId: string;
+  date: string;
+  lines: InvoiceLine[];
+  discount: number;
+  notes?: string;
+  /** الجلسات المشمولة (حتى لا تُفوتَر مرتين) */
+  sessionIds: string[];
+  createdAt: number;
+};

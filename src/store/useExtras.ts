@@ -4,8 +4,11 @@ import { uid } from "@/lib/id";
 import { storage } from "@/lib/storage";
 import type {
   ConsentRecord,
+  DentalExam,
   InstallPlan,
+  Invoice,
   LabOrder,
+  PerioChart,
   OrthoCase,
   PriceItem,
   SterilCycle,
@@ -21,6 +24,18 @@ type ExtrasState = {
   consents: ConsentRecord[];
   installPlans: InstallPlan[];
   labOrders: LabOrder[];
+  perioCharts: PerioChart[];
+  dentalExams: DentalExam[];
+  invoices: Invoice[];
+
+  addPerio: (c: Omit<PerioChart, "id" | "createdAt">) => string;
+  updatePerio: (id: string, patch: Partial<PerioChart>) => void;
+  removePerio: (id: string) => void;
+  addExam: (e: Omit<DentalExam, "id" | "createdAt">) => void;
+  removeExam: (id: string) => void;
+  /** يضيف فاتورة بالرقم التالي ويعيد رقمها */
+  addInvoice: (i: Omit<Invoice, "id" | "createdAt" | "number">) => number;
+  removeInvoice: (id: string) => void;
 
   /** يعدّل ملف التقويم أو ينشئه للمريض */
   saveOrtho: (patientId: string, patch: Partial<Omit<OrthoCase, "id" | "patientId" | "createdAt">>) => void;
@@ -59,6 +74,28 @@ export const useExtras = create<ExtrasState>()(
       consents: [],
       installPlans: [],
       labOrders: [],
+      perioCharts: [],
+      dentalExams: [],
+      invoices: [],
+
+      addPerio: (c) => {
+        const id = uid();
+        set((s) => ({ perioCharts: [{ ...c, id, createdAt: Date.now() }, ...s.perioCharts] }));
+        return id;
+      },
+      updatePerio: (id, patch) => set((s) => ({ perioCharts: s.perioCharts.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
+      removePerio: (id) => set((s) => ({ perioCharts: s.perioCharts.filter((x) => x.id !== id) })),
+      addExam: (e) => set((s) => ({ dentalExams: [{ ...e, id: uid(), createdAt: Date.now() }, ...s.dentalExams] })),
+      removeExam: (id) => set((s) => ({ dentalExams: s.dentalExams.filter((x) => x.id !== id) })),
+      addInvoice: (i) => {
+        let number = 1;
+        set((s) => {
+          number = s.invoices.reduce((m, x) => Math.max(m, x.number), 0) + 1;
+          return { invoices: [{ ...i, id: uid(), number, createdAt: Date.now() }, ...s.invoices] };
+        });
+        return number;
+      },
+      removeInvoice: (id) => set((s) => ({ invoices: s.invoices.filter((x) => x.id !== id) })),
 
       saveOrtho: (patientId, patch) =>
         set((s) => {
@@ -96,7 +133,7 @@ export const useExtras = create<ExtrasState>()(
       addCycle: (c) => set((s) => ({ sterilization: [{ ...c, id: uid(), createdAt: Date.now() }, ...s.sterilization] })),
       removeCycle: (id) => set((s) => ({ sterilization: s.sterilization.filter((x) => x.id !== id) })),
 
-      resetAll: () => set({ priceList: [], waitlist: [], sterilization: [], orthoCases: [], consents: [], installPlans: [], labOrders: [] }),
+      resetAll: () => set({ priceList: [], waitlist: [], sterilization: [], orthoCases: [], consents: [], installPlans: [], labOrders: [], perioCharts: [], dentalExams: [], invoices: [] }),
     }),
     {
       name: "dp.extras.v1",
@@ -109,6 +146,9 @@ export const useExtras = create<ExtrasState>()(
         consents: s.consents,
         installPlans: s.installPlans,
         labOrders: s.labOrders,
+        perioCharts: s.perioCharts,
+        dentalExams: s.dentalExams,
+        invoices: s.invoices,
       }),
     },
   ),

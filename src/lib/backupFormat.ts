@@ -18,7 +18,7 @@ export const CLINIC_KEYS = [
 ] as const;
 
 /** بيانات العيادة الإضافية (store منفصل: useExtras) */
-export const EXTRAS_KEYS = ["priceList", "waitlist", "sterilization", "orthoCases", "consents", "installPlans", "labOrders"] as const;
+export const EXTRAS_KEYS = ["priceList", "waitlist", "sterilization", "orthoCases", "consents", "installPlans", "labOrders", "perioCharts", "dentalExams", "invoices"] as const;
 
 export type BackupData = {
   planner: Record<(typeof PLANNER_KEYS)[number], unknown[]>;
@@ -88,6 +88,13 @@ export function backupCounts(b: Backup): { label: string; n: number }[] {
     { label: "دفعات", n: b.data.clinic.payments.length },
     { label: "وصفات", n: b.data.clinic.prescriptions.length },
     { label: "سجلات تعقيم", n: b.data.extras.sterilization.length },
+    { label: "ملفات تقويم", n: b.data.extras.orthoCases.length },
+    { label: "نماذج موافقة", n: b.data.extras.consents.length },
+    { label: "خطط تقسيط", n: b.data.extras.installPlans.length },
+    { label: "طلبات مخبر", n: b.data.extras.labOrders.length },
+    { label: "فحوصات لثة", n: b.data.extras.perioCharts.length },
+    { label: "فحوصات تشخيصية", n: b.data.extras.dentalExams.length },
+    { label: "فواتير", n: b.data.extras.invoices.length },
     { label: "أحداث", n: b.data.planner.events.length },
     { label: "مهام", n: b.data.planner.tasks.length },
   ];

@@ -141,3 +141,34 @@ export function consentHtml(ctx: DocCtx, patient: Patient, title: string, body: 
 <div style="flex:1;text-align:center;border-top:1px solid #94a3b8;padding-top:6px">${doc}</div></div>`;
   return page(ctx, title, html, { signature: false });
 }
+
+/** تقرير قياسات اللثة */
+export function perioHtml(ctx: DocCtx, patient: Patient, date: string, teeth: Record<string, { pd: Array<number | null>; bop: boolean; rec?: number; mob?: number }>, st: { teeth: number; avg: number; deepSites: number; deepPct: number; bopPct: number }): string {
+  const rows = Object.keys(teeth)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((k) => {
+      const t = teeth[k];
+      const cell = (v: number | null) => `<td class="num"${v != null && v >= 4 ? ' style="background:#fee2e2;font-weight:700"' : ""}>${v ?? "—"}</td>`;
+      return `<tr><td>${esc(k)}</td>${t.pd.map(cell).join("")}<td>${t.bop ? "نعم" : "—"}</td><td class="num">${t.rec ?? "—"}</td><td class="num">${t.mob ?? "—"}</td></tr>`;
+    })
+    .join("");
+  const body = `${patientBlock(patient)}<div class="meta">تاريخ الفحص: ${esc(date)} • متوسط عمق الجيب ${st.avg.toFixed(1)} مم • مواقع ≥ 4 مم: ${st.deepSites} (${Math.round(st.deepPct * 100)}%) • نزف: ${Math.round(st.bopPct * 100)}% من الأسنان</div>
+<table><tr><th>السن</th><th>د-وحشي</th><th>د-وسط</th><th>د-أنسي</th><th>ل-وحشي</th><th>ل-وسط</th><th>ل-أنسي</th><th>نزف</th><th>تراجع</th><th>حركة</th></tr>${rows}</table>
+<div class="foot">د = دهليزي، ل = لساني. الخلايا الحمراء عمق ≥ 4 مم.</div>`;
+  return page(ctx, "مخطط اللثة", body);
+}
+
+export type InvoiceDoc = { number: number; date: string; lines: Array<{ desc: string; qty: number; price: number }>; discount: number; /** رصيد المريض الحالي (ذمة) */ balance: number; notes?: string };
+
+/** فاتورة مرقّمة */
+export function invoiceHtml(ctx: DocCtx, patient: Patient, inv: InvoiceDoc): string {
+  const sub = inv.lines.reduce((a, l) => a + l.qty * l.price, 0);
+  const total = Math.max(0, sub - inv.discount);
+  const rows = inv.lines
+    .map((l, i) => `<tr><td>${i + 1}</td><td>${esc(l.desc)}</td><td class="num">${l.qty}</td><td class="num">${fmtMoney(l.price, ctx.currency)}</td><td class="num">${fmtMoney(l.qty * l.price, ctx.currency)}</td></tr>`)
+    .join("");
+  const body = `${patientBlock(patient)}<div class="meta">فاتورة رقم <b>${inv.number}</b> • ${esc(inv.date)}</div>
+<table><tr><th>#</th><th>البند</th><th>الكمية</th><th>السعر</th><th>المجموع</th></tr>${rows}</table>
+<div class="tot">المجموع: ${fmtMoney(sub, ctx.currency)}${inv.discount ? `<br/>الحسم: ${fmtMoney(inv.discount, ctx.currency)}` : ""}<br/>الصافي: ${fmtMoney(total, ctx.currency)}<br/>رصيد حساب المريض الحالي: ${fmtMoney(inv.balance, ctx.currency)}</div>${inv.notes ? `<div class="meta" style="margin-top:12px">${nl2br(inv.notes)}</div>` : ""}`;
+  return page(ctx, "فاتورة", body);
+}

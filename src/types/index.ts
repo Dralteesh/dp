@@ -382,6 +382,8 @@ export type Settings = {
   prayerAdjust: Partial<Record<PrayerKey, number>>;
   /** تفعيل إشعار كل صلاة */
   prayerNotify: Record<PrayerKey, boolean>;
+  /** تقسيم الدخل في الإحصاءات: نسبة الطبيب ونسبة المواد (%)، والباقي للعيادة */
+  incomeSplit: { doctorPct: number; materialsPct: number };
   /** موقع الصلاة والقبلة؛ null = حماه */
   location: PrayerLocation | null;
   /** مسجدي: أوقات الإقامة */

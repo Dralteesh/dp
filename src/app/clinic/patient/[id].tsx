@@ -284,6 +284,9 @@ export default function PatientScreen() {
               { l: "الموافقات", i: "document-attach-outline", h: "/clinic/consents" },
               { l: "الأقساط", i: "calendar-outline", h: "/clinic/installments" },
               { l: "المخبر", i: "construct-outline", h: "/clinic/lab" },
+              { l: "اللثة", i: "pulse-outline", h: "/clinic/perio" },
+              { l: "الفحوصات", i: "clipboard-outline", h: "/clinic/exams" },
+              { l: "الفواتير", i: "receipt-outline", h: "/clinic/invoices" },
             ].map((x) => (
               <Chip
                 key={x.h}

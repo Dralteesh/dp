@@ -488,6 +488,8 @@ export default function ClinicScreen() {
             { t: "قائمة الانتظار", i: "hourglass", h: "/clinic/waitlist" },
             { t: "سجل التعقيم", i: "flask", h: "/clinic/sterilization" },
             { t: "الأقساط", i: "calendar", h: "/clinic/installments" },
+            { t: "الفواتير", i: "receipt", h: "/clinic/invoices" },
+            { t: "إحصاءات", i: "pie-chart", h: "/clinic/insights" },
             { t: "المخبر", i: "construct-outline", h: "/clinic/lab" },
             { t: "تعديل الإجراءات", i: "construct", h: "/clinic/procedures" },
           ].map((x) => (
