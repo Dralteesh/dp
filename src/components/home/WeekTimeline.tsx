@@ -9,11 +9,14 @@ import { agendaFor, type AgendaInput, type AgendaItem } from "@/lib/agenda";
 import { addDays, fromISO, todayISO, toMinutes, weekdayOf } from "@/lib/dates";
 
 const BLUE = "#6366F1";
-const GAP_H = 30; // ارتفاع شريط الساعات الفارغة المطويّة
+const GAP_H = 22; // ارتفاع شريط الساعات الفارغة المطويّة
 const isShift = (it: AgendaItem) => it.type === "maxillo" || !!it.continuation || it.endsNextDay;
-const PX_PER_MIN = 0.95; // ارتفاع الدقيقة
-const MIN_H = 40;
-const HOUR_COL = 34;
+const PX_REF = 0.45; // مرجع لتوزيع المسارات فقط
+const TARGET_H = 250; // الارتفاع المستهدف للشبكة كي يظهر اليوم كاملًا بلا تمرير
+const PX_MIN = 0.22;
+const PX_MAX = 0.5;
+const MIN_H = 28;
+const HOUR_COL = 30;
 
 type Props = {
   selected: string;
@@ -45,12 +48,12 @@ function layout(items: AgendaItem[]): Placed[] {
     group = [];
   };
   for (const p of arr) {
-    const visualEnd = Math.max(p.e, p.s + MIN_H / PX_PER_MIN);
+    const visualEnd = Math.max(p.e, p.s + MIN_H / PX_REF);
     if (group.length && p.s >= groupEnd) {
       flush();
       groupEnd = -1;
     }
-    const used = new Set(group.filter((g) => g.s + 0 < visualEnd && Math.max(g.e, g.s + MIN_H / PX_PER_MIN) > p.s).map((g) => g.lane));
+    const used = new Set(group.filter((g) => g.s + 0 < visualEnd && Math.max(g.e, g.s + MIN_H / PX_REF) > p.s).map((g) => g.lane));
     let lane = 0;
     while (used.has(lane)) lane++;
     p.lane = lane;
@@ -116,16 +119,28 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
     return out;
   }, [perDay, shiftRange]);
 
+  // مقياس الدقيقة يتكيّف ليتّسع اليوم كاملًا في ارتفاع ثابت تقريبًا
+  const pxPerMin = useMemo(() => {
+    let expMin = 0;
+    let fixedH = 0;
+    for (const sg of segs) {
+      if (sg.gap && !openGaps.has(sg.from)) fixedH += GAP_H;
+      else expMin += sg.to - sg.from;
+    }
+    if (expMin <= 0) return PX_MAX;
+    return Math.max(PX_MIN, Math.min(PX_MAX, (TARGET_H - fixedH) / expMin));
+  }, [segs, openGaps]);
+
   const laid = useMemo(() => {
     let off = 0;
     return segs.map((sg) => {
       const collapsed = sg.gap && !openGaps.has(sg.from);
-      const h = collapsed ? GAP_H : (sg.to - sg.from) * PX_PER_MIN;
+      const h = collapsed ? GAP_H : (sg.to - sg.from) * pxPerMin;
       const r = { ...sg, collapsed, h, off };
       off += h;
       return r;
     });
-  }, [segs, openGaps]);
+  }, [segs, openGaps, pxPerMin]);
   const height = laid.reduce((a, s) => a + s.h, 0);
   const y = (min: number) => {
     for (const sg of laid) {
@@ -150,10 +165,10 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
   const emptyHours = (sg: { from: number; to: number }) => Math.round((sg.to - sg.from) / 60);
 
   return (
-    <View className="bg-surface rounded-[26px] border border-line p-3 mb-3">
+    <View className="bg-surface rounded-[26px] border border-line px-3 py-2 mb-3">
       {/* الشهر والتنقل */}
-      <View className="flex-row items-center justify-between mb-3">
-        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, -7))} className="w-9 h-9 rounded-full bg-bg items-center justify-center">
+      <View className="flex-row items-center justify-between mb-1.5">
+        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, -7))} className="w-8 h-8 rounded-full bg-bg items-center justify-center">
           <Ionicons name="chevron-forward" size={18} color="#111111" />
         </Pressable>
         <Pressable onPress={onOpenCalendar} className="flex-row items-center gap-1.5" hitSlop={8}>
@@ -162,7 +177,7 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
           </Text>
           <Ionicons name="calendar-outline" size={17} color={BLUE} />
         </Pressable>
-        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, 7))} className="w-9 h-9 rounded-full bg-bg items-center justify-center">
+        <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, 7))} className="w-8 h-8 rounded-full bg-bg items-center justify-center">
           <Ionicons name="chevron-back" size={18} color="#111111" />
         </Pressable>
       </View>
@@ -185,13 +200,13 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
               <Text className="text-[11px] text-muted">{DAYS_SHORT[weekdayOf(iso)]}</Text>
               <View
                 className="items-center justify-center"
-                style={{ width: 32, height: 32, borderRadius: 16, marginTop: 2, backgroundColor: isSel ? BLUE : "transparent", borderWidth: isToday && !isSel ? 1.5 : 0, borderColor: BLUE }}
+                style={{ width: 26, height: 26, borderRadius: 13, marginTop: 1, backgroundColor: isSel ? BLUE : "transparent", borderWidth: isToday && !isSel ? 1.5 : 0, borderColor: BLUE }}
               >
-                <Text w="bold" style={{ color: isSel ? "#FFFFFF" : undefined }}>
+                <Text w="bold" className="text-sm" style={{ color: isSel ? "#FFFFFF" : undefined }}>
                   {fromISO(iso).getDate()}
                 </Text>
               </View>
-              <View className="flex-row gap-1 mt-1" style={{ height: 8 }}>
+              <View className="flex-row gap-1 mt-0.5" style={{ height: 6 }}>
                 {types.map((t) => (
                   <View key={t} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: TYPE_META[t].hex }} />
                 ))}
@@ -202,7 +217,7 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
       </View>
 
       {/* الشبكة */}
-      <View className="flex-row mt-2" style={{ height }}>
+      <View className="flex-row mt-1" style={{ height }}>
         <View style={{ width: HOUR_COL }}>
           {hourLabels.map((m) => (
             <Text key={m} className="text-[10px] text-muted" style={{ position: "absolute", top: y(m) - 6, width: HOUR_COL - 4 }}>
@@ -225,7 +240,7 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
                 {placed.map((p) => {
                   const m = TYPE_META[p.it.type];
                   const top = y(p.s);
-                  const h = Math.max(MIN_H, y(p.e) - y(p.s)) - 4;
+                  const h = Math.max(MIN_H, y(p.e) - y(p.s)) - 3;
                   const w = 100 / p.lanes;
                   return (
                     <Pressable
@@ -234,11 +249,11 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
                       accessibilityLabel={p.it.title}
                       style={{
                         position: "absolute",
-                        top: top + 2,
+                        top: top + 1.5,
                         height: h,
                         start: `${p.lane * w + 6 / p.lanes}%`,
                         width: `${w - 12 / p.lanes}%`,
-                        borderRadius: 18,
+                        borderRadius: 12,
                         backgroundColor: m.hex,
                         alignItems: "center",
                         justifyContent: "center",
@@ -247,9 +262,9 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
                       }}
                     >
                       {p.it.source === "appointment" ? (
-                        <ProcedureBadge name={p.it.procedure} size={24} color={m.onSolid} />
+                        <ProcedureBadge name={p.it.procedure} size={h > 40 ? 22 : 18} color={m.onSolid} />
                       ) : (
-                        <Ionicons name={m.icon} size={20} color={m.onSolid} />
+                        <Ionicons name={m.icon} size={h > 40 ? 18 : 15} color={m.onSolid} />
                       )}
                       {h > 64 ? (
                         <Text className="text-[9px]" numberOfLines={2} style={{ color: m.onSolid, textAlign: "center", paddingHorizontal: 2, marginTop: 2 }}>
@@ -271,11 +286,11 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
             <Pressable
               key={sg.from}
               onPress={() => toggleGap(sg.from)}
-              style={{ position: "absolute", start: HOUR_COL, end: 0, top: sg.off + (sg.collapsed ? 2 : 0), height: sg.collapsed ? GAP_H - 4 : 22, zIndex: 8, alignItems: "center", justifyContent: "center" }}
+              style={{ position: "absolute", start: HOUR_COL, end: 0, top: sg.off + (sg.collapsed ? 2 : 0), height: sg.collapsed ? GAP_H - 3 : 20, zIndex: 8, alignItems: "center", justifyContent: "center" }}
             >
-              <View className="flex-row items-center gap-1 rounded-full px-3" style={{ height: 24, backgroundColor: sg.collapsed ? "#EEF2FF" : "rgba(238,242,255,0.9)" }}>
-                <Ionicons name={sg.collapsed ? "chevron-down" : "chevron-up"} size={13} color={BLUE} />
-                <Text w="semi" className="text-[11px]" style={{ color: BLUE }}>
+              <View className="flex-row items-center gap-1 rounded-full px-2.5" style={{ height: 19, backgroundColor: sg.collapsed ? "#EEF2FF" : "rgba(238,242,255,0.9)" }}>
+                <Ionicons name={sg.collapsed ? "chevron-down" : "chevron-up"} size={11} color={BLUE} />
+                <Text w="semi" className="text-[10px]" style={{ color: BLUE }}>
                   {sg.collapsed ? `${emptyHours(sg)} ساعات فارغة` : "طيّ"}
                 </Text>
               </View>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, PanResponder, Pressable, ScrollView, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { DAYS_SHORT } from "@/constants/arabic";
 import { STATUS_META } from "@/constants/clinic";
@@ -46,6 +47,7 @@ export function nearestFree(date: string, wantMin: number, dur: number, input: A
 export function DaySchedule({ date, onDate, today, appts, patients, input, dotDays, onOpenPatient }: Props) {
   const update = useClinic((s) => s.updateAppointment);
   const [w, setW] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
   const scroller = useRef<ScrollView>(null);
   const current = useRef(idxOf(date, today));
 
@@ -146,7 +148,7 @@ export function DaySchedule({ date, onDate, today, appts, patients, input, dotDa
             const n = dotDays.get(iso) ?? 0;
             const near = Math.abs(i - idxOf(date, today)) === 1;
             return (
-              <Pressable key={iso} onPress={() => (sel ? undefined : (goto(i), onDate(iso)))} style={{ width: ITEM_W, alignItems: "center" }}>
+              <Pressable key={iso} onPress={() => (sel ? undefined : (goto(i), onDate(iso)))} onLongPress={() => { goto(i); if (!sel) onDate(iso); setEditOpen(true); }} delayLongPress={350} accessibilityHint="ضغط مطوّل لتعديل مواعيد اليوم" style={{ width: ITEM_W, alignItems: "center" }}>
                 <View style={{ width: sel ? 66 : 56, height: sel ? 84 : 72, marginTop: sel ? 0 : 6, borderRadius: 22, backgroundColor: sel ? COL.hex : "#FFFFFF", borderWidth: sel ? 0 : 1, borderColor: "#E3E6EB", alignItems: "center", justifyContent: "center", opacity: sel || near ? 1 : 0.6 }}>
                   <Text style={{ fontSize: 11, color: sel ? COL.onSolid : "#6B7280" }}>{DAYS_SHORT[weekdayOf(iso)]}</Text>
                   <Text w="bold" style={{ fontSize: sel ? 26 : 20, lineHeight: sel ? 34 : 28, color: sel ? COL.onSolid : "#111", fontVariant: ["tabular-nums"] }}>{fromISO(iso).getDate()}</Text>
@@ -163,8 +165,10 @@ export function DaySchedule({ date, onDate, today, appts, patients, input, dotDa
         </ScrollView>
       </View>
 
-      {/* الشبكة */}
-      <View style={{ backgroundColor: "#fff", borderRadius: DS.rCard, borderWidth: 1, borderColor: "#E3E6EB", padding: 10, marginTop: 6 }}>
+      <Text style={{ textAlign: "center", color: "#9A9A9A", fontSize: 11, marginTop: 4 }}>اضغط مطوّلًا على رقم اليوم لتعديل أوقات المواعيد</Text>
+
+      <Sheet visible={editOpen} onClose={() => setEditOpen(false)} title={fromISO(date).toLocaleDateString("ar", { weekday: "long", day: "numeric", month: "long" })}>
+      <View style={{ backgroundColor: "#fff", borderRadius: DS.rCard, borderWidth: 1, borderColor: "#E3E6EB", padding: 10, marginTop: 0 }}>
         <View style={{ flexDirection: "row", height }}>
           <View style={{ width: 40 }}>
             {hours.map((m) => (
@@ -188,12 +192,13 @@ export function DaySchedule({ date, onDate, today, appts, patients, input, dotDa
               );
             })}
             {appts.map((a) => (
-              <ApptCard key={a.id} a={a} patient={patients.get(a.patientId)} yOf={yOf} clash={findClashes(date, a.startTime, a.durationMin, input, { appointmentId: a.id }).filter((c) => c.item.source === "event").length > 0} onDrop={(m) => move(a, m)} onOpen={() => onOpenPatient(a.patientId)} onSuggest={() => suggest(a)} />
+              <ApptCard key={a.id} a={a} patient={patients.get(a.patientId)} yOf={yOf} clash={findClashes(date, a.startTime, a.durationMin, input, { appointmentId: a.id }).filter((c) => c.item.source === "event").length > 0} onDrop={(m) => move(a, m)} onOpen={() => { setEditOpen(false); onOpenPatient(a.patientId); }} onSuggest={() => suggest(a)} />
             ))}
           </View>
         </View>
         {appts.length === 0 ? <Text style={{ textAlign: "center", color: "#6B7280", fontSize: 12, marginTop: 8 }}>لا مواعيد في هذا اليوم</Text> : <Text style={{ textAlign: "center", color: "#9A9A9A", fontSize: 11, marginTop: 8 }}>اسحب المقبض ⠿ لتغيير وقت الموعد</Text>}
       </View>
+      </Sheet>
     </View>
   );
 }
