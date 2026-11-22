@@ -374,6 +374,22 @@ export type QuickAddItem = {
   visible: boolean;
 };
 
+/** ضبط الجدول الأسبوعي في الرئيسية */
+export type TimelinePrefs = {
+  /** عدد الأيام (3 أو 5 أو 7) واليوم المحدّد في المنتصف */
+  days: number;
+  /** ارتفاع كل 15 دقيقة فيها مواعيد (بكسل) */
+  densePx: number;
+  /** ارتفاع كل 15 دقيقة فارغة أو فيها دوام فقط (بكسل) */
+  basePx: number;
+  /** أقصى ارتفاع مفضّل للجدول (بكسل) */
+  maxH: number;
+  /** أدنى ارتفاع لبطاقة موعد (بكسل) */
+  minCardH: number;
+  /** ما طوله هذا العدد من الساعات فأكثر يُعدّ دوامًا/مناوبة (خلفية لا توسّع الوقت) */
+  longHours: number;
+};
+
 export type Settings = {
   doctorName: string;
   prayerMethod: PrayerMethodKey;
@@ -415,6 +431,8 @@ export type Settings = {
   prayerTools: string[] | null;
   /** أدوات نافذة العيادة (ضغط مطوّل على تبويب العيادة)؛ null = الكل بالترتيب الافتراضي */
   clinicTools: string[] | null;
+  /** ضبط الجدول الأسبوعي في الرئيسية */
+  timeline: TimelinePrefs;
   /** كتالوج الإجراءات القابل للتعديل؛ null = الافتراضي */
   procedures: ProcedureDef[] | null;
   /** تحدٍّ الإيقاف الافتراضي لمنبّهات الأحداث (المناوبات) */

@@ -6,18 +6,16 @@ import { Text } from "@/components/ui/Text";
 import { DAYS_SHORT, MONTHS } from "@/constants/arabic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { agendaFor, type AgendaInput, type AgendaItem } from "@/lib/agenda";
+import { TimelinePrefsPanel } from "@/components/home/TimelinePrefsPanel";
+import { Sheet } from "@/components/ui/Sheet";
+import { useSettings } from "@/store/useSettings";
 import { addDays, fromISO, todayISO, toMinutes, weekdayOf } from "@/lib/dates";
 
 const BLUE = "#6366F1";
 const GAP_H = 22; // ارتفاع شريط الساعات الفارغة المطويّة
 const isShift = (it: AgendaItem) => it.type === "maxillo" || !!it.continuation || it.endsNextDay;
-const PX_REF = 0.45; // مرجع لتوزيع المسارات فقط
-const TARGET_H = 250; // الارتفاع المستهدف للشبكة كي يظهر اليوم كاملًا بلا تمرير
-const PX_MIN = 0.22;
-const PX_MAX = 0.5;
-const MIN_H = 36;
+const SLICE = 15; // دقائق لكل شريحة زمنية (الارتفاعات والأيام من إعدادات الجدول)
 const HOUR_COL = 30;
-const DAYS_N = 5;
 
 type Props = {
   selected: string;
@@ -28,20 +26,25 @@ type Props = {
   nowMin: number;
 };
 
-type Placed = { it: AgendaItem; s: number; e: number; lane: number; lanes: number };
+type Base = { it: AgendaItem; s: number; e: number };
+type Placed = Base & { lane: number; lanes: number };
 
-/** يوزّع العناصر المتقاطعة زمنيًا على مسارات متجاورة داخل العمود */
-function layout(items: AgendaItem[]): Placed[] {
-  const arr = items
-    .map((it) => {
-      const s = it.continuation ? 0 : toMinutes(it.startTime);
-      let e = it.endsNextDay ? 24 * 60 : toMinutes(it.endTime);
-      if (e <= s) e = Math.min(24 * 60, s + 30);
-      return { it, s, e, lane: 0, lanes: 1 };
-    })
-    .sort((a, b) => a.s - b.s || b.e - a.e);
-  // مجموعات متقاطعة
-  let group: Placed[] = [];
+/** يحوّل عناصر اليوم إلى فترات (بداية/نهاية بالدقائق) */
+function toBase(items: AgendaItem[]): Base[] {
+  return items.map((it) => {
+    const s = it.continuation ? 0 : toMinutes(it.startTime);
+    let e = it.endsNextDay ? 24 * 60 : toMinutes(it.endTime);
+    if (e <= s) e = Math.min(24 * 60, s + 30);
+    return { it, s, e };
+  });
+}
+
+/** يوزّع العناصر المتقاطعة على مسارات متجاورة حسب موضعها المرئي (بعد تمديد الوقت) لا زمنها فقط */
+function assignLanes(items: Base[], y: (m: number) => number, minH: number): Placed[] {
+  const arr: Array<Placed & { top: number; bot: number }> = items
+    .map((b) => ({ ...b, lane: 0, lanes: 1, top: y(b.s), bot: Math.max(y(b.e), y(b.s) + minH) }))
+    .sort((a, b) => a.top - b.top || b.bot - a.bot);
+  let group: typeof arr = [];
   let groupEnd = -1;
   const flush = () => {
     const n = Math.max(1, ...group.map((g) => g.lane + 1));
@@ -49,17 +52,16 @@ function layout(items: AgendaItem[]): Placed[] {
     group = [];
   };
   for (const p of arr) {
-    const visualEnd = Math.max(p.e, p.s + MIN_H / PX_REF);
-    if (group.length && p.s >= groupEnd) {
+    if (group.length && p.top >= groupEnd) {
       flush();
       groupEnd = -1;
     }
-    const used = new Set(group.filter((g) => g.s + 0 < visualEnd && Math.max(g.e, g.s + MIN_H / PX_REF) > p.s).map((g) => g.lane));
+    const used = new Set(group.filter((g) => g.top < p.bot && g.bot > p.top).map((g) => g.lane));
     let lane = 0;
     while (used.has(lane)) lane++;
     p.lane = lane;
     group.push(p);
-    groupEnd = Math.max(groupEnd, visualEnd);
+    groupEnd = Math.max(groupEnd, p.bot);
   }
   flush();
   return arr;
@@ -70,13 +72,17 @@ function layout(items: AgendaItem[]): Placed[] {
  * تتصل على خيط رفيع. السبت أول الأسبوع (يمين).
  */
 export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, input, nowMin }: Props) {
-  // خمسة أيام فقط: اليوم المحدّد (الحالي افتراضيًا) في المنتصف
+  const tl = useSettings((s) => s.timeline);
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const DAYS_N = tl.days;
+  const MIN_H = tl.minCardH;
+  // اليوم المحدّد (الحالي افتراضيًا) في المنتصف
   const start = addDays(selected, -Math.floor(DAYS_N / 2));
-  const days = useMemo(() => Array.from({ length: DAYS_N }, (_, i) => addDays(start, i)), [start]);
+  const days = useMemo(() => Array.from({ length: DAYS_N }, (_, i) => addDays(start, i)), [start, DAYS_N]);
   const today = todayISO();
   const d = fromISO(selected);
 
-  const perDayAll = useMemo(() => days.map((iso) => ({ iso, placed: layout(agendaFor(iso, input)) })), [days, input]);
+  const perDayAll = useMemo(() => days.map((iso) => ({ iso, placed: toBase(agendaFor(iso, input)) })), [days, input]);
   const [openGaps, setOpenGaps] = useState<Set<number>>(new Set());
 
   // أيام المناوبة: يُختصر العرض إلى نطاق المناوبة فقط
@@ -120,38 +126,60 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
     return out;
   }, [perDay, shiftRange]);
 
-  // مقياس الدقيقة يتكيّف ليتّسع اليوم كاملًا في ارتفاع ثابت تقريبًا
-  const pxPerMin = useMemo(() => {
-    let expMin = 0;
-    let fixedH = 0;
-    for (const sg of segs) {
-      if (sg.gap && !openGaps.has(sg.from)) fixedH += GAP_H;
-      else expMin += sg.to - sg.from;
-    }
-    if (expMin <= 0) return PX_MAX;
-    return Math.max(PX_MIN, Math.min(PX_MAX, (TARGET_H - fixedH) / expMin));
-  }, [segs, openGaps]);
+  // الشرائح التي فيها مواعيد قصيرة (غير دوام/مناوبة) تتمدّد، وما عداها ينضغط
+  const dense = useMemo(() => {
+    const set = new Set<number>();
+    for (const day of perDay)
+      for (const p of day.placed) {
+        if (isShift(p.it) || p.e - p.s >= tl.longHours * 60) continue;
+        const end = Math.max(p.e, p.s + 2 * SLICE);
+        for (let k = Math.floor(p.s / SLICE); k < Math.ceil(end / SLICE); k++) set.add(k);
+      }
+    return set;
+  }, [perDay, tl.longHours]);
 
-  const laid = useMemo(() => {
-    let off = 0;
-    return segs.map((sg) => {
+  // محور زمني غير خطي: كتل (15 د) بارتفاعات مختلفة + شرائط الفجوات المطويّة
+  const { laid, blocks, height } = useMemo(() => {
+    const raw: Array<{ from: number; to: number; h: number; fixed: boolean }> = [];
+    const info = segs.map((sg) => {
       const collapsed = sg.gap && !openGaps.has(sg.from);
-      const h = collapsed ? GAP_H : (sg.to - sg.from) * pxPerMin;
-      const r = { ...sg, collapsed, h, off };
-      off += h;
-      return r;
+      const startIdx = raw.length;
+      if (collapsed) raw.push({ from: sg.from, to: sg.to, h: GAP_H, fixed: true });
+      else
+        for (let m = sg.from; m < sg.to; m += SLICE) {
+          const to = Math.min(sg.to, m + SLICE);
+          raw.push({ from: m, to, h: ((to - m) / SLICE) * (dense.has(Math.floor(m / SLICE)) ? tl.densePx : tl.basePx), fixed: false });
+        }
+      return { sg, collapsed, startIdx, endIdx: raw.length };
     });
-  }, [segs, openGaps, pxPerMin]);
-  const height = laid.reduce((a, s) => a + s.h, 0);
+    const fixedH = raw.filter((r) => r.fixed).reduce((a, r) => a + r.h, 0);
+    const flexH = raw.filter((r) => !r.fixed).reduce((a, r) => a + r.h, 0);
+    const k = flexH > 0 ? Math.max(0.75, Math.min(1, (tl.maxH - fixedH) / flexH)) : 1;
+    let off = 0;
+    const blocks = raw.map((r) => {
+      const h = r.fixed ? r.h : r.h * k;
+      const b = { from: r.from, to: r.to, h, off };
+      off += h;
+      return b;
+    });
+    const laid = info.map(({ sg, collapsed, startIdx, endIdx }) => {
+      const first = blocks[startIdx];
+      const h = blocks.slice(startIdx, endIdx).reduce((a, b) => a + b.h, 0);
+      return { ...sg, collapsed, h, off: first ? first.off : 0 };
+    });
+    return { laid, blocks, height: off };
+  }, [segs, openGaps, dense, tl.densePx, tl.basePx, tl.maxH]);
+
   const y = (min: number) => {
-    for (const sg of laid) {
-      if (min <= sg.to) {
-        const f = (min - sg.from) / (sg.to - sg.from);
-        return sg.off + Math.max(0, f) * sg.h;
+    for (const b of blocks) {
+      if (min <= b.to) {
+        const f = (min - b.from) / (b.to - b.from);
+        return b.off + Math.max(0, Math.min(1, f)) * b.h;
       }
     }
     return height;
   };
+  const perDayLaid = perDay.map((d) => ({ ...d, placed: assignLanes(d.placed, y, MIN_H) }));
   const toggleGap = (from: number) =>
     setOpenGaps((prev) => {
       const n = new Set(prev);
@@ -159,8 +187,18 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
       else n.add(from);
       return n;
     });
+  const allHours: number[] = [];
+  for (const sg of laid) if (!sg.collapsed) for (let m = sg.from; m <= sg.to; m += 60) if (!allHours.includes(m)) allHours.push(m);
+  // نُخفي تسمية الساعة إن كانت قريبة جدًا من سابقتها (الساعات المضغوطة)
   const hourLabels: number[] = [];
-  for (const sg of laid) if (!sg.collapsed) for (let m = sg.from; m <= sg.to; m += 60) if (!hourLabels.includes(m)) hourLabels.push(m);
+  let lastY = -100;
+  for (const m of allHours.sort((a, b) => a - b)) {
+    const yy = y(m);
+    if (yy - lastY >= 14) {
+      hourLabels.push(m);
+      lastY = yy;
+    }
+  }
   const emptyHours = (sg: { from: number; to: number }) => Math.round((sg.to - sg.from) / 60);
 
   return (
@@ -170,7 +208,7 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
         <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, -DAYS_N))} className="w-8 h-8 rounded-full bg-bg items-center justify-center">
           <Ionicons name="chevron-forward" size={18} color="#111111" />
         </Pressable>
-        <Pressable onPress={onOpenCalendar} className="flex-row items-center gap-1.5" hitSlop={8}>
+        <Pressable onPress={onOpenCalendar} onLongPress={() => setPrefsOpen(true)} delayLongPress={350} className="flex-row items-center gap-1.5" hitSlop={8} accessibilityHint="ضغط مطوّل لضبط الجدول">
           <Text w="bold" className="text-lg">
             {MONTHS[d.getMonth()]} <Text w="bold" className="text-lg" style={{ color: BLUE }}>{d.getFullYear()}</Text>
           </Text>
@@ -228,7 +266,7 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
           {hourLabels.map((m) => (
             <View key={m} pointerEvents="none" style={{ position: "absolute", start: 0, end: 0, top: y(m), height: 1, backgroundColor: "#E5E7EB", opacity: 0.8 }} />
           ))}
-          {perDay.map(({ iso, placed }) => {
+          {perDayLaid.map(({ iso, placed }) => {
             const isSel = iso === selected;
             return (
               <View key={iso} style={{ flex: 1, backgroundColor: isSel ? "rgba(99,102,241,0.06)" : undefined, borderRadius: 14 }}>
@@ -293,6 +331,9 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
             </Pressable>
           ))}
       </View>
+      <Sheet visible={prefsOpen} onClose={() => setPrefsOpen(false)} title="ضبط الجدول">
+        <TimelinePrefsPanel />
+      </Sheet>
     </View>
   );
 }

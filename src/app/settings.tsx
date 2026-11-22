@@ -7,6 +7,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { SectionHeader } from "@/components/ui/EmptyState";
+import { TimelinePrefsPanel } from "@/components/home/TimelinePrefsPanel";
 import { Text } from "@/components/ui/Text";
 import { setCity } from "@/lib/prayer";
 import { CITY, PRAYER_LABELS, PRAYER_METHODS, PRAYER_ORDER } from "@/lib/prayer";
@@ -106,6 +107,11 @@ export default function SettingsScreen() {
             thumbColor="#FFFFFF"
           />
         </View>
+      </Card>
+
+      <SectionHeader title="الجدول الأسبوعي (الرئيسية)" />
+      <Card>
+        <TimelinePrefsPanel />
       </Card>
 
       <SectionHeader title="المنبّه الإجباري" />

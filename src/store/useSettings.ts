@@ -32,6 +32,8 @@ export const DEFAULT_DHIKR: DhikrSettings = {
   texts: DEFAULT_DHIKR_TEXTS,
 };
 
+export const DEFAULT_TIMELINE = { days: 5, densePx: 15, basePx: 4, maxH: 420, minCardH: 30, longHours: 4 };
+
 export const DEFAULT_SETTINGS: Settings = {
   doctorName: "",
   prayerMethod: "mwl",
@@ -62,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   quickAdd: null,
   prayerTools: null,
   clinicTools: null,
+  timeline: DEFAULT_TIMELINE,
   procedures: null,
   defaultAlarmChallenge: "math",
   appName: "",
@@ -117,6 +120,7 @@ export const useSettings = create<SettingsState>()(
         quickAdd: s.quickAdd,
         prayerTools: s.prayerTools,
         clinicTools: s.clinicTools,
+        timeline: s.timeline,
         procedures: s.procedures,
         defaultAlarmChallenge: s.defaultAlarmChallenge,
         appName: s.appName,
@@ -140,6 +144,7 @@ export const useSettings = create<SettingsState>()(
             quiet: { ...DEFAULT_PRAYER_REMINDERS.quiet, ...p.prayerReminders?.quiet },
           },
           incomeSplit: { ...DEFAULT_SETTINGS.incomeSplit, ...p.incomeSplit },
+          timeline: { ...DEFAULT_TIMELINE, ...p.timeline },
           dhikr: { ...DEFAULT_DHIKR, ...p.dhikr, texts: p.dhikr?.texts ?? DEFAULT_DHIKR_TEXTS },
         };
       },
