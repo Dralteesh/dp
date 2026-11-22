@@ -113,7 +113,7 @@ app.json  babel.config.js  metro.config.js  tailwind.config.js  global.css  tsco
 src/
   app/                        الشاشات (Expo Router)
     _layout.tsx               الجذر: RTL، الخط، التحميل، المزامنة، شاشة الرنين
-    (tabs)/                   المنبّه • العيادة • الرئيسية • الصلاة • المستندات
+    (tabs)/                   المنبّه • العيادة • الرئيسية • الصلاة • الطقس
     event/[id].tsx            نموذج الدوام/المناوبة/النشاط
     alarms.tsx  ringing.tsx   المنبّه الإجباري وشاشة الرنين
     connect.tsx               الودجت وإشعارات الساعة

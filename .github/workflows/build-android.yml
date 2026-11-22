@@ -29,6 +29,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # ملفات قديمة/ميّتة لا يحذفها نسخ الـzip؛ تُحذف هنا وتُثبَّت إزالتها في آخر الـjob
+      - name: Remove obsolete files
+        run: |
+          rm -rf src/components/focus src/components/forest3d \
+            src/store/useFocus.ts src/lib/focusStats.ts \
+            "src/app/(tabs)/docs.tsx" MERGE-AR.md
+
       - name: Install dependencies
         run: |
           npm install
@@ -72,18 +79,22 @@ jobs:
           name: DoctorPlanner-apk
           path: android/app/build/outputs/apk/release/*.apk
 
-      # بعد نجاح البناء فقط: حذف مجلد dp-main المتداخل من المستودع (نسخ قديمة)
-      - name: Cleanup nested dp-main folder
+      # بعد نجاح البناء فقط: تثبيت حذف الملفات القديمة وحفظ package-lock عند غيابه
+      - name: Cleanup repo
         if: success() && github.ref == 'refs/heads/main'
         run: |
-          if [ -d dp-main ] || git ls-files --error-unmatch dp-main >/dev/null 2>&1; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git rm -r -q --ignore-unmatch dp-main
-            rm -rf dp-main
-            if ! git diff --cached --quiet; then
-              git commit -q -m "chore: remove nested dp-main folder [skip ci]"
-              git pull --rebase --autostash -X theirs origin main || git rebase --abort
-              git push origin HEAD:main
-            fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm -r -q --ignore-unmatch dp-main \
+            src/components/focus src/components/forest3d \
+            src/store/useFocus.ts src/lib/focusStats.ts \
+            "src/app/(tabs)/docs.tsx" MERGE-AR.md
+          rm -rf dp-main
+          if ! git ls-files --error-unmatch package-lock.json >/dev/null 2>&1 && [ -f package-lock.json ]; then
+            git add package.json package-lock.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -q -m "chore: remove obsolete files, pin lockfile [skip ci]"
+            git pull --rebase --autostash -X theirs origin main || git rebase --abort
+            git push origin HEAD:main
           fi

@@ -15,4 +15,6 @@ try {
   console.log("pdfjs inline generated:", main.length, worker.length);
 } catch (e) {
   console.warn("pdfjs inline skipped:", e.message);
+  // في بناء السحابة نفشل صراحةً بدل ترك قارئ PDF فارغًا بصمت
+  if (process.env.CI) process.exit(1);
 }
