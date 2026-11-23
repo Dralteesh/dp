@@ -82,28 +82,11 @@ export default function HomeScreen() {
       title={doctorName ? `${greeting} د. ${doctorName}` : greeting}
       subtitle={appName || "Dentist Planner"}
       logo={
-        <Pressable onPress={() => router.push("/settings")} hitSlop={8}>
+        <Pressable onPress={() => router.push("/settings")} hitSlop={8} accessibilityLabel="الإعدادات">
           <Logo uri={logo} size={44} app />
         </Pressable>
       }
-      right={
-        <View className="flex-row items-center gap-2">
-          <Pressable
-            onPress={() => router.push("/search")}
-            className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
-            accessibilityLabel="بحث"
-          >
-            <Ionicons name="search-outline" size={20} color="#0F172A" />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push("/settings")}
-            className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
-            accessibilityLabel="الإعدادات"
-          >
-            <Ionicons name="settings-outline" size={20} color="#0F172A" />
-          </Pressable>
-        </View>
-      }
+      onPull={() => router.push("/search")}
     >
       {/* الصلاة + الطقس جنبًا إلى جنب */}
       <View className="flex-row gap-3 mb-4">

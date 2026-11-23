@@ -17,9 +17,15 @@ export const CHANNEL = {
   dhikr: "dhikr",
   /** إشعارات هادئة (بلا صوت ولا اهتزاز) أثناء وقت الصلاة */
   quiet: "quiet",
-  /** قناة صوت الأذان (ملف assets/sounds/adhan.mp3) */
-  adhan: "prayer_adhan",
+  /**
+   * قناة صوت الأذان (ملف assets/sounds/adhan.mp3).
+   * صوت القناة في أندرويد لا يتغيّر بعد إنشائها، فرفعنا الرقم (v2) لقناة جديدة نظيفة.
+   */
+  adhan: "prayer_adhan_v2",
 } as const;
+
+/** قناة الأذان القديمة تُحذف عند البدء (كانت قد أُنشئت بلا صوت على بعض الأجهزة) */
+const OLD_ADHAN_CHANNELS = ["prayer_adhan"];
 
 /** فئة الإشعار التي تحمل زري «صليت» و«ذكّرني بعد 10 د» (نفس المعرّف في الجدولة والتعريف) */
 export const PRAYER_CATEGORY = "action-prayer";
@@ -86,10 +92,18 @@ export async function setupNotifications(): Promise<void> {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       enableVibrate: true,
     });
+    for (const old of OLD_ADHAN_CHANNELS) {
+      await Notifications.deleteNotificationChannelAsync(old).catch(() => undefined);
+    }
     await Notifications.setNotificationChannelAsync(CHANNEL.adhan, {
       name: "الأذان",
-      importance: Notifications.AndroidImportance.HIGH,
+      importance: Notifications.AndroidImportance.MAX,
       sound: "adhan.mp3",
+      // يُشغَّل بمستوى صوت المنبّه ليسمع حتى لو كان الرنين منخفضًا
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.ALARM,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
       vibrationPattern: [0, 400, 200, 400],
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       enableVibrate: true,
@@ -585,6 +599,23 @@ export async function sendTestNotification(seconds = 5): Promise<void> {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds,
       channelId: CHANNEL.events,
+    },
+  });
+}
+
+/** أذان تجريبي بعد ثوانٍ على قناة الأذان نفسها (لاختبار الصوت دون انتظار الوقت) */
+export async function sendTestAdhan(seconds = 5): Promise<void> {
+  await Notifications.scheduleNotificationAsync({
+    identifier: "test-adhan",
+    content: {
+      title: "تجربة الأذان",
+      body: "إن سمعت الأذان فالإعداد سليم ✅",
+      sound: "adhan.mp3",
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds,
+      channelId: CHANNEL.adhan,
     },
   });
 }

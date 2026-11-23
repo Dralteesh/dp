@@ -156,8 +156,9 @@ function Reader({ startPage, onList }: { startPage: number; onList: () => void }
       setProgress(0);
       await downloadAudio(surahNo, setProgress);
       await refreshSaved();
-    } catch {
-      Alert.alert("تعذّر التنزيل", "جرّبنا عدة مصادر ولم ينجح. تحقق من الإنترنت (أو جرّب شبكة أخرى) ثم أعد المحاولة.");
+    } catch (e) {
+      const why = e instanceof Error ? e.message : String(e);
+      Alert.alert("تعذّر التنزيل", `جرّبنا عدة مصادر ولم ينجح. تحقق من الإنترنت (أو جرّب شبكة أخرى) ثم أعد المحاولة.\n\nالسبب: ${why}`);
     } finally {
       setProgress(null);
     }

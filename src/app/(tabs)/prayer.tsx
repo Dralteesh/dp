@@ -19,7 +19,7 @@ import { useSettings } from "@/store/useSettings";
 export default function PrayerScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const now = useNow(1000);
   const prayerMethod = useSettings((s) => s.prayerMethod);
   const madhab = useSettings((s) => s.madhab);
@@ -79,7 +79,17 @@ export default function PrayerScreen() {
 
   // اللوح السفلي يتحدد ارتفاعه بمحتواه، والمشهد يستند إليه ويدخل تحته قليلًا
   const [panelH, setPanelH] = useState(340);
-  const sceneH = (width * 300) / 360;
+  // ارتفاع الترويسة + العدّاد (يُقاس فعليًا)
+  const [topH, setTopH] = useState(190);
+
+  // المشهد يُحجَّم بحيث يبدأ مدار التقدّم دائمًا تحت العدّاد فلا يحجب الشمس أو القمر
+  const SCENE_W = 360;
+  const SCENE_H = 300;
+  const RING_TOP = theme.discY - 98 - 6; // أعلى نقطة في المدار (بوحدات المشهد)
+  const sceneBottom = height - panelH + 40; // الحافة السفلية للمشهد (إحداثي الشاشة)
+  const fitScale = (sceneBottom - topH - 6) / (SCENE_H - RING_TOP);
+  const scale = Math.max(0.5, Math.min(width / SCENE_W, fitScale));
+  const sceneH = SCENE_H * scale;
 
   return (
     <View style={{ flex: 1 }}>
@@ -95,7 +105,7 @@ export default function PrayerScreen() {
       </View>
 
       {/* الترويسة */}
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16 }}>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16 }} onLayout={(e) => setTopH(e.nativeEvent.layout.height)}>
         <View className="flex-row items-center justify-between">
           <View style={{ width: 84, alignItems: "flex-start" }}>
             <Pressable

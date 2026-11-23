@@ -13,7 +13,9 @@ import { TimeField } from "@/components/pickers";
 import {
   ensureNotificationPermission,
   refreshPrayerSchedule,
+  sendTestAdhan,
   sendTestDhikr,
+  CHANNEL,
   sendTestPrayerReminder,
   setupNotifications,
 } from "@/lib/notifications";
@@ -132,11 +134,28 @@ export default function PrayerRemindersScreen() {
         {prayerReminders.atAdhan.enabled && (
           <ToggleRow
             title="صوت الأذان"
-            hint="يُشغَّل الأذان كاملًا عند دخول الوقت (صوت الإشعار يتبع مستوى الرنين في هاتفك)"
+            hint="يُشغَّل الأذان كاملًا عند دخول الوقت (بمستوى صوت المنبّه في هاتفك)"
             value={prayerReminders.atAdhan.sound}
             onChange={(v) => setReminders({ atAdhan: { ...prayerReminders.atAdhan, sound: v } })}
           />
         )}
+        <Button
+          label="تجربة الأذان الآن (بعد 5 ثوانٍ)"
+          variant="soft"
+          icon="volume-high-outline"
+          onPress={() => test(() => sendTestAdhan(5), "سيصلك الأذان بعد ثوانٍ. ارفع صوت المنبّه وأغلق التطبيق للتجربة.")}
+        />
+        <Button
+          label="فتح إعدادات قناة الأذان"
+          variant="soft"
+          icon="settings-outline"
+          onPress={() =>
+            Linking.sendIntent("android.settings.CHANNEL_NOTIFICATION_SETTINGS", [
+              { key: "android.provider.extra.APP_PACKAGE", value: "com.doctorplanner.app" },
+              { key: "android.provider.extra.CHANNEL_ID", value: CHANNEL.adhan },
+            ]).catch(() => Linking.openSettings())
+          }
+        />
       </Card>
 
       {/* عدم الإزعاج الذكي */}

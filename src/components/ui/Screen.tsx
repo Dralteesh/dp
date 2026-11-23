@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { useRef, useState, type ReactNode } from "react";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,10 +19,24 @@ type Props = {
   overlay?: ReactNode;
   /** شعار يظهر قبل العنوان */
   logo?: ReactNode;
+  /** سحب القائمة للأسفل مع تثبيت بسيط ينفّذ هذا الإجراء (مثل إظهار البحث) */
+  onPull?: () => void;
 };
 
-export function Screen({ title, subtitle, back, right, children, scroll = true, overlay, logo }: Props) {
+export function Screen({ title, subtitle, back, right, children, scroll = true, overlay, logo, onPull }: Props) {
   const router = useRouter();
+  const [pulling, setPulling] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePull = () => {
+    if (!onPull) return;
+    setPulling(true);
+    // تثبيت قصير ليشعر المستخدم بأن السحب مقصود، ثم يظهر البحث
+    timer.current = setTimeout(() => {
+      setPulling(false);
+      onPull();
+    }, 450);
+  };
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#F4F4F4" }}>
@@ -55,6 +69,17 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
           contentContainerStyle={{ padding: 16, paddingBottom: 140 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            onPull ? (
+              <RefreshControl
+                refreshing={pulling}
+                onRefresh={handlePull}
+                colors={["#0E6FA5"]}
+                tintColor="#0E6FA5"
+                progressBackgroundColor="#FFFFFF"
+              />
+            ) : undefined
+          }
         >
           {children}
         </ScrollView>

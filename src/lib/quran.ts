@@ -34,13 +34,14 @@ const audioSources = (n: number) => [
   `https://cdn.islamic.network/quran/audio-surah/64/ar.alafasy/${n}.mp3`,
 ];
 
-const STALL_MS = 25000; // لا تقدّم لمدة طويلة = اتصال معلّق فنقطعه ونعيد المحاولة
+const STALL_MS = 60000; // لا تقدّم لمدة طويلة = اتصال معلّق فنقطعه ونعيد المحاولة
+const HEADERS = { "User-Agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36", Accept: "audio/mpeg,*/*" };
 const TRIES_PER_SOURCE = 3;
 
 async function tryDownload(url: string, tmp: string, onProgress?: (p: number) => void): Promise<void> {
   await FileSystem.deleteAsync(tmp, { idempotent: true });
   let last = Date.now();
-  const dl = FileSystem.createDownloadResumable(url, tmp, {}, (p) => {
+  const dl = FileSystem.createDownloadResumable(url, tmp, { headers: HEADERS }, (p) => {
     last = Date.now();
     if (p.totalBytesExpectedToWrite > 0) onProgress?.(Math.min(1, p.totalBytesWritten / p.totalBytesExpectedToWrite));
   });
@@ -53,10 +54,11 @@ async function tryDownload(url: string, tmp: string, onProgress?: (p: number) =>
     const info = await FileSystem.getInfoAsync(tmp);
     const size = info.exists ? (info as { size?: number }).size ?? 0 : 0;
     if (size < 100 * 1024) throw new Error("file too small");
+    // مقارنة الحجم بالمتوقع مسموحة بهامش (الترميز قد يغيّر content-length) وإلا نرفض الملف الناقص بوضوح
     const hdr = res.headers ?? {};
     const lenKey = Object.keys(hdr).find((k) => k.toLowerCase() === "content-length");
     const expected = lenKey ? Number(hdr[lenKey]) : 0;
-    if (expected > 0 && size !== expected) throw new Error("incomplete file");
+    if (expected > 0 && size < expected * 0.98) throw new Error("incomplete file");
   } finally {
     clearInterval(watchdog);
   }
@@ -82,6 +84,22 @@ export async function downloadAudio(n: number, onProgress?: (p: number) => void)
       }
     }
   }
+  // آخر محاولة: تنزيل مباشر بلا استئناف (بعض الشبكات تكسر التنزيل المتقطّع)
+  try {
+    onProgress?.(0);
+    const r = await FileSystem.downloadAsync(remoteAudio(n), tmp, { headers: HEADERS });
+    const info = await FileSystem.getInfoAsync(tmp);
+    const size = info.exists ? (info as { size?: number }).size ?? 0 : 0;
+    if (r.status === 200 && size > 100 * 1024) {
+      await FileSystem.deleteAsync(audioPath(n), { idempotent: true });
+      await FileSystem.moveAsync({ from: tmp, to: audioPath(n) });
+      return;
+    }
+    lastErr = new Error(`status ${r.status}, size ${size}`);
+  } catch (e) {
+    lastErr = e;
+  }
+  await FileSystem.deleteAsync(tmp, { idempotent: true }).catch(() => undefined);
   throw lastErr instanceof Error ? lastErr : new Error("download failed");
 }
 
@@ -96,7 +114,7 @@ async function getJSON(url: string, tries = 3, timeoutMs = 15000): Promise<any> 
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), timeoutMs);
     try {
-      const r = await fetch(url, { signal: ctl.signal });
+      const r = await fetch(url, { signal: ctl.signal, headers: { Accept: "application/json" } });
       if (!r.ok) throw new Error(`http ${r.status}`);
       const j = await r.json();
       if (!j?.data) throw new Error("bad payload");
