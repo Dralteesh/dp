@@ -4,8 +4,13 @@ import { getOwner, syncAll } from "@/lib/cloudSync";
 import { useAlarms } from "@/store/useAlarms";
 import { useAuth } from "@/store/useAuth";
 import { useClinic } from "@/store/useClinic";
+import { useExtras } from "@/store/useExtras";
 import { usePlanner } from "@/store/usePlanner";
+import { usePrayerLog } from "@/store/usePrayerLog";
+import { useQuranPrefs } from "@/store/useQuranPrefs";
 import { useSettings } from "@/store/useSettings";
+import { useSleep } from "@/store/useSleep";
+import { useWeather } from "@/store/useWeather";
 
 /** مكوّن بلا واجهة: يزامن مع Supabase عند الدخول وعند عودة التطبيق وبعد كل تغيير (بمهلة 3 ثوانٍ). */
 export function CloudSync() {
@@ -42,6 +47,20 @@ export function CloudSync() {
       useClinic.subscribe(schedule),
       useAlarms.subscribe(schedule),
       useSettings.subscribe(schedule),
+      useExtras.subscribe(schedule),
+      // نتجاهل تغيّرات الحقول المحلية فقط (الجلسة الجارية، التخزين المؤقت، رقم الصفحة) كي لا تتكرر الطلبات
+      useSleep.subscribe((s, p) => {
+        if (s.logs !== p.logs) schedule();
+      }),
+      usePrayerLog.subscribe((s, p) => {
+        if (s.done !== p.done) schedule();
+      }),
+      useQuranPrefs.subscribe((s, p) => {
+        if (s.fontSize !== p.fontSize || s.paper !== p.paper || s.tajweed !== p.tajweed || s.bookmarks !== p.bookmarks) schedule();
+      }),
+      useWeather.subscribe((s, p) => {
+        if (s.cities !== p.cities || s.units !== p.units || s.rainAlert !== p.rainAlert || s.severeAlert !== p.severeAlert) schedule();
+      }),
     ];
     const sub = AppState.addEventListener("change", (s) => {
       if (s === "active") run();

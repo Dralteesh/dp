@@ -26,6 +26,9 @@ export default function AccountScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  // استعادة كلمة المرور برمز يصل بالبريد: none → أدخل البريد → أدخل الرمز وكلمة المرور الجديدة
+  const [reset, setReset] = useState<"none" | "email" | "code">("none");
+  const [code, setCode] = useState("");
 
   const claimDevice = async (userId: string) => {
     const owner = await getOwner();
@@ -88,6 +91,78 @@ export default function AccountScreen() {
     }
   };
 
+  const sendResetCode = async () => {
+    if (!email.trim()) {
+      Alert.alert("البريد مطلوب", "أدخل بريد حسابك أولًا.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      if (error) throw error;
+      setReset("code");
+      Alert.alert("تحقق من بريدك", "أرسلنا رمز استعادة إلى بريدك. أدخله مع كلمة المرور الجديدة.");
+    } catch (e: any) {
+      Alert.alert("تعذّر الإرسال", e?.message ?? "حدث خطأ غير متوقع");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmReset = async () => {
+    if (code.trim().length < 6 || password.length < 8) {
+      Alert.alert("بيانات ناقصة", "أدخل الرمز المكوّن من أرقام وكلمة مرور جديدة من 8 أحرف على الأقل.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const v = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "recovery" });
+      if (v.error) throw v.error;
+      const u = await supabase.auth.updateUser({ password });
+      if (u.error) throw u.error;
+      const userId = v.data.session?.user.id;
+      setPassword("");
+      setCode("");
+      setReset("none");
+      if (userId) await claimDevice(userId);
+    } catch (e: any) {
+      Alert.alert("تعذّر التغيير", e?.message ?? "الرمز غير صحيح أو منتهٍ");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!session && reset !== "none") {
+    return (
+      <Screen title="استعادة كلمة المرور" back>
+        <Card>
+          <Field
+            label="البريد الإلكتروني"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={reset === "email"}
+          />
+          {reset === "code" ? (
+            <>
+              <Field label="الرمز المرسل إلى بريدك" value={code} onChangeText={setCode} keyboardType="number-pad" autoCapitalize="none" />
+              <Field label="كلمة المرور الجديدة" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
+              <Button label="تغيير كلمة المرور" icon="key" disabled={busy} onPress={confirmReset} />
+              <View className="h-2" />
+              <Button label="إعادة إرسال الرمز" variant="outline" disabled={busy} onPress={sendResetCode} />
+            </>
+          ) : (
+            <Button label="إرسال الرمز" icon="mail" disabled={busy} onPress={sendResetCode} />
+          )}
+          <View className="h-2" />
+          <Button label="رجوع" variant="ghost" onPress={() => setReset("none")} />
+        </Card>
+      </Screen>
+    );
+  }
+
   if (!session) {
     return (
       <Screen title="الحساب والمزامنة" back>
@@ -115,6 +190,8 @@ export default function AccountScreen() {
           <Button label="تسجيل الدخول" icon="log-in" disabled={busy} onPress={() => submit("in")} />
           <View className="h-2" />
           <Button label="إنشاء حساب جديد" variant="outline" disabled={busy} onPress={() => submit("up")} />
+          <View className="h-2" />
+          <Button label="نسيت كلمة المرور؟" variant="ghost" onPress={() => setReset("email")} />
         </Card>
       </Screen>
     );

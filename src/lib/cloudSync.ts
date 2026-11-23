@@ -4,6 +4,10 @@ import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
 import { usePlanner } from "@/store/usePlanner";
+import { usePrayerLog } from "@/store/usePrayerLog";
+import { useQuranPrefs } from "@/store/useQuranPrefs";
+import { useSleep } from "@/store/useSleep";
+import { useWeather } from "@/store/useWeather";
 import { DEFAULT_SETTINGS, useSettings } from "@/store/useSettings";
 
 /**
@@ -41,6 +45,60 @@ function listSlice<S>(
       }),
   };
 }
+
+/** سجل وحيد (id = main) لإعدادات صغيرة: تتغلّب نسخة السحابة في الجهاز الجديد */
+function singletonSlice(table: string, get: () => Item, apply: (patch: Item) => void): Slice {
+  return {
+    table,
+    singleton: true,
+    get: () => [{ id: "main", ...get() }],
+    merge: (ups) => {
+      const row = ups.find((u) => u.id === "main");
+      if (!row) return;
+      const { id: _id, ...patch } = row;
+      apply(patch);
+    },
+  };
+}
+
+/** سجل «صليت»: صف لكل يوم (id = التاريخ). مؤقّتات التأجيل تبقى محلية */
+const prayerDaysSlice: Slice = {
+  table: "user_prayer_days",
+  get: () => Object.entries(usePrayerLog.getState().done).map(([iso, v]) => ({ id: iso, ...v })),
+  merge: (ups, rm) =>
+    usePrayerLog.setState((s) => {
+      const done = { ...s.done };
+      for (const id of rm) delete done[id];
+      for (const u of ups) {
+        const { id, ...rest } = u;
+        done[id] = rest;
+      }
+      return { done };
+    }),
+};
+
+const quranSlice = singletonSlice(
+  "user_quran",
+  () => {
+    const q = useQuranPrefs.getState();
+    return { fontSize: q.fontSize, paper: q.paper, tajweed: q.tajweed, lastPage: q.lastPage, bookmarks: q.bookmarks };
+  },
+  (patch) => useQuranPrefs.setState(patch as any),
+);
+
+/** المدن والوحدات والتنبيهات (دون موضع المدينة الحالية والتخزين المؤقت) */
+const weatherSlice = singletonSlice(
+  "user_weather",
+  () => {
+    const w = useWeather.getState();
+    return { cities: w.cities, units: w.units, rainAlert: w.rainAlert, severeAlert: w.severeAlert };
+  },
+  (patch) =>
+    useWeather.setState((s) => {
+      const cities = Array.isArray(patch.cities) && patch.cities.length ? patch.cities : s.cities;
+      return { ...(patch as any), cities, index: Math.min(s.index, cities.length - 1) };
+    }),
+);
 
 const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS);
 
@@ -86,6 +144,10 @@ const SLICES: Slice[] = [
   listSlice("clinic_perio_charts", useExtras as any, "perioCharts" as any),
   listSlice("clinic_dental_exams", useExtras as any, "dentalExams" as any),
   listSlice("clinic_invoices", useExtras as any, "invoices" as any),
+  listSlice("user_sleep_logs", useSleep as any, "logs" as any),
+  prayerDaysSlice,
+  quranSlice,
+  weatherSlice,
   settingsSlice,
 ];
 
@@ -134,6 +196,8 @@ export function wipeLocal() {
   useExtras.getState().resetAll();
   useAlarms.setState({ alarms: [] });
   useSettings.getState().reset();
+  useSleep.setState({ logs: [] });
+  usePrayerLog.setState({ done: {} });
 }
 
 /** جدول لم يُنشأ بعد في قاعدة البيانات (ترحيل لم يُنفَّذ): نتخطاه بدل إيقاف كل المزامنة */
