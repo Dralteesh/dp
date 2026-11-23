@@ -1,3 +1,5 @@
+import { useQuickAdd } from "@/store/useQuickAdd";
+import { useShortcutMenu } from "@/store/useShortcutMenu";
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,7 +11,7 @@ import { agendaFor, type AgendaInput, type AgendaItem } from "@/lib/agenda";
 import { TimelinePrefsPanel } from "@/components/home/TimelinePrefsPanel";
 import { Sheet } from "@/components/ui/Sheet";
 import { useSettings } from "@/store/useSettings";
-import { addDays, fromISO, todayISO, toMinutes, weekdayOf } from "@/lib/dates";
+import { addDays, fmtDateFull, fromISO, todayISO, toMinutes, weekdayOf } from "@/lib/dates";
 
 const BLUE = "#6366F1";
 const GAP_H = 22; // ارتفاع شريط الساعات الفارغة المطويّة
@@ -72,6 +74,7 @@ function assignLanes(items: Base[], y: (m: number) => number, minH: number): Pla
  * تتصل على خيط رفيع. السبت أول الأسبوع (يمين).
  */
 export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, input, nowMin }: Props) {
+  const showMenu = useShortcutMenu((s) => s.show);
   const tl = useSettings((s) => s.timeline);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const DAYS_N = tl.days;
@@ -233,7 +236,18 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
           const isToday = iso === today;
           const types = [...new Set(placed.map((p) => p.it.type))].slice(0, 2);
           return (
-            <Pressable key={iso} onPress={() => (isSel ? onOpenCalendar() : onSelect(iso))} style={{ flex: 1, alignItems: "center" }}>
+            <Pressable
+              key={iso}
+              onPress={() => (isSel ? onOpenCalendar() : onSelect(iso))}
+              onLongPress={() =>
+                showMenu(fmtDateFull(iso), [
+                  { label: "إضافة حدث في هذا اليوم", icon: "add-circle-outline", onPress: () => useQuickAdd.getState().show(iso) },
+                  { label: "فتح التقويم", icon: "calendar-number-outline", onPress: () => onOpenCalendar() },
+                ])
+              }
+              delayLongPress={350}
+              style={{ flex: 1, alignItems: "center" }}
+            >
               <Text className="text-xs text-muted">{DAYS_SHORT[weekdayOf(iso)]}</Text>
               <View
                 className="items-center justify-center"

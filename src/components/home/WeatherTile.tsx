@@ -6,6 +6,8 @@ import { PressableScale } from "@/components/ui/PressableScale";
 import { Text } from "@/components/ui/Text";
 import { ICON_OF, kindOf, labelOf, themeOf } from "@/lib/weather";
 import { fmtTemp } from "@/lib/weatherInsights";
+import { useFabRequest } from "@/store/useFabRequest";
+import { useShortcutMenu } from "@/store/useShortcutMenu";
 import { useWeather } from "@/store/useWeather";
 
 /** مربع الطقس بجانب بطاقة الصلاة: يفتح تبويب الطقس */
@@ -16,6 +18,7 @@ export function WeatherTile() {
   const cache = useWeather((s) => s.cache);
   const units = useWeather((s) => s.units);
   const refresh = useWeather((s) => s.refresh);
+  const showMenu = useShortcutMenu((s) => s.show);
 
   useEffect(() => {
     refresh().catch(() => {});
@@ -29,6 +32,19 @@ export function WeatherTile() {
   return (
     <PressableScale
       onPress={() => router.push("/weather")}
+      onLongPress={() =>
+        showMenu("الطقس", [
+          {
+            label: "المدن",
+            icon: "location-outline",
+            onPress: () => {
+              useFabRequest.getState().request("weather");
+              router.push("/weather");
+            },
+          },
+          { label: "تحديث الآن", icon: "refresh-outline", onPress: () => refresh().catch(() => {}) },
+        ])
+      }
       containerClassName="w-[118px]"
       className="rounded-[28px] overflow-hidden"
       style={{ height: 158, backgroundColor: th ? th.bg : "#E2E8F0", padding: 14, justifyContent: "space-between" }}

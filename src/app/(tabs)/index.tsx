@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Image, Pressable, Vibration, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
@@ -12,6 +13,7 @@ import { TimelineCard, remainingMinutes } from "@/components/home/TimelineRow";
 import { WeekTimeline } from "@/components/home/WeekTimeline";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Screen } from "@/components/ui/Screen";
+import { ShortcutMenuHost } from "@/components/ui/ShortcutMenu";
 import { Text } from "@/components/ui/Text";
 import { NAV_ICONS } from "@/constants/icons";
 import { useDocs } from "@/store/useDocs";
@@ -19,12 +21,18 @@ import { useAgenda, useAgendaInput } from "@/hooks/useAgenda";
 import { useNow } from "@/hooks/useNow";
 import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
 import { useTheme } from "@/hooks/useTheme";
-import { relativeDay, toISO, toMinutes } from "@/lib/dates";
-import { nextPrayer } from "@/lib/prayer";
+import { addDays, relativeDay, toISO, toMinutes } from "@/lib/dates";
+import { FARD, nextPrayer } from "@/lib/prayer";
+import { useFabRequest } from "@/store/useFabRequest";
+import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
+import { usePrayerTools } from "@/store/usePrayerTools";
 import { useQuickAdd } from "@/store/useQuickAdd";
+import { useShortcutMenu } from "@/store/useShortcutMenu";
 import { useSettings } from "@/store/useSettings";
 
 const BLUE = "#0E6FA5";
+const TIP_KEY = "dp.longpress.tip.v1";
+const PRAYER_NAMES: Record<FardKey, string> = { fajr: "الفجر", dhuhr: "الظهر", asr: "العصر", maghrib: "المغرب", isha: "العشاء" };
 
 export default function HomeScreen() {
   useTheme();
@@ -74,6 +82,70 @@ export default function HomeScreen() {
   /** الجاري الآن، وإلا أول ما لم يبدأ بعد، وإلا أول عنصر في اليوم */
   const focus = agenda.find((a) => state(a).live) ?? agenda.find((a) => !state(a).past) ?? agenda[0];
 
+  // ───── اختصارات الضغط المطوّل ─────
+  const showMenu = useShortcutMenu((s) => s.show);
+  const doneLog = usePrayerLog((s) => s.done);
+  const markDone = usePrayerLog((s) => s.markDone);
+  const [tip, setTip] = useState(false);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    AsyncStorage.getItem(TIP_KEY)
+      .then((v) => {
+        if (v) return;
+        setTip(true);
+        AsyncStorage.setItem(TIP_KEY, "1").catch(() => undefined);
+        t = setTimeout(() => setTip(false), 6000);
+      })
+      .catch(() => undefined);
+    return () => t && clearTimeout(t);
+  }, []);
+
+  const quickAddNow = () => {
+    Vibration.vibrate(15);
+    showQuickAdd();
+  };
+
+  /** الصلاة الحالية (التي قبل القادمة) تظهر «صليت» لها إن لم تُسجَّل بعد */
+  const prayerMenu = () => {
+    let prev: FardKey = "fajr";
+    let iso = today;
+    if (np.key === "fajr") {
+      prev = "isha";
+      if (toISO(np.time) === today) iso = addDays(today, -1);
+    } else if (np.key !== "sunrise") {
+      prev = FARD[FARD.indexOf(np.key) - 1] as FardKey;
+    }
+    const items = [];
+    if (!doneLog[iso]?.[prev]) {
+      items.push({ label: `صليت ${PRAYER_NAMES[prev]}`, icon: "checkmark-circle-outline", onPress: () => markDone(iso, prev) });
+    }
+    items.push(
+      {
+        label: "أدوات الصلاة",
+        icon: "apps-outline",
+        onPress: () => {
+          usePrayerTools.getState().request();
+          router.push("/prayer");
+        },
+      },
+      { label: "التذكيرات والأذكار", icon: "moon-outline", onPress: () => router.push("/reminders-prayer") },
+    );
+    showMenu("الصلاة", items);
+  };
+
+  const docsMenu = () =>
+    showMenu("المستندات", [
+      {
+        label: "إضافة ملف",
+        icon: "document-attach-outline",
+        onPress: () => {
+          useFabRequest.getState().request("documents");
+          router.push("/documents");
+        },
+      },
+      { label: "فتح المستندات", icon: "document-text-outline", onPress: () => router.push("/documents") },
+    ]);
+
   const hour = now.getHours();
   const greeting = hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء النور";
 
@@ -82,15 +154,30 @@ export default function HomeScreen() {
       title={doctorName ? `${greeting} د. ${doctorName}` : greeting}
       subtitle={appName || "Dentist Planner"}
       logo={
-        <Pressable onPress={() => router.push("/settings")} hitSlop={8} accessibilityLabel="الإعدادات">
+        <Pressable onPress={() => router.push("/settings")} onLongPress={quickAddNow} delayLongPress={350} hitSlop={8} accessibilityLabel="الإعدادات (اضغط مطوّلًا للإضافة السريعة)">
           <Logo uri={logo} size={44} app />
         </Pressable>
       }
       onPull={() => router.push("/search")}
+      overlay={
+        <>
+          <ShortcutMenuHost />
+          {tip ? (
+            <Pressable
+              onPress={() => setTip(false)}
+              style={{ position: "absolute", left: 24, right: 24, bottom: 28, backgroundColor: "#0F1B3D", borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16 }}
+            >
+              <Text className="text-white text-center text-sm">اضغط مطوّلًا على أي بطاقة أو اللوغو لاختصارات سريعة</Text>
+            </Pressable>
+          ) : null}
+        </>
+      }
     >
+      {/* ضغط مطوّل على أي مساحة غير تفاعلية = الإضافة السريعة */}
+      <Pressable onLongPress={quickAddNow} delayLongPress={600}>
       {/* الصلاة + الطقس جنبًا إلى جنب */}
       <View className="flex-row gap-3 mb-4">
-        <PrayerCard compact next={np} now={now} onPress={() => router.push("/prayer")} />
+        <PrayerCard compact next={np} now={now} onPress={() => router.push("/prayer")} onLongPress={prayerMenu} />
         <WeatherTile />
       </View>
 
@@ -150,6 +237,7 @@ export default function HomeScreen() {
       {/* المستندات: مدخل دائم في الرئيسية (صار تبويب الطقس مكانها في الشريط) */}
       <Pressable
         onPress={() => router.push("/documents")}
+        onLongPress={docsMenu}
         accessibilityLabel="المستندات"
         className="flex-row items-center gap-3 bg-surface border border-line rounded-[24px] p-3 mt-4"
       >
@@ -167,6 +255,7 @@ export default function HomeScreen() {
 
       {/* المستندات الأخيرة */}
       {showDocs ? <RecentDocs /> : null}
+      </Pressable>
     </Screen>
   );
 }

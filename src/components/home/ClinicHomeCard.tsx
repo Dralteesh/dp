@@ -1,3 +1,4 @@
+import { useShortcutMenu } from "@/store/useShortcutMenu";
 import { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -24,6 +25,7 @@ export function ClinicHomeCard() {
   const payments = useClinic((s) => s.payments);
   const tools = useClinicToolList();
   const [toolsOpen, setToolsOpen] = useState(false);
+  const showMenu = useShortcutMenu((s) => s.show);
 
   const today = toISO(new Date());
   const todayCount = appointments.filter((a) => a.date === today && a.status !== "cancelled" && a.status !== "postponed").length;
@@ -43,7 +45,17 @@ export function ClinicHomeCard() {
   ];
 
   return (
-    <View className="bg-surface rounded-[28px] border border-line p-4 mt-4">
+    <Pressable
+      delayLongPress={400}
+      onLongPress={() =>
+        showMenu("العيادة", [
+          { label: "موعد جديد", icon: "calendar-outline", onPress: () => router.push("/clinic/appointment-form" as never) },
+          { label: "مريض جديد", icon: "person-add-outline", onPress: () => router.push("/clinic/patient-form" as never) },
+          { label: "أدوات العيادة", icon: "grid-outline", onPress: () => setToolsOpen(true) },
+        ])
+      }
+      className="bg-surface rounded-[28px] border border-line p-4 mt-4"
+    >
       <Pressable onPress={() => open("day")} className="flex-row items-center gap-3 mb-3" accessibilityLabel="فتح العيادة">
         <Image source={CLINIC_LOGO} style={{ width: 34, height: 34 }} resizeMode="contain" />
         <Text w="bold" className="text-lg flex-1" numberOfLines={1}>
@@ -91,6 +103,6 @@ export function ClinicHomeCard() {
       </ScrollView>
 
       <ClinicToolsSheet visible={toolsOpen} onClose={() => setToolsOpen(false)} />
-    </View>
+    </Pressable>
   );
 }

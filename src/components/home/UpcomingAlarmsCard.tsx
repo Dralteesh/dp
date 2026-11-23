@@ -1,3 +1,4 @@
+import { useShortcutMenu } from "@/store/useShortcutMenu";
 import { useMemo } from "react";
 import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -18,6 +19,7 @@ export function UpcomingAlarmsCard({ now }: { now: Date }) {
   const alarms = useAlarms((s) => s.alarms);
   const minuteKey = Math.floor(now.getTime() / 60000);
 
+  const showMenu = useShortcutMenu((s) => s.show);
   const upcoming = useMemo(() => {
     const list: { a: AlarmItem; at: Date }[] = [];
     for (const a of alarms) {
@@ -32,6 +34,12 @@ export function UpcomingAlarmsCard({ now }: { now: Date }) {
   return (
     <PressableScale
       onPress={() => router.push("/alarms")}
+      onLongPress={() =>
+        showMenu("المنبّهات", [
+          { label: "منبّه جديد", icon: "add-circle-outline", onPress: () => router.push({ pathname: "/alarm/[id]", params: { id: "new" } }) },
+          { label: "كل المنبّهات", icon: "alarm-outline", onPress: () => router.push("/alarms") },
+        ])
+      }
       containerClassName="mt-4"
       className="bg-surface rounded-[28px] border border-line p-4"
     >

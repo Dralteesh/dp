@@ -1,16 +1,15 @@
 import { Tabs } from "expo-router";
-import { BottomBar } from "@/components/nav/BottomBar";
 
 /**
- * شريط سفلي ملتصق بالحافة (بلا زر عائم): المنبّه • العيادة • الرئيسية • الصلاة • الطقس.
- * التقويم والمهام والمستندات تُفتح من الرئيسية. زر الرجوع في أندرويد يعيد إلى الرئيسية.
+ * بلا شريط سفلي: الرئيسية هي المدخل لكل الأقسام (الصلاة، الطقس، المنبّه، العيادة، التقويم، المستندات).
+ * زر الرجوع في أندرويد يعيد إلى الرئيسية.
  */
 export default function TabsLayout() {
   return (
     <Tabs
       initialRouteName="index"
       backBehavior="initialRoute"
-      tabBar={(props) => <BottomBar {...(props as never)} />}
+      tabBar={() => null}
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" options={{ title: "الرئيسية" }} />
