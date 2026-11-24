@@ -1,9 +1,24 @@
 import { FlexWidget, TextWidget } from "react-native-android-widget";
 import { TYPE_META } from "@/constants/shiftTypes";
+import { DEFAULT_SIZE, fitText, textW, type WSize } from "@/widgets/fit";
 import type { WidgetData } from "@/widgets/widgetData";
 
-/** ودجت "جدول اليوم": يعرض أقرب 4 عناصر بألوان الأنواع + الصلاة القادمة */
-export function TodayWidget({ data }: { data: WidgetData }) {
+const PAD = 12;
+/** ارتفاع الصف الواحد مع هامشه (حشوة 5×2 + شريط 22 + هامش 4) */
+const ROW_H = 36;
+
+/** ودجت "جدول اليوم": أقرب العناصر بألوان الأنواع + الصلاة القادمة. الصفوف تُحدَّد بحسب الارتفاع والعناوين بحسب العرض */
+export function TodayWidget({ data, size = DEFAULT_SIZE }: { data: WidgetData; size?: WSize }) {
+  const room = size.w - PAD * 2;
+  const date = fitText(data.dateLabel, room * 0.52, 15, 11);
+  const pr = fitText(`${data.prayer.label} ${data.prayer.time}`, room * 0.44, 12, 9);
+
+  // كم صفًّا يتّسع: الارتفاع − حشوتان − الترويسة (~26) − سطر «أخرى» (~16)
+  const avail = size.h - PAD * 2 - 26 - 16;
+  const rows = Math.max(1, Math.min(data.items.length, Math.floor(avail / ROW_H)));
+  const shown = data.items.slice(0, rows);
+  const more = data.moreCount + (data.items.length - shown.length);
+
   return (
     <FlexWidget
       clickAction="OPEN_APP"
@@ -13,7 +28,7 @@ export function TodayWidget({ data }: { data: WidgetData }) {
         flexDirection: "column",
         backgroundColor: "#FFFFFF",
         borderRadius: 24,
-        padding: 12,
+        padding: PAD,
       }}
     >
       <FlexWidget
@@ -25,25 +40,26 @@ export function TodayWidget({ data }: { data: WidgetData }) {
           marginBottom: 8,
         }}
       >
+        <TextWidget text={date.text} maxLines={1} truncate="END" style={{ fontSize: date.size, fontWeight: "700", color: "#0F172A" }} />
         <TextWidget
-          text={data.dateLabel}
-          style={{ fontSize: 15, fontWeight: "700", color: "#0F172A" }}
-        />
-        <TextWidget
-          text={`${data.prayer.label} ${data.prayer.time}`}
-          style={{ fontSize: 12, color: TYPE_META.private.hex as `#${string}`, fontWeight: "600" }}
+          text={pr.text}
+          maxLines={1}
+          truncate="END"
+          style={{ fontSize: pr.size, color: TYPE_META.private.hex as `#${string}`, fontWeight: "600" }}
         />
       </FlexWidget>
 
       {data.items.length === 0 ? (
-        <FlexWidget
-          style={{ width: "match_parent", flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
+        <FlexWidget style={{ width: "match_parent", flex: 1, justifyContent: "center", alignItems: "center" }}>
           <TextWidget text="لا مواعيد متبقية اليوم" style={{ fontSize: 13, color: "#64748B" }} />
         </FlexWidget>
       ) : (
-        data.items.map((it) => {
+        shown.map((it) => {
           const m = TYPE_META[it.type];
+          const timeW = textW(it.timeLabel, 12) + 8;
+          // عرض الصف الداخلي: الودجت − حشوة الودجت − حشوة الصف (8×2) − الشريط وهوامشه (14) − الوقت
+          const titleRoom = Math.max(40, size.w - PAD * 2 - 16 - 14 - timeW - 8);
+          const title = fitText(it.title, titleRoom, 13, 11);
           return (
             <FlexWidget
               key={it.key}
@@ -69,22 +85,16 @@ export function TodayWidget({ data }: { data: WidgetData }) {
               />
               <TextWidget
                 text={it.timeLabel}
+                maxLines={1}
                 style={{ fontSize: 12, fontWeight: "700", color: m.inkHex as `#${string}`, marginHorizontal: 4 }}
               />
-              <TextWidget
-                text={it.title}
-                truncate="END"
-                maxLines={1}
-                style={{ fontSize: 13, color: "#0F172A" }}
-              />
+              <TextWidget text={title.text} truncate="END" maxLines={1} style={{ fontSize: title.size, color: "#0F172A" }} />
             </FlexWidget>
           );
         })
       )}
 
-      {data.moreCount > 0 ? (
-        <TextWidget text={`+${data.moreCount} أخرى`} style={{ fontSize: 11, color: "#64748B" }} />
-      ) : null}
+      {more > 0 ? <TextWidget text={`+${more} أخرى`} style={{ fontSize: 11, color: "#64748B" }} /> : null}
     </FlexWidget>
   );
 }

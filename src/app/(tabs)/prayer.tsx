@@ -1,20 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, View, useWindowDimensions } from "react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { PrayerScene, SkyGradient } from "@/components/prayer/PrayerScene";
+import { SceneDisc, SceneFront, SceneGlow, SceneRing } from "@/components/prayer/PrayerScene";
+import { CrossSky, Fade } from "@/components/prayer/SkyFx";
+import { WeatherBehind, WeatherFront } from "@/components/prayer/WeatherSky";
 import { PrayerToolsSheet } from "@/components/prayer/PrayerToolsSheet";
 import { StarField } from "@/components/prayer/StarField";
 import { Text } from "@/components/ui/Text";
 import { PRAYER_THEMES, skyKey } from "@/constants/prayerThemes";
 import { useNow } from "@/hooks/useNow";
 import { addDays, combine, fmtCountdown, fmtDateFull, fmtTimeDate, todayISO } from "@/lib/dates";
+import { setWeatherReturn } from "@/lib/navReturn";
+import { dimOf, skyWeatherOf, tintSky } from "@/lib/skyWeather";
+import { ICON_OF, kindOf, labelOf } from "@/lib/weather";
+import { fmtTemp } from "@/lib/weatherInsights";
 import { CITY, PRAYER_LABELS, PRAYER_METHODS, PRAYER_ORDER, getPrayerTimes, nextPrayer } from "@/lib/prayer";
 import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
 import { usePrayerTools } from "@/store/usePrayerTools";
 import { useSettings } from "@/store/useSettings";
+import { useWeather } from "@/store/useWeather";
 
 export default function PrayerScreen() {
   const router = useRouter();
@@ -48,9 +56,15 @@ export default function PrayerScreen() {
   useFocusEffect(
     useCallback(() => {
       setFocused(true);
+      // نجدّد الطقس المنتهي فقط (يُستخدم لسماء الصلاة)
+      useWeather.getState().refreshAll().catch(() => {});
       return () => setFocused(false);
     }, []),
   );
+
+  // طقس مدينتك الأولى يلوّن السماء ويحرّكها
+  const wx = useWeather((s) => (s.cities[0] ? s.cache[s.cities[0].id] : undefined));
+  const units = useWeather((s) => s.units);
 
   const [iso, setIso] = useState(todayISO());
   const isToday = iso === todayISO();
@@ -73,6 +87,25 @@ export default function PrayerScreen() {
   );
   const theme = PRAYER_THEMES[sky];
 
+  const sw = useMemo(
+    () => skyWeatherOf(wx, minuteKey * 60000),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [wx, minuteKey],
+  );
+  const wKind = sw.kind;
+  const wLevel = sw.level;
+  const wWind = sw.wind;
+  const skyColors = useMemo(() => tintSky(theme.sky, { kind: wKind, level: wLevel, wind: wWind }, theme.night), [theme, wKind, wLevel, wWind]);
+  const dim = dimOf(wKind);
+  const wxFresh = !!wx && minuteKey * 60000 - wx.fetchedAt < 3 * 60 * 60 * 1000;
+
+  const openWeather = useCallback(() => {
+    // نعرض مدينتك الأولى (التي تلوّن السماء) ونعود إلى الصلاة بزر الرجوع
+    useWeather.getState().setIndex(0);
+    setWeatherReturn("/prayer");
+    router.push("/weather" as never);
+  }, [router]);
+
   const remaining = next.time.getTime() - now.getTime();
   const span = next.time.getTime() - next.previous.getTime();
   const progress = Math.min(1, Math.max(0, 1 - remaining / span));
@@ -90,19 +123,61 @@ export default function PrayerScreen() {
   const fitScale = (sceneBottom - topH - 6) / (SCENE_H - RING_TOP);
   const scale = Math.max(0.5, Math.min(width / SCENE_W, fitScale));
   const sceneH = SCENE_H * scale;
+  // حدود نطاق الغيوم: من أسفل العدّاد إلى خط الأفق (سطوح المباني)
+  const sceneTop = height - (panelH - 40) - sceneH;
+  const zoneTop = Math.round(topH + 6);
+  const zoneBottom = Math.max(zoneTop + 80, Math.round(sceneTop + 168 * scale));
+  const sceneBox = { position: "absolute", left: 0, right: 0, bottom: panelH - 40, height: sceneH } as const;
+  const layer = {
+    kind: wKind,
+    level: wLevel,
+    wind: wWind,
+    night: theme.night,
+    width: Math.round(width),
+    height: Math.round(height),
+    zoneTop,
+    zoneBottom,
+  };
 
   return (
     <View style={{ flex: 1 }}>
       {focused ? <StatusBar style="light" /> : null}
-      <SkyGradient colors={theme.sky} />
-      {theme.night ? <StarField /> : null}
+      <CrossSky colors={skyColors} />
+      {theme.night ? (
+        <Animated.View
+          key="stars"
+          pointerEvents="none"
+          entering={FadeIn.duration(1500)}
+          exiting={FadeOut.duration(1500)}
+          style={StyleSheet.absoluteFill}
+        >
+          <Fade to={dim.stars}>
+            <StarField />
+          </Fade>
+        </Animated.View>
+      ) : null}
 
-      <View
-        pointerEvents="none"
-        style={{ position: "absolute", left: 0, right: 0, bottom: panelH - 40, height: sceneH }}
-      >
-        <PrayerScene sky={sky} progress={progress} />
+      {/* الشمس/القمر وتوهّجهما (يخفتان بسلاسة خلف الغيوم) */}
+      <View pointerEvents="none" style={sceneBox}>
+        <Fade to={dim.glow}>
+          <SceneGlow sky={sky} />
+        </Fade>
+        <Fade to={dim.disc}>
+          <SceneDisc sky={sky} />
+        </Fade>
       </View>
+
+      {/* الغيوم والطيور: بين الشمس وأفق المباني */}
+      {focused ? <WeatherBehind {...layer} ambient={theme.clouds} birds={theme.birds} /> : null}
+
+      {/* مدار التقدّم ثم الأفق */}
+      <View pointerEvents="none" style={sceneBox}>
+        <SceneRing sky={sky} progress={progress} />
+        <SceneFront sky={sky} />
+      </View>
+
+      {/* المطر والثلج والضباب والبرق: فوق كل شيء ما عدا النصوص */}
+      {focused ? <WeatherFront {...layer} /> : null}
 
       {/* الترويسة */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16 }} onLayout={(e) => setTopH(e.nativeEvent.layout.height)}>
@@ -118,14 +193,14 @@ export default function PrayerScreen() {
               <Ionicons name="apps-outline" size={18} color="#FFFFFF" />
             </Pressable>
           </View>
-          <View className="items-center">
+          <Pressable onPress={openWeather} className="items-center" accessibilityLabel="فتح الطقس">
             <Text w="semi" className="text-white">
               الصلاة القادمة
             </Text>
             <Text className="text-white text-xs" style={{ opacity: 0.8 }}>
               {location?.name ?? CITY.name} • {PRAYER_METHODS[prayerMethod].label}
             </Text>
-          </View>
+          </Pressable>
           <View className="flex-row gap-2" style={{ width: 84, justifyContent: "flex-end" }}>
             <Pressable
               onPress={() => router.push({ pathname: "/reminders-prayer", params: { only: "dhikr" } } as never)}
@@ -148,19 +223,47 @@ export default function PrayerScreen() {
           </View>
         </View>
 
-        <Text
-          w="bold"
-          className="text-white text-center"
-          style={{ fontSize: 50, lineHeight: 64, marginTop: 6, fontVariant: ["tabular-nums"] }}
-        >
-          {fmtCountdown(remaining)}
-        </Text>
-        <Text className="text-white text-center" style={{ opacity: 0.92 }}>
-          {PRAYER_LABELS[next.key]} • {fmtTimeDate(next.time)}
-        </Text>
+        <Pressable onPress={openWeather} accessibilityLabel="فتح الطقس">
+          <Text
+            w="bold"
+            className="text-white text-center"
+            style={{ fontSize: 50, lineHeight: 64, marginTop: 6, fontVariant: ["tabular-nums"] }}
+          >
+            {fmtCountdown(remaining)}
+          </Text>
+          <Text className="text-white text-center" style={{ opacity: 0.92 }}>
+            {PRAYER_LABELS[next.key]} • {fmtTimeDate(next.time)}
+          </Text>
+        </Pressable>
       </View>
 
-      <View style={{ flex: 1 }} />
+      {/* السماء نفسها: الضغط عليها يفتح الطقس */}
+      <Pressable style={{ flex: 1 }} onPress={openWeather} accessibilityLabel="فتح الطقس" />
+
+      {/* شارة الطقس: تلميح بصري بأن السماء تفتح الطقس */}
+      <Pressable
+        onPress={openWeather}
+        hitSlop={8}
+        accessibilityLabel="فتح الطقس"
+        style={{
+          position: "absolute",
+          bottom: panelH + 10,
+          start: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
+          borderRadius: 18,
+          backgroundColor: "rgba(255,255,255,0.2)",
+        }}
+      >
+        <Ionicons name={(wx ? ICON_OF[kindOf(wx.now.code)] : "partly-sunny") as never} size={16} color="#FFFFFF" />
+        <Text w="semi" className="text-white text-xs">
+          {wx && wxFresh ? `${fmtTemp(wx.now.temp, units)} • ${labelOf(wx.now.code, wx.now.isDay)}` : "الطقس"}
+        </Text>
+        <Ionicons name="chevron-back" size={14} color="#FFFFFF" style={{ opacity: 0.8 }} />
+      </Pressable>
 
       {/* اللوح السفلي: التاريخ + الصلوات */}
       <View

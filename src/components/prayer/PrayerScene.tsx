@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { memo, useId, type ReactNode } from "react";
 import { StyleSheet } from "react-native";
 import Svg, {
   Circle,
@@ -216,3 +216,151 @@ export function PrayerScene({ sky, progress = 0, variant = "screen" }: Props) {
     </Svg>
   );
 }
+
+
+// ======================================================================
+// نسخة الشاشة المقسّمة إلى طبقات: تتيح وضع غيوم الطقس بين الشمس/القمر وأفق المباني،
+// وتخفيت التوهّج بسلاسة دون المساس بمدار التقدّم. كلها تشترك في نفس الصندوق والمقياس.
+// ======================================================================
+
+/** صندوق SVG مطابق لمقاس PrayerScene يملأ الحاوية، لتتراكب الطبقات بالتطابق التام */
+function LayerBox({ children }: { children: ReactNode }) {
+  return (
+    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 360 300" preserveAspectRatio="xMidYMax meet">
+      {children}
+    </Svg>
+  );
+}
+
+/** توهّج الشمس/القمر + الأشعة + الهالة (الطبقة الأبعد: تُخفَّت عند الغيوم) */
+export const SceneGlow = memo(function SceneGlow({ sky }: { sky: PrayerKey }) {
+  const id = cleanId(useId());
+  const t = PRAYER_THEMES[sky];
+  const warm = !t.night;
+  const cx = 150;
+  const cy = t.discY;
+
+  const rays: string[] = [];
+  if (t.rays) {
+    for (let i = -4; i <= 4; i++) {
+      const a = (-90 + i * 13) * (Math.PI / 180);
+      const d = 0.075;
+      const L = 320;
+      rays.push(
+        `M${cx} ${cy}L${(cx + Math.cos(a - d) * L).toFixed(0)} ${(cy + Math.sin(a - d) * L).toFixed(0)}L${(
+          cx +
+          Math.cos(a + d) * L
+        ).toFixed(0)} ${(cy + Math.sin(a + d) * L).toFixed(0)}z`,
+      );
+    }
+  }
+
+  return (
+    <LayerBox>
+      <Defs>
+        <RadialGradient id={`${id}g`} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={150}>
+          <Stop offset="0" stopColor={warm ? "#fff3b0" : "#cfd6ff"} stopOpacity={0.75} />
+          <Stop offset="1" stopColor={warm ? "#ffd36b" : "#8c8cff"} stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Circle cx={cx} cy={cy} r={150} fill={`url(#${id}g)`} opacity={warm ? 0.8 : 0.45} />
+      {rays.map((d, i) => (
+        <Path key={i} d={d} fill="#FFFFFF" opacity={0.07} />
+      ))}
+      <Circle cx={cx} cy={cy} r={62} fill="#FFFFFF" opacity={0.1} />
+    </LayerBox>
+  );
+});
+
+/** قرص الشمس أو هلال القمر */
+export const SceneDisc = memo(function SceneDisc({ sky }: { sky: PrayerKey }) {
+  const id = cleanId(useId());
+  const t = PRAYER_THEMES[sky];
+  const warm = !t.night;
+  const cx = 150;
+  const cy = t.discY;
+  return (
+    <LayerBox>
+      <Defs>
+        <RadialGradient id={`${id}d`} gradientUnits="userSpaceOnUse" cx={cx - 8} cy={cy - 8} r={42}>
+          <Stop offset="0" stopColor={warm ? "#fffbe0" : "#ffffff"} />
+          <Stop offset="1" stopColor={warm ? "#ffc94d" : "#d7dcff"} />
+        </RadialGradient>
+        <Mask id={`${id}m`} maskUnits="userSpaceOnUse" x="0" y="0" width="360" height="300">
+          <Rect width="360" height="300" fill="#000000" />
+          <Circle cx={cx} cy={cy} r={30} fill="#FFFFFF" />
+          <Circle cx={cx + 14} cy={cy - 7} r={26} fill="#000000" />
+        </Mask>
+      </Defs>
+      {warm ? (
+        <Circle cx={cx} cy={cy} r={sky === "maghrib" ? 42 : 30} fill={`url(#${id}d)`} />
+      ) : (
+        <Rect width="360" height="300" fill={`url(#${id}d)`} mask={`url(#${id}m)`} />
+      )}
+    </LayerBox>
+  );
+});
+
+/** مدار التقدّم نحو الصلاة القادمة (يبقى ظاهرًا فوق الغيوم لأنه قراءة مهمة) */
+export function SceneRing({ sky, progress = 0 }: { sky: PrayerKey; progress?: number }) {
+  const t = PRAYER_THEMES[sky];
+  const cx = 150;
+  const cy = t.discY;
+  const p = Math.min(1, Math.max(0, progress));
+  const R = 98;
+  const C = 2 * Math.PI * R;
+  const ang = (-90 + p * 360) * (Math.PI / 180);
+  return (
+    <LayerBox>
+      <Circle cx={cx} cy={cy} r={R} fill="none" stroke="#FFFFFF" strokeOpacity={0.2} strokeWidth={1.5} />
+      <Circle
+        cx={cx}
+        cy={cy}
+        r={R}
+        fill="none"
+        stroke="#FFFFFF"
+        strokeOpacity={0.75}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeDasharray={`${(C * p).toFixed(1)} ${C.toFixed(1)}`}
+        transform={`rotate(-90 ${cx} ${cy})`}
+      />
+      <Circle cx={cx + Math.cos(ang) * R} cy={cy + Math.sin(ang) * R} r={4.5} fill="#FFFFFF" />
+    </LayerBox>
+  );
+}
+
+/** الأفق: طبقات المباني البعيدة + ضباب الأفق + المسجد القريب بنوافذه المضيئة */
+export const SceneFront = memo(function SceneFront({ sky }: { sky: PrayerKey }) {
+  const id = cleanId(useId());
+  const t = PRAYER_THEMES[sky];
+  const last = t.sky[2];
+  return (
+    <LayerBox>
+      <Defs>
+        <LinearGradient id={`${id}h`} gradientUnits="userSpaceOnUse" x1="0" y1="170" x2="0" y2="300">
+          <Stop offset="0" stopColor={last} stopOpacity={0} />
+          <Stop offset="1" stopColor={last} stopOpacity={0.75} />
+        </LinearGradient>
+      </Defs>
+      <Far fill={t.solid} opacity={0.2} transform="translate(-10 75) scale(.75)" />
+      <Far fill={t.solid} opacity={0.4} transform="translate(60 36) scale(.88)" />
+      <Rect y={170} width="360" height="130" fill={`url(#${id}h)`} />
+      <G fill={t.solid} opacity={0.93}>
+        <Path d="M215 300v-70a45 45 0 0 1 90 0v70z" />
+        <Rect x={259} y={172} width={2} height={14} />
+        <Circle cx={260} cy={168} r={4} />
+        <Rect x={322} y={190} width={14} height={110} />
+        <Path d="M319 190l10-26 10 26z" />
+        <Path d="M175 300v-42a25 25 0 0 1 50 0v42z" />
+        <Rect x={198} y={226} width={2} height={8} />
+        <Path d="M0 300v-34h22v-20h14v20h26v-28a18 18 0 0 1 36 0v28h30v34z" />
+      </G>
+      <G fill={t.win} fillOpacity={t.winOpacity}>
+        {WINDOWS.map((w, i) => (
+          <Path key={i} d={arch(...w)} />
+        ))}
+      </G>
+    </LayerBox>
+  );
+});

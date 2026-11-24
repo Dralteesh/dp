@@ -222,6 +222,10 @@ function pie(cx: number, cy: number, r: number, frac: number) {
   return `M ${cx} ${cy} L ${cx} ${cy - r} A ${r} ${r} 0 ${frac > 0.5 ? 1 : 0} 1 ${x} ${y} Z`;
 }
 
+/** يصغّر الخط تلقائيًا حتى لا تُقتطع الكلمة داخل البطاقة الصغيرة (مثل «ممنوعة») */
+const fitFont = (text: string, room: number, base: number) =>
+  Math.max(11, Math.min(base, Math.floor(room / Math.max(1, text.length * 0.55))));
+
 function SmallCard({
   w,
   label,
@@ -237,14 +241,23 @@ function SmallCard({
   onPress: () => void;
   children: ReactNode;
 }) {
+  // عرض النص المتاح = عرض البطاقة − هامشين (والحرف الصغير «د» إن وُجد)
+  const room = w - 20 - (sub ? 14 : 0);
+  const fs = fitFont(label, room, 20);
   return (
     <Pressable
       onPress={onPress}
       accessibilityLabel={sub ? `${label} ${sub}` : label}
       style={{ width: w, height: 96, borderRadius: 22, backgroundColor: CARD_BG, overflow: "hidden", borderWidth: 3, borderColor: on ? RED : "transparent" }}
     >
-      <View style={{ position: "absolute", top: 8, start: 12, flexDirection: "row", alignItems: "baseline", gap: 3 }}>
-        <Text w="bold" style={{ color: "#fff", fontSize: 20 }}>
+      <View style={{ position: "absolute", top: 8, start: 10, end: 10, flexDirection: "row", alignItems: "baseline", gap: 3 }}>
+        <Text
+          w="bold"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          style={{ color: "#fff", fontSize: fs, lineHeight: Math.round(fs * 1.5), flexShrink: 1, includeFontPadding: false }}
+        >
           {label}
         </Text>
         {sub ? (
@@ -253,34 +266,14 @@ function SmallCard({
           </Text>
         ) : null}
       </View>
+      {/* علامة الاختيار أسفل البطاقة كي لا تزاحم الكلمة في الأعلى */}
       {on ? (
-        <View style={{ position: "absolute", top: 8, end: 8 }}>
-          <Ionicons name="checkmark-circle" size={18} color={RED} />
+        <View style={{ position: "absolute", bottom: 6, start: 6 }}>
+          <Ionicons name="checkmark-circle" size={16} color={RED} />
         </View>
       ) : null}
       <View style={{ position: "absolute", bottom: 6, end: 8, direction: "ltr" }}>{children}</View>
     </Pressable>
-  );
-}
-
-/** مدة الغفوة: قرص أصفر يمثّل نسبة المدة من ساعة ربع */
-export function SnoozeDurationCards({ options, value, onSelect }: { options: number[]; value: number; onSelect: (v: number) => void }) {
-  const { width } = useWindowDimensions();
-  const gap = 10;
-  const cw = Math.floor((width - 40 - gap * (options.length - 1)) / options.length);
-  const max = Math.max(...options, 1);
-  return (
-    <View style={{ flexDirection: "row", gap }}>
-      {options.map((v) => (
-        <SmallCard key={v} w={cw} label={String(v)} sub="د" on={value === v} onPress={() => onSelect(v)}>
-          <Svg width={44} height={44} viewBox="0 0 44 44">
-            <Circle cx={22} cy={22} r={20} fill="#3A352B" />
-            <Path d={pie(22, 22, 20, v / (max * 1.25))} fill={YELLOW} />
-            <Circle cx={22} cy={22} r={5} fill={CARD_BG} />
-          </Svg>
-        </SmallCard>
-      ))}
-    </View>
   );
 }
 

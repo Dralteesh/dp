@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { agendaFor, type AgendaItem } from "@/lib/agenda";
 import { combine, fmtDateLong, fmtTime, fmtTimeDate, relativeDay, toISO } from "@/lib/dates";
-import { PRAYER_LABELS, nextPrayer } from "@/lib/prayer";
+import { CITY, PRAYER_LABELS, nextPrayer } from "@/lib/prayer";
 import { SURAHS, SURAH_START_PAGE } from "@/lib/quranMeta";
 import { fetchWeather, kindOf, labelOf, type City, type Kind, type Weather } from "@/lib/weather";
 import { DEFAULT_UNITS, fmtTemp, type Units } from "@/lib/weatherInsights";
@@ -14,7 +14,7 @@ export type WidgetData = {
   dateLabel: string;
   items: (AgendaItem & { timeLabel: string })[];
   moreCount: number;
-  prayer: { label: string; time: string; remaining: string };
+  prayer: { label: string; time: string; remaining: string; city: string };
 };
 
 async function readPersisted<T>(key: string): Promise<Partial<T>> {
@@ -75,7 +75,7 @@ export async function loadWidgetData(maxItems = 4): Promise<WidgetData> {
       .map((it) => ({ ...it, timeLabel: fmtTime(it.startTime) }))
       .map((it) => (locked && it.source === "appointment" ? { ...it, title: it.procedure || "موعد عيادة", subtitle: undefined } : it)),
     moreCount: Math.max(0, upcoming.length - maxItems),
-    prayer: { label: PRAYER_LABELS[np.key], time: fmtTimeDate(np.time), remaining },
+    prayer: { label: PRAYER_LABELS[np.key], time: fmtTimeDate(np.time), remaining, city: settings.location?.name ?? CITY.name },
   };
 }
 

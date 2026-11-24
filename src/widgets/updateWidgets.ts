@@ -1,4 +1,5 @@
 import React from "react";
+import { sizeOf } from "@/widgets/fit";
 import { Platform } from "react-native";
 import {
   loadAlarmWidgetData,
@@ -53,10 +54,10 @@ export async function refreshWidgets(): Promise<void> {
       ["QuranWidget", quran],
     ];
     for (const [widgetName, data] of jobs) {
-      const Comp = mods[widgetName as keyof typeof mods] as React.ComponentType<{ data: never }>;
+      const Comp = mods[widgetName as keyof typeof mods] as React.ComponentType<{ data: never; size?: { w: number; h: number } }>;
       await requestWidgetUpdate({
         widgetName,
-        renderWidget: () => React.createElement(Comp, { data: data as never }),
+        renderWidget: (info: { width?: number; height?: number }) => React.createElement(Comp, { data: data as never, size: sizeOf(info) }),
         widgetNotFound: () => {},
       });
     }

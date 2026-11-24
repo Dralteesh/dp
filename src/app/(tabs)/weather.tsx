@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { ActivityIndicator, BackHandler, Pressable, ScrollView, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +13,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { DAYS } from "@/constants/arabic";
 import { DS } from "@/design/tokens";
+import { clearWeatherReturn, takeWeatherReturn } from "@/lib/navReturn";
 import { inputAlign } from "@/lib/rtl";
 import { kindOf, labelOf, searchCities, timeOf, type City, type DayPoint, type Kind, type Theme, type Weather } from "@/lib/weather";
 import {
@@ -145,11 +146,24 @@ export default function WeatherScreen() {
   const w: Weather | undefined = cache[city.id];
 
   const [focused, setFocused] = useState(true);
+  const routerRef = useRef(router);
+  routerRef.current = router;
   useFocusEffect(
     useCallback(() => {
       setFocused(true);
       refresh();
-      return () => setFocused(false);
+      // إن فُتح الطقس من سماء الصلاة يعود زر الرجوع إليها بدل الرئيسية
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        const to = takeWeatherReturn();
+        if (!to) return false;
+        routerRef.current.navigate(to as never);
+        return true;
+      });
+      return () => {
+        setFocused(false);
+        sub.remove();
+        clearWeatherReturn();
+      };
     }, [refresh]),
   );
 
