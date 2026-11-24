@@ -2,7 +2,7 @@ import "../../global.css";
 
 import { useEffect } from "react";
 import { View } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
@@ -40,6 +40,8 @@ const RTL_OK = setupRTL();
 
 export default function RootLayout() {
   const router = useRouter();
+  const pathname = usePathname();
+  const planner = pathname.startsWith("/planner");
   const [fontsLoaded] = useFonts({ Cairo_400Regular, Cairo_600SemiBold, Cairo_700Bold, AmiriQuran_400Regular });
   const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms, useDevice, usePrayerLog, useExtras, useCountdowns]);
   const ready = fontsLoaded && hydrated;
@@ -94,10 +96,15 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <AppSync />
       <CloudSync />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#F4F4F4" } }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="ringing" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
-      </Stack>
+      {/* غلاف التجاوب: على الشاشات العريضة (آيباد/أفقي) يوسَّط المحتوى بعرض أقصى بدل التمدد */}
+      <View style={{ flex: 1, alignItems: "center", backgroundColor: planner ? "#EAF3FC" : "#F4F4F4" }}>
+        <View style={{ flex: 1, width: "100%", maxWidth: planner ? 1280 : 880 }}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: planner ? "#EAF3FC" : "#F4F4F4" } }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="ringing" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
+          </Stack>
+        </View>
+      </View>
       {!RTL_OK && (
         <View
           pointerEvents="none"

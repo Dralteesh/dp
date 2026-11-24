@@ -1,7 +1,7 @@
 import { useQuickAdd } from "@/store/useQuickAdd";
 import { useShortcutMenu } from "@/store/useShortcutMenu";
 import { useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { Text } from "@/components/ui/Text";
@@ -77,7 +77,9 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
   const showMenu = useShortcutMenu((s) => s.show);
   const tl = useSettings((s) => s.timeline);
   const [prefsOpen, setPrefsOpen] = useState(false);
-  const DAYS_N = tl.days;
+  const { width: winW } = useWindowDimensions();
+  // شاشة عريضة (آيباد/أفقي): 7 أيام على الأقل بدل التمدد
+  const DAYS_N = winW >= 700 ? Math.max(tl.days, 7) : tl.days;
   const MIN_H = tl.minCardH;
   // اليوم المحدّد (الحالي افتراضيًا) في المنتصف
   const start = addDays(selected, -Math.floor(DAYS_N / 2));

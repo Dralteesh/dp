@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Screen } from "@/components/ui/Screen";
 import { ShortcutMenuHost } from "@/components/ui/ShortcutMenu";
 import { Text } from "@/components/ui/Text";
-import { NAV_ICONS } from "@/constants/icons";
+import { NAV_ICONS, TREATMENT_ICONS } from "@/constants/icons";
 import { useDocs } from "@/store/useDocs";
 import { useKnowledge } from "@/store/useKnowledge";
 import { usePlaces } from "@/store/usePlaces";
@@ -232,6 +232,27 @@ export default function HomeScreen() {
           />
         ) : null}
       </View>
+
+      {/* مدخل الواجهة الجديدة (Alteesh Planner) */}
+      <Pressable
+        onPress={() => router.push("/planner/welcome" as never)}
+        accessibilityLabel="الواجهة الجديدة"
+        className="flex-row items-center gap-3 rounded-[24px] p-3 mt-4"
+        style={{ backgroundColor: "#DCEBF9", borderWidth: 1, borderColor: "#B9D3EC" }}
+      >
+        <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: "#F7FBFF" }}>
+          <Image source={TREATMENT_ICONS.followup} style={{ width: 44, height: 44 }} resizeMode="contain" />
+        </View>
+        <View className="flex-1">
+          <Text w="bold" className="text-base" style={{ color: "#0F2F57" }}>
+            الواجهة الجديدة
+          </Text>
+          <Text className="text-xs" style={{ color: "#5F7C9C" }}>
+            جدول العيادة، المرضى، العلاجات والتذكيرات
+          </Text>
+        </View>
+        <Ionicons name="chevron-back" size={20} color="#5F7C9C" />
+      </Pressable>
 
       {/* العيادة: أرقام وأدوات */}
       <ClinicHomeCard />
