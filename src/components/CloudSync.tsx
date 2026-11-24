@@ -6,6 +6,7 @@ import { useAuth } from "@/store/useAuth";
 import { useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
 import { usePlanner } from "@/store/usePlanner";
+import { useCountdowns } from "@/store/useCountdowns";
 import { usePrayerLog } from "@/store/usePrayerLog";
 import { useQuranPrefs } from "@/store/useQuranPrefs";
 import { useSettings } from "@/store/useSettings";
@@ -46,6 +47,7 @@ export function CloudSync() {
       usePlanner.subscribe(schedule),
       useClinic.subscribe(schedule),
       useAlarms.subscribe(schedule),
+      useCountdowns.subscribe(schedule),
       useSettings.subscribe(schedule),
       useExtras.subscribe(schedule),
       // نتجاهل تغيّرات الحقول المحلية فقط (الجلسة الجارية، التخزين المؤقت، رقم الصفحة) كي لا تتكرر الطلبات

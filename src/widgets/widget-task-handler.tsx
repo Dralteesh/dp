@@ -1,5 +1,7 @@
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import { AlarmWidget } from "@/widgets/AlarmWidget";
+import { CountdownListWidget } from "@/widgets/CountdownListWidget";
+import { CountdownWidget } from "@/widgets/CountdownWidget";
 import { ClinicWidget } from "@/widgets/ClinicWidget";
 import { PrayerWidget } from "@/widgets/PrayerWidget";
 import { QuranWidget } from "@/widgets/QuranWidget";
@@ -10,6 +12,7 @@ import { refreshPrayerSchedule } from "@/lib/notifications";
 import { sizeOf } from "@/widgets/fit";
 import {
   loadAlarmWidgetData,
+  loadCountdownWidgetData,
   loadClinicWidgetData,
   loadQuranWidgetData,
   loadTasksWidgetData,
@@ -48,6 +51,14 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       }
       if (name === "QuranWidget") {
         props.renderWidget(<QuranWidget data={await loadQuranWidgetData()} size={size} />);
+        break;
+      }
+      if (name === "CountdownWidget") {
+        props.renderWidget(<CountdownWidget data={await loadCountdownWidgetData(1)} size={size} />);
+        break;
+      }
+      if (name === "CountdownListWidget") {
+        props.renderWidget(<CountdownListWidget data={await loadCountdownWidgetData(4)} size={size} />);
         break;
       }
       const data = await loadWidgetData(name === "TodayWidget" ? 4 : 1);

@@ -3,6 +3,7 @@ import { sizeOf } from "@/widgets/fit";
 import { Platform } from "react-native";
 import {
   loadAlarmWidgetData,
+  loadCountdownWidgetData,
   loadClinicWidgetData,
   loadQuranWidgetData,
   loadTasksWidgetData,
@@ -34,15 +35,20 @@ export async function refreshWidgets(): Promise<void> {
       ClinicWidget: require("@/widgets/ClinicWidget").ClinicWidget,
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       QuranWidget: require("@/widgets/QuranWidget").QuranWidget,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      CountdownWidget: require("@/widgets/CountdownWidget").CountdownWidget,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      CountdownListWidget: require("@/widgets/CountdownListWidget").CountdownListWidget,
     };
 
-    const [today, weather, alarm, tasks, clinic, quran] = await Promise.all([
+    const [today, weather, alarm, tasks, clinic, quran, countdowns] = await Promise.all([
       loadWidgetData(4),
       loadWeatherWidgetData(false),
       loadAlarmWidgetData(),
       loadTasksWidgetData(4),
       loadClinicWidgetData(),
       loadQuranWidgetData(),
+      loadCountdownWidgetData(4),
     ]);
     const jobs: [string, object][] = [
       ["WeatherWidget", weather],
@@ -52,6 +58,8 @@ export async function refreshWidgets(): Promise<void> {
       ["TasksWidget", tasks],
       ["ClinicWidget", clinic],
       ["QuranWidget", quran],
+      ["CountdownWidget", countdowns],
+      ["CountdownListWidget", countdowns],
     ];
     for (const [widgetName, data] of jobs) {
       const Comp = mods[widgetName as keyof typeof mods] as React.ComponentType<{ data: never; size?: { w: number; h: number } }>;

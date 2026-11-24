@@ -28,6 +28,7 @@ import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
 import { useDevice } from "@/store/useDevice";
 import { useExtras } from "@/store/useExtras";
+import { useCountdowns } from "@/store/useCountdowns";
 import { usePrayerLog } from "@/store/usePrayerLog";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
@@ -40,7 +41,7 @@ const RTL_OK = setupRTL();
 export default function RootLayout() {
   const router = useRouter();
   const [fontsLoaded] = useFonts({ Cairo_400Regular, Cairo_600SemiBold, Cairo_700Bold, AmiriQuran_400Regular });
-  const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms, useDevice, usePrayerLog, useExtras]);
+  const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms, useDevice, usePrayerLog, useExtras, useCountdowns]);
   const ready = fontsLoaded && hydrated;
 
   useEffect(() => {
@@ -65,6 +66,12 @@ export default function RootLayout() {
     if (!ready) return;
     const onResponse = async (r: Notifications.NotificationResponse) => {
       try {
+        // الضغط على إشعار عدّاد يفتح شاشته
+        const cdId = r.notification.request.content.data?.cdId;
+        if (typeof cdId === "string" && r.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+          router.push({ pathname: "/countdowns/[id]", params: { id: cdId } });
+          return;
+        }
         const isPrayer = await handlePrayerResponse(r);
         // الضغط العادي على إشعار صلاة يفتح شاشة الصلاة
         if (isPrayer && r.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) router.push("/prayer");

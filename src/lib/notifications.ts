@@ -6,6 +6,8 @@ import { addDays, combine, fmtTime, fmtTimeDate, toISO, toMinutes } from "@/lib/
 import { CITY, FARD, PRAYER_LABELS, getPrayerTimes } from "@/lib/prayer";
 import { useSettings } from "@/store/useSettings";
 import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
+import { useCountdowns } from "@/store/useCountdowns";
+import { buildCountdownItems } from "@/lib/countdown/notify";
 import type { PrayerKey, Settings, Task } from "@/types";
 
 export const CHANNEL = {
@@ -22,6 +24,8 @@ export const CHANNEL = {
    * صوت القناة في أندرويد لا يتغيّر بعد إنشائها، فرفعنا الرقم (v2) لقناة جديدة نظيفة.
    */
   adhan: "prayer_adhan_v2",
+  /** تذكيرات العدّادات (لحظاتي) */
+  countdowns: "countdowns",
 } as const;
 
 /** قناة الأذان القديمة تُحذف عند البدء (كانت قد أُنشئت بلا صوت على بعض الأجهزة) */
@@ -36,7 +40,7 @@ const SNOOZE_MIN = 10;
 /**
  * البادئات التي يديرها التزامن فقط. أي إشعار آخر (مثل الإشعارات التجريبية) لا يُلمس. تكرارات الصلاة تبدأ بـ prayer-rep- فتدخل ضمن prayer-.
  */
-const MANAGED_PREFIXES = ["prayer-", "event-", "appt-", "task-", "dhikr-"] as const;
+const MANAGED_PREFIXES = ["prayer-", "event-", "appt-", "task-", "dhikr-", "cd-"] as const;
 const PRAYER_PREFIXES = ["prayer-", "dhikr-"] as const;
 
 /** Android يحدّ الإشعارات المجدولة (~500). نبقى تحت 400 */
@@ -123,6 +127,10 @@ export async function setupNotifications(): Promise<void> {
       name: "المهام",
       importance: Notifications.AndroidImportance.DEFAULT,
     });
+    await Notifications.setNotificationChannelAsync(CHANNEL.countdowns, {
+      name: "العدّادات (لحظاتي)",
+      importance: Notifications.AndroidImportance.HIGH,
+    });
   }
 
   // أزرار الإشعار. opensAppToForeground=true لأن الإجراءات الصامتة غير مضمونة على Android
@@ -146,7 +154,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
 
 // ───────────────────────── نموذج الإشعار المخطَّط ─────────────────────────
 
-type Planned = {
+export type Planned = {
   id: string;
   title: string;
   body: string;
@@ -509,6 +517,9 @@ async function doSync({ agenda, tasks, settings }: SyncInput): Promise<void> {
       channel: CHANNEL.tasks,
     });
   }
+
+  // --- العدّادات التنازلية: تذكيرات متعددة + لحظة الحدث ---
+  items.push(...buildCountdownItems(useCountdowns.getState().items, Date.now(), CHANNEL.countdowns));
 
   // إشعارات غير مُدارة (التجريبية...) تُحسب من الميزانية أيضًا
   const unmanaged = (await Notifications.getAllScheduledNotificationsAsync()).length;

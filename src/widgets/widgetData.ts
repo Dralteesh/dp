@@ -9,6 +9,10 @@ import { applyTypeSettings } from "@/constants/shiftTypes";
 import { DEFAULT_SETTINGS } from "@/store/useSettings";
 import { STORAGE_KEYS } from "@/lib/storage";
 import type { AlarmItem, Appointment, Patient, PlannerEvent, Settings, Task } from "@/types";
+import type { Countdown } from "@/types/countdown";
+import { matchesFilter, sortCountdowns } from "@/lib/countdown/engine";
+import { compactOf, shortWhen } from "@/lib/countdown/format";
+import { gradientColors, inkOn, normalizeCountdown } from "@/lib/countdown/presets";
 
 export type WidgetData = {
   dateLabel: string;
@@ -178,4 +182,43 @@ export async function loadQuranWidgetData(): Promise<QuranWidgetData> {
   let idx = 0;
   for (let i = 0; i < SURAH_START_PAGE.length; i++) if (SURAH_START_PAGE[i] <= page) idx = i;
   return { page, surah: SURAHS[idx] };
+}
+
+// ---------- ودجت لحظاتي (العدّادات) ----------
+export type CdWidgetItem = {
+  id: string;
+  title: string;
+  emoji: string;
+  color: `#${string}`;
+  ink: `#${string}`;
+  value: string;
+  unit: string;
+  caption: string;
+  when: string;
+};
+export type CountdownWidgetData = { items: CdWidgetItem[]; total: number };
+
+/** أقرب العدّاد القادمة (المثبّتة أولًا). عند قفل التطبيق نخفي العناوين لأن الودجت يظهر بلا قفل. */
+export async function loadCountdownWidgetData(max = 3): Promise<CountdownWidgetData> {
+  const st = await readPersisted<{ items: Countdown[] }>(STORAGE_KEYS.countdowns);
+  const all = (Array.isArray(st.items) ? st.items : []).filter((x) => x && typeof x.id === "string").map((x) => normalizeCountdown(x));
+  const locked = await isLockOn();
+  const now = Date.now();
+  const upcoming = sortCountdowns(all.filter((c) => matchesFilter(c, "upcoming", now)), "nearest", now);
+  const items = upcoming.slice(0, max).map((cd) => {
+    const c = compactOf(cd, now);
+    const media = cd.bg.kind === "image" || cd.bg.kind === "video";
+    return {
+      id: cd.id,
+      title: locked ? "لحظة" : cd.title || "لحظة",
+      emoji: locked ? "⏳" : cd.emoji,
+      color: (cd.bg.kind === "gradient" ? gradientColors(cd)[0] : cd.color) as `#${string}`,
+      ink: (media ? "#FFFFFF" : inkOn(cd)) as `#${string}`,
+      value: c.value,
+      unit: c.unit,
+      caption: c.caption,
+      when: locked ? "" : shortWhen(cd),
+    };
+  });
+  return { items, total: upcoming.length };
 }

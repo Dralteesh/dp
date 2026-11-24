@@ -4,6 +4,7 @@ import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
 import { usePlanner } from "@/store/usePlanner";
+import { useCountdowns } from "@/store/useCountdowns";
 import { usePrayerLog } from "@/store/usePrayerLog";
 import { useQuranPrefs } from "@/store/useQuranPrefs";
 import { useSleep } from "@/store/useSleep";
@@ -144,6 +145,7 @@ const SLICES: Slice[] = [
   listSlice("clinic_perio_charts", useExtras as any, "perioCharts" as any),
   listSlice("clinic_dental_exams", useExtras as any, "dentalExams" as any),
   listSlice("clinic_invoices", useExtras as any, "invoices" as any),
+  listSlice("countdowns", useCountdowns as any, "items" as any),
   listSlice("user_sleep_logs", useSleep as any, "logs" as any),
   prayerDaysSlice,
   quranSlice,
@@ -195,6 +197,7 @@ export function wipeLocal() {
   useClinic.getState().resetAll();
   useExtras.getState().resetAll();
   useAlarms.setState({ alarms: [] });
+  useCountdowns.getState().resetAll();
   useSettings.getState().reset();
   useSleep.setState({ logs: [] });
   usePrayerLog.setState({ done: {} });

@@ -156,6 +156,26 @@
               "targetCellWidth": 3,
               "targetCellHeight": 2,
               "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "CountdownWidget",
+              "label": "لحظتي القادمة",
+              "description": "أقرب لحظة بعدّاد تنازلي بلونها",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "CountdownListWidget",
+              "label": "قائمة لحظاتي",
+              "description": "أقرب لحظاتك القادمة بألوانها",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
             }
           ]
         }

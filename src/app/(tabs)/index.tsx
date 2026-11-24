@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
 import { PrayerCard } from "@/components/PrayerCard";
 import { ClinicHomeCard } from "@/components/home/ClinicHomeCard";
+import { HomeCountdownCard } from "@/components/countdown/HomeCountdownCard";
 import { RecentDocs } from "@/components/home/RecentDocs";
 import { UpcomingAlarmsCard } from "@/components/home/UpcomingAlarmsCard";
 import { WeatherTile } from "@/components/home/WeatherTile";
@@ -274,6 +275,11 @@ export default function HomeScreen() {
           <Text w="bold">أماكني</Text>
           <Text className="text-xs text-muted">{placesCount > 0 ? `${placesCount} مكان • مسارات GPS` : "مواقع ومسارات GPS"}</Text>
         </Pressable>
+      </View>
+
+      {/* لحظاتي: العدّادات التنازلية والتصاعدية */}
+      <View className="mt-3">
+        <HomeCountdownCard />
       </View>
 
       {/* المستندات الأخيرة */}

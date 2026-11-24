@@ -13,4 +13,5 @@ export const STORAGE_KEYS = {
   clinic: "dp.clinic.v1",
   settings: "dp.settings.v1",
   alarms: "dp.alarms.v1",
+  countdowns: "dp.countdowns.v1",
 } as const;
