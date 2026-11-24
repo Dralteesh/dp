@@ -17,6 +17,8 @@ import { ShortcutMenuHost } from "@/components/ui/ShortcutMenu";
 import { Text } from "@/components/ui/Text";
 import { NAV_ICONS } from "@/constants/icons";
 import { useDocs } from "@/store/useDocs";
+import { useKnowledge } from "@/store/useKnowledge";
+import { usePlaces } from "@/store/usePlaces";
 import { useAgenda, useAgendaInput } from "@/hooks/useAgenda";
 import { useNow } from "@/hooks/useNow";
 import { useOpenAgendaItem } from "@/hooks/useOpenAgendaItem";
@@ -53,6 +55,8 @@ export default function HomeScreen() {
   const showDocs = useSettings((s) => s.homeShowDocs);
   const showQuickAdd = useQuickAdd((s) => s.show);
   const docsCount = useDocs((s) => s.docs.length);
+  const knowCount = useKnowledge((s) => s.items.length);
+  const placesCount = usePlaces((s) => s.places.length);
 
   const input = useAgendaInput();
   const agenda = useAgenda(selected);
@@ -252,6 +256,25 @@ export default function HomeScreen() {
         </View>
         <Ionicons name="chevron-back" size={20} color="#94A3B8" />
       </Pressable>
+
+
+      {/* المعرفة + أماكني */}
+      <View className="flex-row gap-3 mt-3">
+        <Pressable onPress={() => router.push("/knowledge")} accessibilityLabel="المعرفة" className="flex-1 bg-surface border border-line rounded-[24px] p-3">
+          <View className="w-11 h-11 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: "#DBEAFE" }}>
+            <Ionicons name="library" size={22} color="#2563EB" />
+          </View>
+          <Text w="bold">المعرفة</Text>
+          <Text className="text-xs text-muted">{knowCount > 0 ? `${knowCount} مادة • بلا إنترنت` : "مكتبة قراءة بلا إنترنت"}</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push("/places")} accessibilityLabel="أماكني" className="flex-1 bg-surface border border-line rounded-[24px] p-3">
+          <View className="w-11 h-11 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: "#DCFCE7" }}>
+            <Ionicons name="map" size={22} color="#16A34A" />
+          </View>
+          <Text w="bold">أماكني</Text>
+          <Text className="text-xs text-muted">{placesCount > 0 ? `${placesCount} مكان • مسارات GPS` : "مواقع ومسارات GPS"}</Text>
+        </Pressable>
+      </View>
 
       {/* المستندات الأخيرة */}
       {showDocs ? <RecentDocs /> : null}
