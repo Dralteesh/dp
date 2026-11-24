@@ -8,6 +8,7 @@ import {
   syncNotifications,
 } from "@/lib/notifications";
 import { useAlarms } from "@/store/useAlarms";
+import { useQuranPrefs } from "@/store/useQuranPrefs";
 import { usePrayerLog } from "@/store/usePrayerLog";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
@@ -24,6 +25,7 @@ export function AppSync() {
   const agenda = useAgendaInput();
   const tasks = usePlanner((s) => s.tasks);
   const alarms = useAlarms((s) => s.alarms);
+  const quranPage = useQuranPrefs((s) => s.lastPage);
   // تحديث الطقس يعيد جدولة المنبّهات المرتبطة به (تقديم الرنين قبل المطر مثلًا)
   const weatherCache = useWeather((s) => s.cache);
 
@@ -91,6 +93,12 @@ export function AppSync() {
     const t = setTimeout(run, 1500);
     return () => clearTimeout(t);
   }, [run]);
+
+  // ودجت «تابع القراءة»: يتحدّث بعد التوقف عن تقليب الصفحات
+  useEffect(() => {
+    const t = setTimeout(() => refreshWidgets().catch(() => {}), 4000);
+    return () => clearTimeout(t);
+  }, [quranPage]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (s) => {

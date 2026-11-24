@@ -7,7 +7,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
-    "postinstall": "node scripts/gen-pdfjs.js"
+    "postinstall": "node scripts/gen-pdfjs.js && node scripts/gen-quran.js"
   },
   "dependencies": {
     "@expo-google-fonts/amiri-quran": "^0.4.1",

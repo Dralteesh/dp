@@ -23,7 +23,8 @@
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "WAKE_LOCK"
-      ]
+      ],
+      "allowBackup": false
     },
     "plugins": [
       "expo-router",
@@ -110,6 +111,46 @@
               "name": "PrayerWidget",
               "label": "الصلاة القادمة",
               "description": "الصلاة القادمة ووقتها في حماه",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "AlarmWidget",
+              "label": "المنبّه القادم",
+              "description": "أقرب منبّه فعّال ووقته",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "TasksWidget",
+              "label": "المهام",
+              "description": "المهام المفتوحة مرتّبة بالأهمية",
+              "minWidth": "250dp",
+              "minHeight": "180dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 3,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "ClinicWidget",
+              "label": "العيادة اليوم",
+              "description": "مواعيد اليوم والموعد التالي",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "QuranWidget",
+              "label": "تابع القراءة",
+              "description": "آخر سورة وصفحة وصلت إليها",
               "minWidth": "180dp",
               "minHeight": "110dp",
               "targetCellWidth": 3,

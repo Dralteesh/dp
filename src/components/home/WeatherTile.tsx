@@ -1,16 +1,18 @@
 import { useEffect } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Illustration } from "@/components/weather/Illustration";
+import { SkyGradient } from "@/components/prayer/PrayerScene";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Text } from "@/components/ui/Text";
-import { ICON_OF, kindOf, labelOf, themeOf } from "@/lib/weather";
+import { kindOf, labelOf } from "@/lib/weather";
+import { kindGradient } from "@/lib/weatherSvg";
 import { fmtTemp } from "@/lib/weatherInsights";
 import { useFabRequest } from "@/store/useFabRequest";
 import { useShortcutMenu } from "@/store/useShortcutMenu";
 import { useWeather } from "@/store/useWeather";
 
-/** مربع الطقس بجانب بطاقة الصلاة: يفتح تبويب الطقس */
+/** مربع الطقس بجانب بطاقة الصلاة: سماء متدرّجة بلون الحالة + رسمة مجسّمة كبيرة (نفس لغة بطاقة الصلاة) */
 export function WeatherTile() {
   const router = useRouter();
   const cities = useWeather((s) => s.cities);
@@ -26,8 +28,9 @@ export function WeatherTile() {
 
   const city = cities[index] ?? cities[0];
   const w = city ? cache[city.id] : undefined;
-  const th = w ? themeOf(w.now.code, w.now.isDay) : null;
-  const icon = w ? ICON_OF[kindOf(w.now.code)] : "cloud-offline-outline";
+  const kind = w ? kindOf(w.now.code) : "cloudy";
+  const isDay = w ? w.now.isDay : true;
+  const [top, bottom] = kindGradient(kind, isDay);
 
   return (
     <PressableScale
@@ -47,17 +50,23 @@ export function WeatherTile() {
       }
       containerClassName="w-[118px]"
       className="rounded-[28px] overflow-hidden"
-      style={{ height: 158, backgroundColor: th ? th.bg : "#E2E8F0", padding: 14, justifyContent: "space-between" }}
+      style={{ height: 158 }}
     >
-      <Ionicons name={icon as never} size={40} color={th ? th.accent : "#64748B"} />
-      <View>
-        <Text w="bold" style={{ fontSize: 34, lineHeight: 42, color: th ? th.ink : "#0F172A" }}>
+      <SkyGradient colors={[top, top, bottom]} />
+
+      {/* الرسمة المجسّمة: تتجاوز الحافة قليلًا لإحساس العمق */}
+      <View pointerEvents="none" style={{ position: "absolute", end: -16, top: -6 }}>
+        <Illustration kind={kind} isDay={isDay} size={104} />
+      </View>
+
+      <View style={{ position: "absolute", start: 14, end: 12, bottom: 12 }}>
+        <Text w="bold" className="text-white" style={{ fontSize: 36, lineHeight: 44, fontVariant: ["tabular-nums"] }}>
           {w ? fmtTemp(w.now.temp, units) : "--"}
         </Text>
-        <Text className="text-xs" style={{ color: th ? th.ink : "#475569", opacity: 0.8 }} numberOfLines={1}>
+        <Text className="text-white text-xs" style={{ opacity: 0.92 }} numberOfLines={1}>
           {w ? labelOf(w.now.code, w.now.isDay) : "الطقس"}
         </Text>
-        <Text w="semi" className="text-xs" style={{ color: th ? th.ink : "#475569" }} numberOfLines={1}>
+        <Text w="semi" className="text-white text-xs" style={{ opacity: 0.75 }} numberOfLines={1}>
           {city?.name ?? ""}
         </Text>
       </View>

@@ -66,7 +66,7 @@ export function PrayerCard({ next, now, onPress, onLongPress, compact }: Props) 
         </Text>
       </View>
 
-      <View style={{ position: "absolute", end: 18, top: 16 }}>
+      <View style={{ position: "absolute", end: 18, bottom: 30 }}>
         <Text className="text-white text-[11px]" style={{ opacity: 0.9 }}>
           المتبقي
         </Text>

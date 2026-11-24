@@ -85,7 +85,7 @@ function PageViewBase({ page, width, fontSize, theme, tajweed, selected, marked,
       {!data && !err ? <ActivityIndicator style={{ marginTop: 80 }} color={theme.marker} /> : null}
       {err ? (
         <View style={{ alignItems: "center", marginTop: 80, gap: 12 }}>
-          <Text style={{ color: theme.soft, textAlign: "center" }}>تحتاج إنترنت لفتح هذه الصفحة أول مرة.</Text>
+          <Text style={{ color: theme.soft, textAlign: "center" }}>تعذّر فتح هذه الصفحة.</Text>
           <Text w="bold" onPress={() => setTick((t) => t + 1)} style={{ color: theme.marker }}>إعادة المحاولة</Text>
         </View>
       ) : null}

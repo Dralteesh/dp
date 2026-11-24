@@ -12,8 +12,17 @@ const GRACE_MS = 30_000; // لا نقفل إن غادر التطبيق أقل م
 /** قفل التطبيق ببصمة الوجه/الإصبع أو رمز/نمط الهاتف. لا يحجب شاشة رنين المنبّه. */
 export function LockGate() {
   const enabled = useDevice((s) => s.lockEnabled);
+  // التخزين غير متزامن: قبل اكتماله يكون lockEnabled=false مؤقتًا، فنغطّي الشاشة حتى لا يظهر المحتوى لحظة التشغيل
+  const [hydrated, setHydrated] = useState(() => useDevice.persist.hasHydrated());
+  useEffect(() => {
+    if (hydrated) return;
+    const off = useDevice.persist.onFinishHydration(() => setHydrated(true));
+    if (useDevice.persist.hasHydrated()) setHydrated(true);
+    return off;
+  }, [hydrated]);
   const pathname = usePathname();
-  const [locked, setLocked] = useState(enabled);
+  // نبدأ مقفولين دائمًا: يُرفع القفل بعد المصادقة فقط (أو إن كان القفل غير مفعّل)
+  const [locked, setLocked] = useState(true);
   const [failed, setFailed] = useState(false);
   const busy = useRef(false);
   const leftAt = useRef<number | null>(null);
@@ -40,13 +49,14 @@ export function LockGate() {
 
   // عند التشغيل أو تفعيل القفل
   useEffect(() => {
+    if (!hydrated) return;
     if (enabled) {
       setLocked(true);
       unlock();
     } else {
       setLocked(false);
     }
-  }, [enabled, unlock]);
+  }, [enabled, unlock, hydrated]);
 
   // عند العودة من الخلفية
   useEffect(() => {
@@ -67,7 +77,9 @@ export function LockGate() {
     return () => sub.remove();
   }, [enabled, unlock]);
 
-  if (!enabled || !locked || pathname.startsWith("/ringing")) return null;
+  if (pathname.startsWith("/ringing")) return null;
+  if (hydrated && (!enabled || !locked)) return null;
+  const waiting = !hydrated;
 
   return (
     <View
@@ -88,12 +100,16 @@ export function LockGate() {
       <Text w="bold" className="text-2xl mt-4">
         Dentist Planner
       </Text>
-      <Text className="text-muted text-center mt-1 mb-6">
-        {failed ? "لم تتم المصادقة. حاول مرة أخرى." : "التطبيق مقفل لحماية بيانات المرضى"}
-      </Text>
-      <View style={{ width: "100%", maxWidth: 320 }}>
-        <Button label="فتح" icon="finger-print" onPress={unlock} />
-      </View>
+      {waiting ? null : (
+        <>
+          <Text className="text-muted text-center mt-1 mb-6">
+            {failed ? "لم تتم المصادقة. حاول مرة أخرى." : "التطبيق مقفل لحماية بيانات المرضى"}
+          </Text>
+          <View style={{ width: "100%", maxWidth: 320 }}>
+            <Button label="فتح" icon="finger-print" onPress={unlock} />
+          </View>
+        </>
+      )}
     </View>
   );
 }

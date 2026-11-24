@@ -1,9 +1,20 @@
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
+import { AlarmWidget } from "@/widgets/AlarmWidget";
+import { ClinicWidget } from "@/widgets/ClinicWidget";
 import { PrayerWidget } from "@/widgets/PrayerWidget";
+import { QuranWidget } from "@/widgets/QuranWidget";
+import { TasksWidget } from "@/widgets/TasksWidget";
 import { TodayWidget } from "@/widgets/TodayWidget";
 import { WeatherWidget } from "@/widgets/WeatherWidget";
 import { refreshPrayerSchedule } from "@/lib/notifications";
-import { loadWeatherWidgetData, loadWidgetData } from "@/widgets/widgetData";
+import {
+  loadAlarmWidgetData,
+  loadClinicWidgetData,
+  loadQuranWidgetData,
+  loadTasksWidgetData,
+  loadWeatherWidgetData,
+  loadWidgetData,
+} from "@/widgets/widgetData";
 
 /**
  * معالج الودجت: يُستدعى عند إضافة الودجت أو تحديثه الدوري (حتى والتطبيق مغلق).
@@ -18,6 +29,22 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
     case "WIDGET_RESIZED": {
       if (name === "WeatherWidget") {
         props.renderWidget(<WeatherWidget data={await loadWeatherWidgetData(props.widgetAction === "WIDGET_UPDATE")} />);
+        break;
+      }
+      if (name === "AlarmWidget") {
+        props.renderWidget(<AlarmWidget data={await loadAlarmWidgetData()} />);
+        break;
+      }
+      if (name === "TasksWidget") {
+        props.renderWidget(<TasksWidget data={await loadTasksWidgetData(4)} />);
+        break;
+      }
+      if (name === "ClinicWidget") {
+        props.renderWidget(<ClinicWidget data={await loadClinicWidgetData()} />);
+        break;
+      }
+      if (name === "QuranWidget") {
+        props.renderWidget(<QuranWidget data={await loadQuranWidgetData()} />);
         break;
       }
       const data = await loadWidgetData(name === "TodayWidget" ? 4 : 1);

@@ -1,6 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 
-export const SURAHS = "الفاتحة,البقرة,آل عمران,النساء,المائدة,الأنعام,الأعراف,الأنفال,التوبة,يونس,هود,يوسف,الرعد,إبراهيم,الحجر,النحل,الإسراء,الكهف,مريم,طه,الأنبياء,الحج,المؤمنون,النور,الفرقان,الشعراء,النمل,القصص,العنكبوت,الروم,لقمان,السجدة,الأحزاب,سبأ,فاطر,يس,الصافات,ص,الزمر,غافر,فصلت,الشورى,الزخرف,الدخان,الجاثية,الأحقاف,محمد,الفتح,الحجرات,ق,الذاريات,الطور,النجم,القمر,الرحمن,الواقعة,الحديد,المجادلة,الحشر,الممتحنة,الصف,الجمعة,المنافقون,التغابن,الطلاق,التحريم,الملك,القلم,الحاقة,المعارج,نوح,الجن,المزمل,المدثر,القيامة,الإنسان,المرسلات,النبأ,النازعات,عبس,التكوير,الانفطار,المطففين,الانشقاق,البروج,الطارق,الأعلى,الغاشية,الفجر,البلد,الشمس,الليل,الضحى,الشرح,التين,العلق,القدر,البينة,الزلزلة,العاديات,القارعة,التكاثر,العصر,الهمزة,الفيل,قريش,الماعون,الكوثر,الكافرون,النصر,المسد,الإخلاص,الفلق,الناس".split(",");
+import { SURAHS, SURAH_START_PAGE } from "@/lib/quranMeta";
+export { SURAHS, SURAH_START_PAGE };
 
 const DIR = (FileSystem.documentDirectory ?? "") + "quran/";
 const pad = (n: number) => String(n);
@@ -156,9 +157,6 @@ export async function loadSurah(n: number, tr: string): Promise<Ayah[]> {
   }
 }
 
-/** صفحة البدء لكل سورة في مصحف المدينة (604 صفحة) */
-export const SURAH_START_PAGE = [1,2,50,77,106,128,151,177,187,208,221,235,249,255,262,267,282,293,305,312,322,332,342,350,359,367,377,385,396,404,411,415,418,428,434,440,446,453,458,467,477,483,489,496,499,502,507,511,515,518,520,523,526,528,531,534,537,542,545,549,551,553,554,556,558,560,562,564,566,568,570,572,574,575,577,578,580,582,583,585,586,587,587,589,590,591,591,592,593,594,595,595,596,596,597,597,598,598,599,599,600,600,601,601,601,602,602,602,603,603,603,604,604,604];
-
 export type PageAyah = { s: number; n: number; ar: string; tj?: string; juz: number };
 export type MushafPage = { page: number; ayahs: PageAyah[] };
 
@@ -170,8 +168,44 @@ function stripBasmala(text: string, s: number, n: number): string {
   return parts.length > BASMALA_WORDS ? parts.slice(BASMALA_WORDS).join(" ") : text;
 }
 
-/** صفحة من المصحف (نص عثماني + تجويد) مع تخزين محلي */
+/** بيانات المصحف المضمَّنة في التطبيق (تُولَّد في البناء: scripts/gen-quran.js). تُحمَّل عند أول طلب فقط */
+type BundledQuran = { text: { ok: boolean; pages: Record<string, [number, number, number, string][]> }; tajweed: Record<string, string[]> };
+let bundled: BundledQuran | null | undefined;
+function getBundled(): BundledQuran | null {
+  if (bundled !== undefined) return bundled;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const text = require("@/data/quran-text.json");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const tajweed = require("@/data/quran-tajweed.json");
+    bundled = text?.ok ? { text, tajweed } : null;
+  } catch {
+    bundled = null;
+  }
+  return bundled;
+}
+
+function bundledPage(page: number): MushafPage | null {
+  const b = getBundled();
+  const rows = b?.text.pages[String(page)];
+  if (!rows) return null;
+  const tj = b?.tajweed[String(page)];
+  return {
+    page,
+    ayahs: rows.map(([s, n, juz, ar], i) => ({
+      s,
+      n,
+      juz,
+      ar: stripBasmala(ar, s, n),
+      tj: tj?.[i] ? stripBasmala(tj[i], s, n) : undefined,
+    })),
+  };
+}
+
+/** صفحة من المصحف (نص عثماني + تجويد): من المضمَّن في التطبيق أولًا (بلا إنترنت)، ثم المخزَّن، ثم الشبكة */
 export async function loadPage(page: number): Promise<MushafPage> {
+  const inApp = bundledPage(page);
+  if (inApp) return inApp;
   await ensureDir();
   const cache = `${DIR}page-${page}.json`;
   const ci = await FileSystem.getInfoAsync(cache);
@@ -209,6 +243,15 @@ export async function loadAyahText(s: number, n: number, edition: string): Promi
   const k = `${s}:${n}:${edition}`;
   const hit = memo.get(k);
   if (hit) return hit;
+  if (edition === "ar.muyassar") {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const t = (require("@/data/quran-tafsir.json") as Record<string, string>)[`${s}:${n}`];
+      if (t) return t;
+    } catch {
+      // نكمل بالشبكة
+    }
+  }
   const j = await getJSON(`https://api.alquran.cloud/v1/ayah/${s}:${n}/${edition}`);
   const txt = String(j.data.text);
   memo.set(k, txt);
