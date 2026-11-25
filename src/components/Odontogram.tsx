@@ -187,11 +187,13 @@ export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onD
   const pickShape = (px: number, py: number): string | null => {
     const vx = VB.x + px / k;
     const vy = VB.y + py / k;
-    const upper = vy < frame.mid;
+    // الفك = عدد خطوط الإطباق التي فوق النقطة (يمنع الالتقاط عبر خط الإطباق أو بين المخططين)
+    const band = (y: number) => frame.seps.filter((m) => y > m).length;
+    const vb = band(vy);
     let best: { code: string; d: number } | null = null;
     for (const code of order) {
       const sh = shapes[code];
-      if (!sh || (sh.cy < frame.mid) !== upper) continue;
+      if (!sh || band(sh.cy) !== vb) continue;
       const d = Math.hypot(sh.cx - vx, sh.cy - vy);
       if (d <= u(30) && (!best || d < best.d)) best = { code, d };
     }
@@ -237,6 +239,7 @@ export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onD
         </Text>
         <View style={{ flexDirection: "row", backgroundColor: SOFT, borderRadius: 16, padding: 2 }}>
           <Seg id="permanent" label="دائمة" />
+          <Seg id="mixed" label="مختلطة" />
           <Seg id="primary" label="لبنية" />
         </View>
       </View>
@@ -256,7 +259,9 @@ export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onD
                 <Stop offset="1" stopColor={TOOTH_BOTTOM} />
               </LinearGradient>
             </Defs>
-            <Line x1={frame.line.x1} y1={frame.mid} x2={frame.line.x2} y2={frame.mid} stroke={INK} strokeOpacity={0.15} strokeWidth={u(1)} />
+            {frame.mids.map((m) => (
+              <Line key={m} x1={frame.line.x1} y1={m} x2={frame.line.x2} y2={m} stroke={INK} strokeOpacity={0.15} strokeWidth={u(1)} />
+            ))}
             {order.map(drawShape)}
             {(bridges ?? []).map((b, i) => drawChain(b, `b${i}`))}
             {draft.length ? drawChain(draft, "draft", true) : null}

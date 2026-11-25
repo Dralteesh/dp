@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { PrayerCard } from "@/components/PrayerCard";
 import { HomeEditor } from "@/components/home/HomeEditor";
 import { ClinicHomeCard } from "@/components/home/ClinicHomeCard";
+import { SmartCard } from "@/components/home/SmartCard";
 import { HomeCountdownCard } from "@/components/countdown/HomeCountdownCard";
 import { RecentDocs } from "@/components/home/RecentDocs";
 import { UpcomingAlarmsCard } from "@/components/home/UpcomingAlarmsCard";
@@ -217,6 +218,7 @@ export default function HomeScreen() {
           ) : null}
         </View>
     ),
+    smart: <SmartCard now={now} />,
     clinic: <ClinicHomeCard />,
     alarms: showTasks ? <UpcomingAlarmsCard now={now} /> : null,
     docs: (

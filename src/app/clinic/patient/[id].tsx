@@ -8,6 +8,7 @@ import { DictateField } from "@/components/DictateField";
 import { MoneyField, useMoneyInput } from "@/components/MoneyField";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
 import { TagPills } from "@/components/clinic/TagPills";
+import { PatientTypePanel } from "@/components/clinic/PatientTypePanel";
 import { QuickSession } from "@/components/clinic/QuickSession";
 import { AffectedTeethTable } from "@/components/clinic/AffectedTeethTable";
 import { ToothPanel } from "@/components/clinic/ToothPanel";
@@ -22,7 +23,7 @@ import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { STATUS_META, TOOTH_STATUS } from "@/constants/clinic";
-import { foreignLabel } from "@/lib/currency";
+import { foreignLabel, priceInBase } from "@/lib/currency";
 import { fmtDateShort, fmtTime, toISO } from "@/lib/dates";
 import { fmtMoney, initial, parseAmount } from "@/lib/format";
 import { telLink, whatsappLink } from "@/lib/phone";
@@ -75,7 +76,27 @@ export default function PatientScreen() {
   const [sProc, setSProc] = useState("");
   const [sTooth, setSTooth] = useState("");
   const sMoney = useMoneyInput();
+  /** ما يدفعه المريض الآن عند الجلسة (اختياري): الباقي يُدفع لاحقًا على دفعات أو بنهاية العمل */
+  const sPaid = useMoneyInput();
   const [sNotes, setSNotes] = useState("");
+  const priceList = useExtras((s) => s.priceList);
+  const usdRate = useSettings((s) => s.usdRate);
+
+  /** اختيار إجراء: يعبّئ المبلغ من قائمة الأسعار إن وُجد (يبقى قابلًا للتعديل لكل مريض) */
+  const pickProcedure = (name: string) => {
+    setSProc(name);
+    const item = priceList.find((x) => x.active && x.name.trim() === name.trim());
+    if (!item) return;
+    if (item.currency === "USD") {
+      sMoney.setCur("usd");
+      sMoney.setRateText(usdRate ? String(usdRate) : "");
+      sMoney.setText(String(item.price));
+    } else {
+      const v = priceInBase(item, usdRate);
+      sMoney.setCur("base");
+      sMoney.setText(v === null ? "" : String(v));
+    }
+  };
 
   const [payOpen, setPayOpen] = useState(false);
   const [pDate, setPDate] = useState(toISO(new Date()));
@@ -170,10 +191,19 @@ export default function PatientScreen() {
       Alert.alert("الإجراء مطلوب", "اكتب الإجراء الذي تمّ.");
       return;
     }
-    // التكلفة اختيارية (صفر مسموح)؛ إن كُتبت بالدولار فلا بد من سعر الصرف
-    const m = sMoney.value > 0 ? sMoney.result() : { amount: 0, foreign: undefined };
+    // المبلغ المطلوب من المريض يُسجَّل مع كل معالجة؛ إن كُتب بالدولار فلا بد من سعر الصرف
+    if (!(sMoney.value > 0)) {
+      Alert.alert("المبلغ مطلوب", "اكتب المبلغ المراد تحصيله من المريض لهذه المعالجة.");
+      return;
+    }
+    const m = sMoney.result();
     if (!m) {
       Alert.alert("سعر الدولار مطلوب", "اكتب سعر الدولار اليوم.");
+      return;
+    }
+    const paid = sPaid.value > 0 ? sPaid.result() : null;
+    if (sPaid.value > 0 && !paid) {
+      Alert.alert("سعر الدولار مطلوب", "اكتب سعر الدولار للمبلغ المدفوع.");
       return;
     }
     addSession({
@@ -185,10 +215,20 @@ export default function PatientScreen() {
       foreign: m.foreign,
       notes: sNotes.trim() || undefined,
     });
+    if (paid) {
+      addPayment({
+        patientId: patient.id,
+        date: sDate,
+        amount: paid.amount,
+        foreign: paid.foreign,
+        note: `دفعة عند الجلسة: ${sProc.trim()}`,
+      });
+    }
     setSessionOpen(false);
     setSProc("");
     setSTooth("");
     sMoney.reset();
+    sPaid.reset();
     setSNotes("");
   };
 
@@ -285,6 +325,7 @@ export default function PatientScreen() {
       {/* ---------------- نظرة عامة ---------------- */}
       {section === "overview" && (
         <View className="mt-4">
+          <PatientTypePanel patientId={patient.id} />
           <View className="flex-row flex-wrap gap-2 mb-3">
             {[
               { l: "التقويم", i: "git-compare-outline", h: "/clinic/ortho", on: hasOrtho },
@@ -412,6 +453,8 @@ export default function PatientScreen() {
             selected={tooth}
             onSelect={setToothSel}
             birthYear={patient.birthYear}
+            dentition={patient.dentition}
+            onDentitionChange={(d) => updatePatient(patient.id, { dentition: d })}
             marks={patient.toothMarks}
             bridges={patient.bridges}
             onBridgesChange={(b) => updatePatient(patient.id, { bridges: b })}
@@ -484,6 +527,20 @@ export default function PatientScreen() {
           <Button label="تسجيل جلسة" icon="add" type="private" onPress={() => setSessionOpen(true)} />
           <View className="mt-2">
             <QuickSession patientId={patient.id} />
+          </View>
+          <View className="flex-row gap-2 mt-3">
+            {[
+              { l: "المطلوب", v: money.charged, c: "#0B4F73" },
+              { l: "المدفوع", v: money.paid, c: "#16A34A" },
+              { l: "المتبقي", v: Math.max(0, money.balance), c: money.balance > 0 ? "#DC2626" : "#64748B" },
+            ].map((x) => (
+              <View key={x.l} className="flex-1 rounded-2xl p-3 bg-slate-50">
+                <Text className="text-xs text-muted">{x.l}</Text>
+                <Text w="bold" style={{ color: x.c }}>
+                  {fmtMoney(x.v, currency)}
+                </Text>
+              </View>
+            ))}
           </View>
           <View className="mt-3">
             {sessions.length === 0 ? (
@@ -632,13 +689,19 @@ export default function PatientScreen() {
         <FieldRow label="الإجراء">
           <View className="flex-row flex-wrap gap-2">
             {procedures.map((p) => (
-              <Chip key={p.name} label={p.name} selected={sProc === p.name} color={TYPE_META.private.hex} onPress={() => setSProc(p.name)} />
+              <Chip key={p.name} label={p.name} selected={sProc === p.name} color={TYPE_META.private.hex} onPress={() => pickProcedure(p.name)} />
             ))}
           </View>
         </FieldRow>
-        <Field value={sProc} onChangeText={setSProc} placeholder="أو اكتب الإجراء" />
+        <Field value={sProc} onChangeText={pickProcedure} placeholder="أو اكتب الإجراء" />
         <Field label="رقم السن" value={sTooth} onChangeText={setSTooth} placeholder="36" keyboardType="number-pad" />
-        <MoneyField label="التكلفة" m={sMoney} />
+        <MoneyField label="المبلغ المطلوب من المريض" m={sMoney} />
+        <MoneyField label="المدفوع الآن (اختياري — الباقي لاحقًا)" m={sPaid} />
+        {sMoney.value > 0 && sPaid.value > 0 && sMoney.cur === "base" && sPaid.cur === "base" ? (
+          <Text className="text-sm text-muted mb-3">
+            المتبقي بعد هذه الجلسة: {fmtMoney(Math.max(0, sMoney.value - sPaid.value), currency)}
+          </Text>
+        ) : null}
         <DictateField label="ملاحظات" value={sNotes} onChangeText={setSNotes} multiline />
         <Button label="حفظ الجلسة" icon="checkmark" type="private" onPress={saveSession} />
       </Sheet>

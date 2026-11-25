@@ -172,6 +172,13 @@ export type Patient = {
   alertFlags?: AlertFlag[];
   /** وسوم ملوّنة حرة (VIP، تقويم، يحتاج تخديراً حذراً...) */
   tags?: string[];
+  /** مخطط الأسنان المختار يدويًا (يتقدّم على الاختيار حسب العمر) */
+  dentition?: "primary" | "mixed" | "permanent";
+  /** أنواع المريض المضافة/المُزالة يدويًا فوق الكشف التلقائي (تقويم، تيجان، زرع، أطفال، عصب) */
+  typeAdd?: ("ortho" | "crowns" | "implant" | "pedo" | "endo")[];
+  typeRemove?: ("ortho" | "crowns" | "implant" | "pedo" | "endo")[];
+  /** علامات المواعيد المقترحة تلقائيًا التي أُنشئت سابقًا (لمنع إعادة إنشاء موعد حذفه الطبيب) */
+  autoDone?: string[];
   notes?: string;
   /** رمز السن (FDI) -> الحالة. غير المذكور = سليم */
   teeth: Record<string, ToothStatus>;

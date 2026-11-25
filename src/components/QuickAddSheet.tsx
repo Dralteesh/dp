@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { QuickAddEditor } from "@/components/quickadd/QuickAddEditor";
+import { SmartInput } from "@/components/smart/SmartInput";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Text } from "@/components/ui/Text";
 import { useTheme } from "@/hooks/useTheme";
@@ -69,6 +70,7 @@ export function QuickAddSheet() {
               <QuickAddEditor items={items} />
             ) : (
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                <SmartInput onDone={hide} />
                 <View className="flex-row flex-wrap" style={{ gap: 10 }}>
                   {shown.map((it) => {
                     const look = itemLook(it);

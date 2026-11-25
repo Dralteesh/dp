@@ -1,7 +1,8 @@
 /** هندسة مخطط الأسنان (دوال نقية قابلة للاختبار): قوس U عريض، أسنان بحجومها موزّعة على طول المنحنى */
+import { dentitionByAge } from "@/lib/patientType";
 import { LOWER_PRIMARY, LOWER_TEETH, UPPER_PRIMARY, UPPER_TEETH } from "@/constants/clinic";
 
-export type Dentition = "permanent" | "primary";
+export type Dentition = "permanent" | "primary" | "mixed";
 export type ToothKind = "incisor" | "canine" | "premolar" | "molar";
 
 export type PlacedTooth = {
@@ -180,7 +181,9 @@ export function nearestTooth(layout: Layout, x: number, y: number, maxDist = 30)
 
 /** ترتيب التنقل بين الأسنان: 18…11، 21…28، 38…31، 41…48 (واللبنية: 55…51، 61…65، 85…81، 71…75) */
 export function navOrder(dentition: Dentition): string[] {
-  return dentition === "primary" ? [...UPPER_PRIMARY, ...LOWER_PRIMARY] : [...UPPER_TEETH, ...[...LOWER_TEETH].reverse()];
+  const permanent = [...UPPER_TEETH, ...[...LOWER_TEETH].reverse()];
+  if (dentition === "mixed") return [...UPPER_PRIMARY, ...LOWER_PRIMARY, ...permanent];
+  return dentition === "primary" ? [...UPPER_PRIMARY, ...LOWER_PRIMARY] : permanent;
 }
 
 const UNIT_NAMES: Record<number, string> = {
@@ -225,11 +228,14 @@ export function hasPrimaryRecords(teeth: Record<string, unknown>): boolean {
   return Object.keys(teeth).some((k) => /^[5-8][1-5]$/.test(k));
 }
 
-/** الوضع الافتراضي للمخطط: لبنية إن سُجّلت أسنان لبنية أو كان العمر < 6 سنوات، وإلا دائمة */
+/**
+ * الوضع الافتراضي للمخطط حسب العمر: أقل من 6 لبنية، 6–12 مختلطة، 13+ دائمة.
+ * بلا سنة ميلاد: دائمة، إلا إن وُجدت أسنان لبنية مسجّلة فتُعرض (مختلطة) كي لا تختفي سجلاتها.
+ */
 export function defaultDentition(teeth: Record<string, unknown>, birthYear?: number, nowYear = new Date().getFullYear()): Dentition {
-  if (hasPrimaryRecords(teeth)) return "primary";
-  if (birthYear && nowYear - birthYear < 6) return "primary";
-  return "permanent";
+  const byAge = dentitionByAge(birthYear, nowYear);
+  if (byAge === "permanent" && hasPrimaryRecords(teeth)) return "mixed";
+  return byAge;
 }
 
 /** مسار SVG لتاج السن في إحداثيات محلية (المركز 0،0؛ +y = جهة الخارج). */

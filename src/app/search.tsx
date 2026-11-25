@@ -13,6 +13,7 @@ type Dest = { title: string; hint: string; icon: Icon; href: string; words: stri
 
 /** كل الشاشات القابلة للوصول بالبحث (words = كلمات مرادفة لتحسين المطابقة) */
 const DESTS: Dest[] = [
+  { title: "المساعد الذكي", hint: "اقتراحات وإضافة بجملة واحدة", icon: "sparkles", href: "/smart", words: "مساعد ذكي ذكاء اقتراحات اضافه جمله صوت املاء تنبيهات", hex: "#6366F1", soft: "#E0E7FF" },
   { title: "التقويم", hint: "الأسبوع والشهر", icon: "calendar", href: "/calendar", words: "تقويم جدول شهر اسبوع مواعيد", hex: "#0E6FA5", soft: "#D6EBF7" },
   { title: "المهام", hint: "كل المهام", icon: "checkbox", href: "/tasks", words: "مهام مهمه تاسك قائمه", hex: "#16A34A", soft: "#DCFCE7" },
   { title: "الملاحظات", hint: "ملاحظات مثبّتة وملوّنة", icon: "create", href: "/notes", words: "ملاحظات ملاحظه نوت مذكره", hex: "#CA8A04", soft: "#FEF3C7" },

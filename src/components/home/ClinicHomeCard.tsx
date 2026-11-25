@@ -8,6 +8,8 @@ import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { toISO } from "@/lib/dates";
 import { fmtMoney } from "@/lib/format";
+import { overdueLabOrders } from "@/lib/patientType";
+import { useExtras } from "@/store/useExtras";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
 
@@ -23,6 +25,7 @@ export function ClinicHomeCard() {
   const appointments = useClinic((s) => s.appointments);
   const sessions = useClinic((s) => s.sessions);
   const payments = useClinic((s) => s.payments);
+  const labOrders = useExtras((s) => s.labOrders);
   const tools = useClinicToolList();
   const [toolsOpen, setToolsOpen] = useState(false);
   const showMenu = useShortcutMenu((s) => s.show);
@@ -34,6 +37,8 @@ export function ClinicHomeCard() {
     () => patients.reduce((acc, p) => acc + Math.max(0, patientBalance(p.id, sessions, payments).balance), 0),
     [patients, sessions, payments],
   );
+
+  const lateLabs = useMemo(() => overdueLabOrders(labOrders, null, today), [labOrders, today]);
 
   const open = (tab: "day" | "patients" | "money") =>
     router.push({ pathname: "/clinic", params: { tab, t: String(Date.now()) } });
@@ -76,6 +81,20 @@ export function ClinicHomeCard() {
           </Pressable>
         ))}
       </View>
+
+      {lateLabs.length ? (
+        <Pressable
+          onPress={() => router.push("/clinic/lab" as never)}
+          className="flex-row items-center gap-2 rounded-2xl px-3 py-2 mt-3"
+          style={{ backgroundColor: "#FEE2E2" }}
+          accessibilityLabel="أعمال مخبر متأخرة"
+        >
+          <Ionicons name="alert-circle" size={18} color="#DC2626" />
+          <Text w="semi" className="text-xs flex-1" style={{ color: "#DC2626" }} numberOfLines={1}>
+            {lateLabs.length === 1 ? `عمل مخبر متأخر: ${lateLabs[0].order.work}` : `${lateLabs.length} أعمال مخبر متأخرة عن موعدها`}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-4" contentContainerStyle={{ gap: 10, paddingEnd: 4 }}>
         {tools.map((t) => (
