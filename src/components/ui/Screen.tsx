@@ -25,9 +25,11 @@ type Props = {
   onPull?: () => void;
   /** false: يوقف التمرير (مثلًا أثناء سحب عنصر) */
   scrollEnabled?: boolean;
+  /** ضغطة مطوّلة (1.5ث) على العنوان: مدخل مخفي */
+  onTitleLongPress?: () => void;
 };
 
-export function Screen({ title, subtitle, back, right, children, scroll = true, overlay, logo, onPull, scrollEnabled = true }: Props) {
+export function Screen({ title, subtitle, back, right, children, scroll = true, overlay, logo, onPull, scrollEnabled = true, onTitleLongPress }: Props) {
   const router = useRouter();
   const pl = useSettings((s) => s.uiMode) === "planner";
   const [pulling, setPulling] = useState(false);
@@ -57,14 +59,14 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
             </Pressable>
           )}
           {logo}
-          <View className="flex-1">
+          <Pressable className="flex-1" onLongPress={onTitleLongPress} delayLongPress={1500} disabled={!onTitleLongPress}>
             {title ? (
               <Text w="bold" className={pl ? "text-xl leading-8" : "text-2xl leading-8"} style={pl ? { color: PL.navy } : undefined}>
                 {title}
               </Text>
             ) : null}
             {subtitle ? <Text className="text-muted text-sm">{subtitle}</Text> : null}
-          </View>
+          </Pressable>
           {right}
         </View>
       )}

@@ -56,10 +56,6 @@ export default function SettingsScreen() {
 
   return (
     <Screen title="الإعدادات" back>
-      <Card className="mb-3">
-        <SettingsLink icon="sparkles-outline" title="الواجهة الجديدة" hint="Alteesh Planner: جدول، مرضى، علاجات" href="/planner/welcome" last />
-      </Card>
-
       <Card>
         <Field
           label="اسمك (يظهر في التحية)"

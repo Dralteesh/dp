@@ -155,13 +155,20 @@ export function TimeField({
   label,
   value,
   onChange,
+  clearable,
+  onClear,
+  placeholder = "اختر وقتًا",
 }: {
   label?: string;
-  value: string;
+  value?: string;
   onChange: (t: string) => void;
+  /** يسمح بترك الوقت فارغًا (يظهر زر إزالة ويستدعي onClear) */
+  clearable?: boolean;
+  onClear?: () => void;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [h, m] = value.split(":").map(Number);
+  const [h, m] = (value ?? "16:00").split(":").map(Number);
   const [hh, setHh] = useState(h);
   const [mm, setMm] = useState(Math.round(m / 5) * 5 === 60 ? 55 : Math.round(m / 5) * 5);
 
@@ -178,7 +185,7 @@ export function TimeField({
           {label}
         </Text>
       ) : null}
-      <PickerButton icon="time-outline" text={fmtTime(value)} onPress={openPicker} />
+      <PickerButton icon="time-outline" text={value ? fmtTime(value) : undefined} placeholder={placeholder} onPress={openPicker} />
       <Sheet visible={open} onClose={() => setOpen(false)} title={label ?? "اختر الوقت"}>
         <View className="items-center">
           <Text w="bold" className="text-4xl mb-3">
@@ -203,6 +210,18 @@ export function TimeField({
               <Button label="إلغاء" variant="soft" onPress={() => setOpen(false)} />
             </View>
           </View>
+          {clearable && value && onClear ? (
+            <View className="mt-3 w-full">
+              <Button
+                label="إزالة الوقت"
+                variant="danger"
+                onPress={() => {
+                  onClear();
+                  setOpen(false);
+                }}
+              />
+            </View>
+          ) : null}
         </View>
       </Sheet>
     </View>

@@ -18,6 +18,7 @@ export function partOf(startTime: string): Exclude<PartOfDay, "any"> {
 export function entryFitsSlot(e: WaitEntry, date: string, startTime: string, today: string): boolean {
   if (e.status !== "waiting" && e.status !== "notified") return false;
   if (date < today) return false;
+  if (e.date && date !== e.date) return false;
   if (e.from && date < e.from) return false;
   if (e.to && date > e.to) return false;
   if (e.part !== "any" && e.part !== partOf(startTime)) return false;

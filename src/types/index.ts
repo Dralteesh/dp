@@ -442,6 +442,8 @@ export type Settings = {
   clinicTools: string[] | null;
   /** الواجهة المعتمدة عند فتح التطبيق: الجديدة (planner) أو الكلاسيكية (classic) */
   uiMode: "planner" | "classic";
+  /** true: تحوّل التطبيق تلقائيًا للواجهة الاحتياطية بعد عطل، ويُعاد المحاولة مع الفتح التالي */
+  uiFallback: boolean;
   /** ضبط الجدول الأسبوعي في الرئيسية */
   timeline: TimelinePrefs;
   /** كتالوج الإجراءات القابل للتعديل؛ null = الافتراضي */

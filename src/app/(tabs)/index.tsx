@@ -217,27 +217,6 @@ export default function HomeScreen() {
           ) : null}
         </View>
     ),
-    planner: (
-        <Pressable
-          onPress={() => switchUi("planner")}
-          accessibilityLabel="الواجهة الجديدة"
-          className="flex-row items-center gap-3 rounded-[24px] p-3"
-          style={{ backgroundColor: "#DCEBF9", borderWidth: 1, borderColor: "#B9D3EC" }}
-        >
-          <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: "#F7FBFF" }}>
-            <Image source={TREATMENT_ICONS.followup} style={{ width: 44, height: 44 }} resizeMode="contain" />
-          </View>
-          <View className="flex-1">
-            <Text w="bold" className="text-base" style={{ color: "#0F2F57" }}>
-              الواجهة الجديدة
-            </Text>
-            <Text className="text-xs" style={{ color: "#5F7C9C" }}>
-              جدول العيادة، المرضى، العلاجات والتذكيرات
-            </Text>
-          </View>
-          <Ionicons name="chevron-back" size={20} color="#5F7C9C" />
-        </Pressable>
-    ),
     clinic: <ClinicHomeCard />,
     alarms: showTasks ? <UpcomingAlarmsCard now={now} /> : null,
     docs: (
@@ -285,6 +264,7 @@ export default function HomeScreen() {
     <Screen
       title={doctorName ? `${greeting} د. ${doctorName}` : greeting}
       subtitle={appName || "Dentist Planner"}
+      onTitleLongPress={() => switchUi("planner")}
       logo={
         <Pressable onPress={() => router.push("/settings")} onLongPress={quickAddNow} delayLongPress={350} hitSlop={8} accessibilityLabel="الإعدادات (اضغط مطوّلًا للإضافة السريعة)">
           <Logo uri={logo} size={44} app />

@@ -5,7 +5,6 @@ import { ToolGrid, type ToolItem } from "@/components/planner/ToolGrid";
 import { Text } from "@/components/ui/Text";
 import { PL } from "@/design/planner";
 import { useLayout } from "@/hooks/useLayout";
-import { switchUi } from "@/lib/ui";
 import { useQuickAdd } from "@/store/useQuickAdd";
 
 const APP: ToolItem[] = [
@@ -49,19 +48,6 @@ export default function PlannerTools() {
 
       <SectionTitle title="أقسام التطبيق" />
       <ToolGrid items={APP} cols={cols} />
-
-      <Pressable
-        onPress={() => switchUi("classic")}
-        style={{ marginTop: 20, borderWidth: 2, borderColor: PL.blue, borderRadius: 999, paddingVertical: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
-      >
-        <Ionicons name="swap-horizontal" size={20} color={PL.blue} />
-        <Text w="bold" style={{ color: PL.blue }}>
-          الانتقال إلى الواجهة الكلاسيكية
-        </Text>
-      </Pressable>
-      <Text style={{ textAlign: "center", color: PL.muted, fontSize: 11.5, marginTop: 6 }}>
-        الواجهة الكلاسيكية متاحة دائمًا للطوارئ أو متى شئت
-      </Text>
     </PlannerShell>
   );
 }

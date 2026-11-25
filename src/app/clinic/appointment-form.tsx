@@ -19,9 +19,10 @@ import { DURATIONS, STATUS_META } from "@/constants/clinic";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { describeClash, findClashes } from "@/lib/conflicts";
 import { patientFlags, procedureWarnings } from "@/lib/alerts";
-import { fmtTime, minutesToTime, toISO, toMinutes } from "@/lib/dates";
+import { fmtTime, minutesToTime, toMinutes } from "@/lib/dates";
 import { initial } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
+import { useExtras } from "@/store/useExtras";
 import type { AppointmentStatus } from "@/types";
 import { useProcedures } from "@/hooks/useProcedures";
 
@@ -36,6 +37,7 @@ export default function AppointmentFormScreen() {
     date?: string;
     procedure?: string;
     startTime?: string;
+    waitId?: string;
   }>();
 
   const patients = useClinic((s) => s.patients);
@@ -43,12 +45,15 @@ export default function AppointmentFormScreen() {
   const addAppointment = useClinic((s) => s.addAppointment);
   const updateAppointment = useClinic((s) => s.updateAppointment);
   const removeAppointment = useClinic((s) => s.removeAppointment);
+  const addWait = useExtras((s) => s.addWait);
+  const setWaitStatus = useExtras((s) => s.setWaitStatus);
 
   const existing = params.id ? appointments.find((a) => a.id === params.id) : undefined;
 
   const [patientId, setPatientId] = useState<string | undefined>(existing?.patientId ?? params.patientId);
-  const [date, setDate] = useState(existing?.date ?? params.date ?? toISO(new Date()));
-  const [startTime, setStartTime] = useState(existing?.startTime ?? params.startTime ?? "16:00");
+  // التاريخ والوقت يُحدَّدان صراحةً عند تثبيت الموعد (لا قيم افتراضية)
+  const [date, setDate] = useState<string | undefined>(existing?.date ?? params.date);
+  const [startTime, setStartTime] = useState<string | undefined>(existing?.startTime ?? params.startTime);
   const [duration, setDuration] = useState(existing?.durationMin ?? 30);
   const [procedure, setProcedure] = useState(existing?.procedure ?? params.procedure ?? "كشف واستشارة");
   const [notes, setNotes] = useState(existing?.notes ?? "");
@@ -62,29 +67,37 @@ export default function AppointmentFormScreen() {
     [patients, q],
   );
 
-  const endTime = minutesToTime(toMinutes(startTime) + duration);
+  const endTime = startTime ? minutesToTime(toMinutes(startTime) + duration) : undefined;
 
   const agendaInput = useAgendaInput();
   /** تعارضات مع المواعيد والدوام والمناوبات */
-  const findConflicts = () => findClashes(date, startTime, duration, agendaInput, { appointmentId: existing?.id });
+  const findConflicts = () => (!date || !startTime ? [] : findClashes(date, startTime, duration, agendaInput, { appointmentId: existing?.id }));
 
   const doSave = () => {
     const payload = {
       patientId: patientId!,
-      date,
-      startTime,
+      date: date!,
+      startTime: startTime!,
       durationMin: duration,
       procedure: procedure.trim() || "كشف واستشارة",
       notes: notes.trim() || undefined,
     };
     if (existing) updateAppointment(existing.id, { ...payload, status });
-    else addAppointment(payload);
+    else {
+      addAppointment(payload);
+      // حُجز من قائمة الانتظار: يُعلَّم محجوزًا الآن فقط (بعد حفظ الموعد فعلًا)
+      if (params.waitId) setWaitStatus(params.waitId, "booked");
+    }
     router.back();
   };
 
   const save = () => {
     if (!patientId) {
       Alert.alert("اختر المريض", "حدّد المريض صاحب الموعد.");
+      return;
+    }
+    if (!date || !startTime) {
+      Alert.alert("حدّد التاريخ والوقت", "لتثبيت الموعد يلزم اختيار اليوم والوقت. يمكنك بدلًا من ذلك حفظ المريض في قائمة الانتظار.");
       return;
     }
     const c = findConflicts();
@@ -96,6 +109,24 @@ export default function AppointmentFormScreen() {
       return;
     }
     doSave();
+  };
+
+  /** يضع المريض في قائمة الانتظار: اليوم والوقت اختياريان هنا */
+  const saveToWaitlist = () => {
+    if (!patientId) {
+      Alert.alert("اختر المريض", "حدّد المريض لإضافته إلى قائمة الانتظار.");
+      return;
+    }
+    addWait({
+      patientId,
+      procedure: procedure.trim() || "كشف واستشارة",
+      part: "any",
+      date,
+      time: startTime,
+      notes: notes.trim() || undefined,
+    });
+    Alert.alert("أُضيف للانتظار", "يمكنك تثبيت موعده لاحقًا من قائمة الانتظار.");
+    router.back();
   };
 
   const confirmDelete = () => {
@@ -137,8 +168,8 @@ export default function AppointmentFormScreen() {
       </Card>
 
       <Card className="mt-3">
-        <DateField label="التاريخ" value={date} onChange={(v) => v && setDate(v)} />
-        <TimeField label={`الوقت (ينتهي ${fmtTime(endTime)})`} value={startTime} onChange={setStartTime} />
+        <DateField label={existing ? "التاريخ" : "التاريخ (يلزم عند التثبيت)"} value={date} onChange={(v) => v && setDate(v)} placeholder="اختر التاريخ" />
+        <TimeField label={endTime ? `الوقت (ينتهي ${fmtTime(endTime)})` : "الوقت (يلزم عند التثبيت)"} value={startTime} onChange={setStartTime} />
         <FieldRow label="المدة بالدقائق">
           <View className="flex-row flex-wrap gap-2">
             {DURATIONS.map((d) => (
@@ -189,6 +220,11 @@ export default function AppointmentFormScreen() {
         </View>
         {existing ? <Button label="حذف" variant="danger" icon="trash-outline" onPress={confirmDelete} /> : null}
       </View>
+      {!existing ? (
+        <View className="mt-3">
+          <Button label="حفظ في قائمة الانتظار" icon="hourglass-outline" variant="soft" onPress={saveToWaitlist} />
+        </View>
+      ) : null}
 
       <Sheet visible={pickOpen} onClose={() => setPickOpen(false)} title="اختر المريض">
         <Field value={q} onChangeText={setQ} placeholder="بحث بالاسم أو الهاتف" />

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Alert, Linking, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { DateField } from "@/components/pickers";
+import { DateField, TimeField } from "@/components/pickers";
 import { DictateField } from "@/components/DictateField";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -15,7 +15,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
-import { fmtDateShort } from "@/lib/dates";
+import { fmtDateShort, fmtTime } from "@/lib/dates";
 import { initial } from "@/lib/format";
 import { whatsappLink } from "@/lib/phone";
 import { PART_LABEL } from "@/lib/waitlist";
@@ -55,6 +55,8 @@ export default function WaitlistScreen() {
   const [part, setPart] = useState<PartOfDay>("any");
   const [from, setFrom] = useState<string | undefined>();
   const [to, setTo] = useState<string | undefined>();
+  const [day, setDay] = useState<string | undefined>();
+  const [time, setTime] = useState<string | undefined>();
   const [notes, setNotes] = useState("");
 
   const list = useMemo(
@@ -76,12 +78,14 @@ export default function WaitlistScreen() {
     setPart("any");
     setFrom(undefined);
     setTo(undefined);
+    setDay(undefined);
+    setTime(undefined);
     setNotes("");
   };
   const save = () => {
     if (!patientId) return Alert.alert("اختر المريض");
     if (from && to && from > to) return Alert.alert("النطاق غير صحيح", "تاريخ البداية بعد النهاية.");
-    addWait({ patientId, procedure: procedure.trim() || "كشف واستشارة", part, from, to, notes: notes.trim() || undefined });
+    addWait({ patientId, procedure: procedure.trim() || "كشف واستشارة", part, from, to, date: day, time, notes: notes.trim() || undefined });
     setOpen(false);
     reset();
   };
@@ -127,6 +131,8 @@ export default function WaitlistScreen() {
                     <Text w="bold">{p?.name ?? "مريض محذوف"}</Text>
                     <Text className="text-xs text-muted">
                       {w.procedure} • {PART_LABEL[w.part]}
+                      {w.date ? ` • ${fmtDateShort(w.date)}` : ""}
+                      {w.time ? ` ${fmtTime(w.time)}` : ""}
                       {w.from || w.to ? ` • ${w.from ? fmtDateShort(w.from) : "…"} → ${w.to ? fmtDateShort(w.to) : "…"}` : ""}
                     </Text>
                   </View>
@@ -145,8 +151,11 @@ export default function WaitlistScreen() {
                         icon="calendar"
                         color={green}
                         onPress={() => {
-                          setWaitStatus(w.id, "booked");
-                          router.push({ pathname: "/clinic/appointment-form", params: { patientId: w.patientId, procedure: w.procedure } });
+                          const params: Record<string, string> = { patientId: w.patientId, procedure: w.procedure, waitId: w.id };
+                          const d = w.date ?? w.from;
+                          if (d) params.date = d;
+                          if (w.time) params.startTime = w.time;
+                          router.push({ pathname: "/clinic/appointment-form", params });
                         }}
                       />
                       {p?.phone ? (
@@ -220,6 +229,8 @@ export default function WaitlistScreen() {
             ))}
           </View>
         </FieldRow>
+        <DateField label="يوم محدد (اختياري)" value={day} onChange={setDay} clearable placeholder="بدون تحديد" />
+        <TimeField label="ساعة محددة (اختياري)" value={time} onChange={setTime} clearable onClear={() => setTime(undefined)} placeholder="بدون تحديد" />
         <DateField label="من تاريخ (اختياري)" value={from} onChange={setFrom} clearable placeholder="أي يوم" />
         <DateField label="إلى تاريخ (اختياري)" value={to} onChange={setTo} clearable placeholder="بلا حد" />
         <DictateField label="ملاحظات" value={notes} onChangeText={setNotes} multiline />

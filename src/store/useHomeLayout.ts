@@ -7,7 +7,6 @@ export type BlockId =
   | "weather"
   | "week"
   | "day"
-  | "planner"
   | "clinic"
   | "alarms"
   | "docs"
@@ -33,7 +32,6 @@ export const BLOCKS: BlockDef[] = [
   { id: "weather", title: "الطقس", icon: "partly-sunny-outline", span: "third" },
   { id: "week", title: "الجدول الأسبوعي", icon: "calendar-outline", span: "full" },
   { id: "day", title: "اليوم المحدّد", icon: "today-outline", span: "full" },
-  { id: "planner", title: "الواجهة الجديدة", icon: "sparkles-outline", span: "full" },
   { id: "clinic", title: "العيادة", icon: "medkit-outline", span: "full" },
   { id: "alarms", title: "المنبّهات القادمة", icon: "alarm-outline", span: "full" },
   { id: "docs", title: "المستندات", icon: "document-text-outline", span: "full" },

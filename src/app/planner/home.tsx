@@ -88,17 +88,11 @@ export default function PlannerHome() {
       title={appName || "Alteesh Planner"}
      
       maxWidth={1000}
-      left={
-        <Pressable
-          onPress={() => switchUi("classic")}
-          hitSlop={8}
-          accessibilityLabel="الواجهة الأصلية"
-          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: PL.white, borderWidth: 1, borderColor: PL.border, alignItems: "center", justifyContent: "center" }}
-        >
-          <Ionicons name="menu" size={22} color={PL.navy} />
+      right={
+        <Pressable onLongPress={() => switchUi("classic")} delayLongPress={1500} accessibilityLabel="الشعار">
+          <Logo uri={logo} size={40} app />
         </Pressable>
       }
-      right={<Logo uri={logo} size={40} app />}
     >
       <View style={{ backgroundColor: PL.cardStrong, borderRadius: 26, padding: 18, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: PL.border }}>
         <View style={{ flex: 1 }}>

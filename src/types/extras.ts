@@ -25,6 +25,10 @@ export type WaitEntry = {
   from?: string;
   to?: string;
   part: PartOfDay;
+  /** يوم محدد مفضّل (اختياري) */
+  date?: string;
+  /** ساعة محددة مفضّلة (اختياري) */
+  time?: string;
   notes?: string;
   status: WaitStatus;
   notifiedAt?: number;

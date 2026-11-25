@@ -52,6 +52,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (!ready || launched.current) return;
     launched.current = true;
+    // بعد تحويل احتياطي تلقائي في الجلسة السابقة: جرّب الواجهة الأساسية مجددًا
+    if (useSettings.getState().uiFallback) useSettings.getState().update({ uiMode: "planner", uiFallback: false });
     if (useSettings.getState().uiMode === "planner" && (pathname === "/" || pathname === "")) {
       router.replace("/planner/home" as never);
     }
