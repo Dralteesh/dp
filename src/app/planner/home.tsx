@@ -10,8 +10,13 @@ import { PL } from "@/design/planner";
 import { useLayout } from "@/hooks/useLayout";
 import { useNow } from "@/hooks/useNow";
 import { fmtTime, toISO } from "@/lib/dates";
+import { nextAlarmFire } from "@/lib/alarm";
+import { fmtCountdown, fmtTimeDate } from "@/lib/dates";
+import { PRAYER_LABELS, nextPrayer } from "@/lib/prayer";
+import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
 import { usePlanner } from "@/store/usePlanner";
+import { switchUi } from "@/lib/ui";
 import { useSettings } from "@/store/useSettings";
 
 function Stat({ icon, value, label, color }: { icon: keyof typeof Ionicons.glyphMap; value: number; label: string; color: string }) {
@@ -48,6 +53,25 @@ export default function PlannerHome() {
   );
   const byId = useMemo(() => new Map(patients.map((p) => [p.id, p])), [patients]);
   const activeCount = patients.filter((p) => p.status === "active").length;
+  const prayerMethod = useSettings((s) => s.prayerMethod);
+  const madhab = useSettings((s) => s.madhab);
+  const prayerAdjust = useSettings((s) => s.prayerAdjust);
+  const alarms = useAlarms((s) => s.alarms);
+  const minuteKey = Math.floor(now.getTime() / 60000);
+  const np = useMemo(
+    () => nextPrayer(new Date(), { prayerMethod, madhab, prayerAdjust }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [minuteKey, prayerMethod, madhab, prayerAdjust],
+  );
+  const nextAlarm = useMemo(() => {
+    let best: { label: string; at: Date } | null = null;
+    for (const a of alarms) {
+      const f = nextAlarmFire([a], now);
+      if (f && (!best || f.at.getTime() < best.at.getTime())) best = { label: a.label || "منبّه", at: f.at };
+    }
+    return best;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alarms, minuteKey]);
   const openTasks = tasks.filter((t) => !t.done).length;
 
   const hour = now.getHours();
@@ -60,7 +84,7 @@ export default function PlannerHome() {
       maxWidth={1000}
       left={
         <Pressable
-          onPress={() => router.replace("/" as never)}
+          onPress={() => switchUi("classic")}
           hitSlop={8}
           accessibilityLabel="الواجهة الأصلية"
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: PL.white, borderWidth: 1, borderColor: PL.border, alignItems: "center", justifyContent: "center" }}
@@ -85,6 +109,23 @@ export default function PlannerHome() {
         <Stat icon="calendar-outline" value={todays.length} label="مواعيد اليوم" color={PL.blue} />
         <Stat icon="people" value={activeCount} label="قيد المعالجة" color={PL.blue} />
         <Stat icon="checkmark-circle" value={openTasks} label="مهام مفتوحة" color={PL.good} />
+      </View>
+
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+        <PCard onPress={() => router.push("/prayer" as never)} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Ionicons name="moon" size={24} color={PL.blue} />
+          <View style={{ flex: 1 }}>
+            <Text w="bold" style={{ color: PL.navy }}>{PRAYER_LABELS[np.key]} {fmtTimeDate(np.time)}</Text>
+            <Text style={{ fontSize: 12, color: PL.muted }}>بعد {fmtCountdown(np.time.getTime() - now.getTime())}</Text>
+          </View>
+        </PCard>
+        <PCard onPress={() => router.push("/alarms" as never)} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Ionicons name="alarm" size={24} color={PL.blue} />
+          <View style={{ flex: 1 }}>
+            <Text w="bold" numberOfLines={1} style={{ color: PL.navy }}>{nextAlarm ? fmtTimeDate(nextAlarm.at) : "لا منبّهات"}</Text>
+            <Text numberOfLines={1} style={{ fontSize: 12, color: PL.muted }}>{nextAlarm ? nextAlarm.label : "المنبّه القادم"}</Text>
+          </View>
+        </PCard>
       </View>
 
       <SectionTitle title="جدول اليوم" action="عرض الكل" onAction={() => router.replace("/planner/schedule" as never)} />

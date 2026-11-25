@@ -15,9 +15,9 @@ import { addDays, combine, fmtTime, toISO } from "@/lib/dates";
 import { useAlarms } from "@/store/useAlarms";
 import { useOnFabRequest } from "@/store/useFabRequest";
 import type { AlarmItem } from "@/types";
+import { screenBg } from "@/lib/ui";
 
 // ---------- ألوان تصميم Clucky ----------
-const BG = "#F4F4F4";
 const CARD = "#FFFFFF";
 const RED = "#E32D0B";
 const GREEN = "#22C55E";
@@ -205,7 +205,7 @@ export default function AlarmsScreen() {
   );
 
   return (
-    <View style={s.root}>
+    <View style={[s.root, { backgroundColor: screenBg() }]}>
       <FlatList
         data={shown}
         keyExtractor={(a) => a.id}
@@ -239,8 +239,8 @@ export default function AlarmsScreen() {
         <Svg width="100%" height="100%">
           <Defs>
             <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={BG} stopOpacity={0} />
-              <Stop offset="1" stopColor={BG} stopOpacity={1} />
+              <Stop offset="0" stopColor={screenBg()} stopOpacity={0} />
+              <Stop offset="1" stopColor={screenBg()} stopOpacity={1} />
             </LinearGradient>
           </Defs>
           <Rect width="100%" height="100%" fill="url(#fade)" />
@@ -509,13 +509,13 @@ function BigTime({
 
 // ---------- الأنماط ----------
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
+  root: { flex: 1, backgroundColor: screenBg() },
   row: { flexDirection: "row", alignItems: "center" },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   badge: { position: "absolute", top: -4, end: -4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: "#FFB800", alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   weekLabel: { flex: 1, textAlign: "center", fontSize: 10, color: INK, fontFamily: "Cairo_700Bold" },
   nextCard: { backgroundColor: CARD, borderRadius: 24, padding: 14 },
-  tile: { flex: 1, backgroundColor: BG, borderRadius: 18, padding: 12 },
+  tile: { flex: 1, backgroundColor: screenBg(), borderRadius: 18, padding: 12 },
   alarmRow: { backgroundColor: CARD, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 14 },
   fade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 200 },
   fab: {

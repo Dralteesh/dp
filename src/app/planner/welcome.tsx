@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CLINIC_LOGO, Logo } from "@/components/Logo";
 import { Text } from "@/components/ui/Text";
 import { PL } from "@/design/planner";
+import { switchUi } from "@/lib/ui";
 import { useSettings } from "@/store/useSettings";
 
 /** شاشة الترحيب (الواجهة الجديدة) */
@@ -26,7 +27,7 @@ export default function PlannerWelcome() {
       </View>
       <View style={{ paddingHorizontal: 32, gap: 10 }}>
         <Pressable
-          onPress={() => router.replace("/planner/home" as never)}
+          onPress={() => switchUi("planner")}
           style={{ backgroundColor: PL.navy, borderRadius: 999, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
         >
           <Text w="bold" style={{ color: "#fff", fontSize: 17 }}>
@@ -34,7 +35,7 @@ export default function PlannerWelcome() {
           </Text>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </Pressable>
-        <Pressable onPress={() => router.replace("/" as never)} style={{ paddingVertical: 8, alignItems: "center" }}>
+        <Pressable onPress={() => switchUi("classic")} style={{ paddingVertical: 8, alignItems: "center" }}>
           <Text w="semi" style={{ color: PL.navy, fontSize: 13 }}>
             الواجهة الأصلية
           </Text>

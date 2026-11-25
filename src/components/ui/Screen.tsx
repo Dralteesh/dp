@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/Text";
+import { PL } from "@/design/planner";
+import { useSettings } from "@/store/useSettings";
 
 type Props = {
   title?: string;
@@ -27,6 +29,7 @@ type Props = {
 
 export function Screen({ title, subtitle, back, right, children, scroll = true, overlay, logo, onPull, scrollEnabled = true }: Props) {
   const router = useRouter();
+  const pl = useSettings((s) => s.uiMode) === "planner";
   const [pulling, setPulling] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -41,7 +44,7 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#F4F4F4" }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: pl ? PL.bg : "#F4F4F4" }}>
       {(title || back) && (
         <View className="flex-row items-center gap-3 px-4 pt-2 pb-3">
           {back && (
@@ -50,13 +53,13 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
               hitSlop={10}
               className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center"
             >
-              <Ionicons name="arrow-forward" size={20} color="#0F172A" />
+              <Ionicons name={pl ? "chevron-forward" : "arrow-forward"} size={20} color={pl ? PL.navy : "#0F172A"} />
             </Pressable>
           )}
           {logo}
           <View className="flex-1">
             {title ? (
-              <Text w="bold" className="text-2xl leading-8">
+              <Text w="bold" className={pl ? "text-xl leading-8" : "text-2xl leading-8"} style={pl ? { color: PL.navy } : undefined}>
                 {title}
               </Text>
             ) : null}
@@ -77,9 +80,9 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
               <RefreshControl
                 refreshing={pulling}
                 onRefresh={handlePull}
-                colors={["#0E6FA5"]}
-                tintColor="#0E6FA5"
-                progressBackgroundColor="#FFFFFF"
+                colors={[pl ? PL.blue : "#0E6FA5"]}
+                tintColor={pl ? PL.blue : "#0E6FA5"}
+                progressBackgroundColor={pl ? PL.white : "#FFFFFF"}
               />
             ) : undefined
           }

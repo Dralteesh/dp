@@ -17,6 +17,7 @@ export const PLANNER_TABS: { key: string; label: string; icon: IconName; iconOn:
   { key: "schedule", label: "الجدول", icon: "calendar-outline", iconOn: "calendar", href: "/planner/schedule" },
   { key: "patients", label: "المرضى", icon: "people-outline", iconOn: "people", href: "/planner/patients" },
   { key: "treatments", label: "العلاجات", icon: "notifications-outline", iconOn: "notifications", href: "/planner/treatments" },
+  { key: "tools", label: "الأدوات", icon: "apps-outline", iconOn: "apps", href: "/planner/tools" },
   { key: "settings", label: "الإعدادات", icon: "settings-outline", iconOn: "settings", href: "/planner/settings" },
 ];
 

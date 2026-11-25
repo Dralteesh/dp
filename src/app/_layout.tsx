@@ -1,6 +1,6 @@
 import "../../global.css";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -41,10 +41,21 @@ const RTL_OK = setupRTL();
 export default function RootLayout() {
   const router = useRouter();
   const pathname = usePathname();
-  const planner = pathname.startsWith("/planner");
+  const uiMode = useSettings((s) => s.uiMode);
+  const planner = uiMode === "planner" || pathname.startsWith("/planner");
   const [fontsLoaded] = useFonts({ Cairo_400Regular, Cairo_600SemiBold, Cairo_700Bold, AmiriQuran_400Regular });
   const hydrated = useHydrated([usePlanner, useClinic, useSettings, useAlarms, useDevice, usePrayerLog, useExtras, useCountdowns]);
   const ready = fontsLoaded && hydrated;
+
+  // عند أول فتح: الواجهة الجديدة هي الافتراضية، والكلاسيكية خيار بديل (من الإعدادات أو زر التبديل)
+  const launched = useRef(false);
+  useEffect(() => {
+    if (!ready || launched.current) return;
+    launched.current = true;
+    if (useSettings.getState().uiMode === "planner" && (pathname === "/" || pathname === "")) {
+      router.replace("/planner/home" as never);
+    }
+  }, [ready, pathname, router]);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();

@@ -440,6 +440,8 @@ export type Settings = {
   prayerTools: string[] | null;
   /** أدوات نافذة العيادة (ضغط مطوّل على تبويب العيادة)؛ null = الكل بالترتيب الافتراضي */
   clinicTools: string[] | null;
+  /** الواجهة المعتمدة عند فتح التطبيق: الجديدة (planner) أو الكلاسيكية (classic) */
+  uiMode: "planner" | "classic";
   /** ضبط الجدول الأسبوعي في الرئيسية */
   timeline: TimelinePrefs;
   /** كتالوج الإجراءات القابل للتعديل؛ null = الافتراضي */

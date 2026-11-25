@@ -34,6 +34,7 @@ import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
 import { usePrayerTools } from "@/store/usePrayerTools";
 import { useQuickAdd } from "@/store/useQuickAdd";
 import { useShortcutMenu } from "@/store/useShortcutMenu";
+import { switchUi } from "@/lib/ui";
 import { useSettings } from "@/store/useSettings";
 
 const BLUE = "#0E6FA5";
@@ -218,7 +219,7 @@ export default function HomeScreen() {
     ),
     planner: (
         <Pressable
-          onPress={() => router.push("/planner/welcome" as never)}
+          onPress={() => switchUi("planner")}
           accessibilityLabel="الواجهة الجديدة"
           className="flex-row items-center gap-3 rounded-[24px] p-3"
           style={{ backgroundColor: "#DCEBF9", borderWidth: 1, borderColor: "#B9D3EC" }}

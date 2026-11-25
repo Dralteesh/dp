@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { PdfReader } from "@/components/docs/PdfReader";
 import { kindOf, mimeOf, useDocs } from "@/store/useDocs";
+import { screenBg } from "@/lib/ui";
 
 const MAX_INLINE = 25_000_000; // أكبر من هذا يُفتح بتطبيق خارجي
 
@@ -95,7 +96,7 @@ export default function DocViewer() {
   if (doc && kind === "pdf") return <PdfReader doc={doc} />;
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: "#F4F4F4" }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: screenBg() }}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
         <Pressable onPress={() => router.back()} hitSlop={10} className="w-10 h-10 rounded-full bg-surface border border-line items-center justify-center">
           <Ionicons name="arrow-forward" size={20} color="#0F172A" />

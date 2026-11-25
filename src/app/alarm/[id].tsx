@@ -16,8 +16,8 @@ import { CHALLENGE_LABELS, LOCATION_RADIUS_DEFAULT, MAX_SNOOZES_DEFAULT, STEPS_D
 import { addDays, combine, toISO } from "@/lib/dates";
 import { useAlarms } from "@/store/useAlarms";
 import type { AlarmChallenge, AlarmChallengeData, AlarmItem } from "@/types";
+import { screenBg } from "@/lib/ui";
 
-const BG = "#F4F4F4";
 const RED = "#E32D0B";
 const INK = "#111111";
 const SNOOZES = [5, 10, 15];
@@ -146,7 +146,7 @@ export default function AlarmEditScreen() {
   ];
 
   return (
-    <View style={s.root}>
+    <View style={[s.root, { backgroundColor: screenBg() }]}>
       <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
         {/* أعلى: إغلاق + عنوان + حذف */}
         <View style={s.top}>
@@ -331,7 +331,7 @@ function Side({ onPress, label, children }: { onPress: () => void; label: string
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
+  root: { flex: 1, backgroundColor: screenBg() },
   top: { flexDirection: "row", alignItems: "center", paddingHorizontal: 24, paddingTop: 16, gap: 12 },
   trash: { width: 72, alignItems: "center", justifyContent: "center" },
   bottomRow: {

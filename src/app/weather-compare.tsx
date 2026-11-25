@@ -7,6 +7,7 @@ import { Text } from "@/components/ui/Text";
 import { ICON_OF, kindOf, labelOf } from "@/lib/weather";
 import { aqiInfo, fmtTemp, fmtWind, rainSoon, severeAlerts } from "@/lib/weatherInsights";
 import { useWeather } from "@/store/useWeather";
+import { screenBg } from "@/lib/ui";
 
 /** مقارنة الطقس بين مدنك المحفوظة جنبًا إلى جنب */
 export default function WeatherCompareScreen() {
@@ -41,7 +42,7 @@ export default function WeatherCompareScreen() {
 
   const COL = 118;
   return (
-    <View style={{ flex: 1, backgroundColor: "#F4F4F4", paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: screenBg(), paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
         <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="رجوع" style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="chevron-forward" size={22} color="#0A3A57" />

@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { TextInput, View, type TextInputProps } from "react-native";
 import { Text } from "@/components/ui/Text";
+import { PL } from "@/design/planner";
 import { inputAlign } from "@/lib/rtl";
+import { useSettings } from "@/store/useSettings";
 
 type Props = TextInputProps & {
   label?: string;
@@ -10,6 +12,7 @@ type Props = TextInputProps & {
 
 /** حقل إدخال بعنوان */
 export function Field({ label, hint, style, ...rest }: Props) {
+  const pl = useSettings((s) => s.uiMode) === "planner";
   return (
     <View className="mb-3">
       {label ? (
@@ -18,16 +21,16 @@ export function Field({ label, hint, style, ...rest }: Props) {
         </Text>
       ) : null}
       <TextInput
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor={pl ? PL.muted : "#94A3B8"}
         {...rest}
         style={[
           {
             fontFamily: "Cairo_400Regular",
             fontSize: 16,
-            color: "#0F172A",
-            backgroundColor: "#F8FAFC",
+            color: pl ? PL.navy : "#0F172A",
+            backgroundColor: pl ? PL.white : "#F8FAFC",
             borderWidth: 1,
-            borderColor: "#E3E6EB",
+            borderColor: pl ? PL.border : "#E3E6EB",
             borderRadius: 12,
             paddingHorizontal: 14,
             paddingVertical: 10,

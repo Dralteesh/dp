@@ -9,6 +9,7 @@ import { inputAlign } from "@/lib/rtl";
 import { NOTE_COLORS } from "@/constants/noteColors";
 import { usePlanner } from "@/store/usePlanner";
 import type { ShiftType } from "@/types";
+import { screenBg } from "@/lib/ui";
 
 /** محرّر ملاحظة بحفظ تلقائي: يُنشأ السجل عند أول كتابة */
 export default function NoteEditor() {
@@ -61,7 +62,7 @@ export default function NoteEditor() {
   };
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: color || "#F4F4F4" }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: color || screenBg() }}>
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
         <Pressable onPress={() => router.back()} hitSlop={10} className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.07)" }}>
           <Ionicons name="arrow-forward" size={20} color="#0F172A" />

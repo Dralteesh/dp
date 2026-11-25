@@ -5,6 +5,7 @@ import { Logo } from "@/components/Logo";
 import { PCard, PlannerShell } from "@/components/planner/kit";
 import { Text } from "@/components/ui/Text";
 import { PL } from "@/design/planner";
+import { switchUi } from "@/lib/ui";
 import { useSettings } from "@/store/useSettings";
 
 type Item = { icon: keyof typeof Ionicons.glyphMap; title: string; hint: string; href: string };
@@ -56,7 +57,7 @@ export default function PlannerSettings() {
       </PCard>
 
       <Pressable
-        onPress={() => router.replace("/" as never)}
+        onPress={() => switchUi("classic")}
         style={{ marginTop: 16, borderWidth: 2, borderColor: PL.blue, borderRadius: 999, paddingVertical: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
       >
         <Ionicons name="swap-horizontal" size={20} color={PL.blue} />
