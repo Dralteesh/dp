@@ -13,7 +13,7 @@ import { useShortcutMenu } from "@/store/useShortcutMenu";
 import { useWeather } from "@/store/useWeather";
 
 /** مربع الطقس بجانب بطاقة الصلاة: سماء متدرّجة بلون الحالة + رسمة مجسّمة كبيرة (نفس لغة بطاقة الصلاة) */
-export function WeatherTile() {
+export function WeatherTile({ fill }: { fill?: boolean } = {}) {
   const router = useRouter();
   const cities = useWeather((s) => s.cities);
   const index = useWeather((s) => s.index);
@@ -48,7 +48,7 @@ export function WeatherTile() {
           { label: "تحديث الآن", icon: "refresh-outline", onPress: () => refresh().catch(() => {}) },
         ])
       }
-      containerClassName="w-[118px]"
+      containerClassName={fill ? "w-full" : "w-[118px]"}
       className="rounded-[28px] overflow-hidden"
       style={{ height: 158 }}
     >

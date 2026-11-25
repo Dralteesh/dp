@@ -207,7 +207,7 @@ export function WeekTimeline({ selected, onSelect, onOpenCalendar, onOpenItem, i
   const emptyHours = (sg: { from: number; to: number }) => Math.round((sg.to - sg.from) / 60);
 
   return (
-    <View className="bg-surface rounded-[26px] border border-line px-3 py-2 mb-3">
+    <View className="bg-surface rounded-[26px] border border-line px-3 py-2">
       {/* الشهر والتنقل */}
       <View className="flex-row items-center justify-between mb-1.5">
         <Pressable hitSlop={10} onPress={() => onSelect(addDays(selected, -DAYS_N))} className="w-8 h-8 rounded-full bg-bg items-center justify-center">

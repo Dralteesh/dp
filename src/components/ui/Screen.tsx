@@ -21,9 +21,11 @@ type Props = {
   logo?: ReactNode;
   /** سحب القائمة للأسفل مع تثبيت بسيط ينفّذ هذا الإجراء (مثل إظهار البحث) */
   onPull?: () => void;
+  /** false: يوقف التمرير (مثلًا أثناء سحب عنصر) */
+  scrollEnabled?: boolean;
 };
 
-export function Screen({ title, subtitle, back, right, children, scroll = true, overlay, logo, onPull }: Props) {
+export function Screen({ title, subtitle, back, right, children, scroll = true, overlay, logo, onPull, scrollEnabled = true }: Props) {
   const router = useRouter();
   const [pulling, setPulling] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,6 +68,7 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
 
       {scroll ? (
         <ScrollView
+          scrollEnabled={scrollEnabled}
           contentContainerStyle={{ padding: 16, paddingBottom: 140 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

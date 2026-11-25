@@ -40,7 +40,6 @@ export function UpcomingAlarmsCard({ now }: { now: Date }) {
           { label: "كل المنبّهات", icon: "alarm-outline", onPress: () => router.push("/alarms") },
         ])
       }
-      containerClassName="mt-4"
       className="bg-surface rounded-[28px] border border-line p-4"
     >
       <View className="flex-row items-center gap-3 mb-2">

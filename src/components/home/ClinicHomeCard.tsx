@@ -54,7 +54,7 @@ export function ClinicHomeCard() {
           { label: "أدوات العيادة", icon: "grid-outline", onPress: () => setToolsOpen(true) },
         ])
       }
-      className="bg-surface rounded-[28px] border border-line p-4 mt-4"
+      className="bg-surface rounded-[28px] border border-line p-4"
     >
       <Pressable onPress={() => open("day")} className="flex-row items-center gap-3 mb-3" accessibilityLabel="فتح العيادة">
         <Image source={CLINIC_LOGO} style={{ width: 34, height: 34 }} resizeMode="contain" />

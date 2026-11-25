@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, Vibration, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -5,6 +6,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
 import { PrayerCard } from "@/components/PrayerCard";
+import { HomeEditor } from "@/components/home/HomeEditor";
 import { ClinicHomeCard } from "@/components/home/ClinicHomeCard";
 import { HomeCountdownCard } from "@/components/countdown/HomeCountdownCard";
 import { RecentDocs } from "@/components/home/RecentDocs";
@@ -17,6 +19,7 @@ import { Screen } from "@/components/ui/Screen";
 import { ShortcutMenuHost } from "@/components/ui/ShortcutMenu";
 import { Text } from "@/components/ui/Text";
 import { NAV_ICONS, TREATMENT_ICONS } from "@/constants/icons";
+import { SPAN_PCT, useHomeLayout, type BlockId } from "@/store/useHomeLayout";
 import { useDocs } from "@/store/useDocs";
 import { useKnowledge } from "@/store/useKnowledge";
 import { usePlaces } from "@/store/usePlaces";
@@ -151,8 +154,131 @@ export default function HomeScreen() {
       { label: "فتح المستندات", icon: "document-text-outline", onPress: () => router.push("/documents") },
     ]);
 
+  const [editing, setEditing] = useState(false);
+  const [scrollOn, setScrollOn] = useState(true);
+  const layoutItems = useHomeLayout((st) => st.items);
+
   const hour = now.getHours();
   const greeting = hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء النور";
+
+  /** كتل الرئيسية: الترتيب والعرض والإخفاء تتحكم بها useHomeLayout */
+  const blocks: Record<BlockId, ReactNode> = {
+    prayer: (
+      <View style={{ flexDirection: "row" }}>
+        <PrayerCard compact next={np} now={now} onPress={() => router.push("/prayer")} onLongPress={prayerMenu} />
+      </View>
+    ),
+    weather: <WeatherTile fill />,
+    week: (
+        <WeekTimeline
+          selected={selected}
+          onSelect={setSelected}
+          onOpenCalendar={() => router.push("/calendar")}
+          onOpenItem={open}
+          input={input}
+          nowMin={nowMin}
+        />
+    ),
+    day: (
+        <View className="bg-surface rounded-[28px] border border-line p-4">
+          <View className="flex-row items-center justify-between mb-3">
+            <View className="flex-1">
+              <Text w="bold" className="text-xl">
+                {relativeDay(selected)}
+              </Text>
+              <Text className="text-xs text-muted">
+                {agenda.length === 0
+                  ? "لا شيء مجدول"
+                  : isToday || selected < today
+                    ? `أُنجز ${doneCount} من ${agenda.length}`
+                    : `${agenda.length} ${agenda.length === 1 ? "نشاط" : "أنشطة"} مجدولة`}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => showQuickAdd(selected)}
+              className="w-10 h-10 rounded-full items-center justify-center"
+              style={{ backgroundColor: BLUE }}
+              accessibilityLabel="إضافة"
+            >
+              <Ionicons name="add" size={24} color="#FFFFFF" />
+            </Pressable>
+          </View>
+          {agenda.length === 0 ? (
+            <EmptyState icon="sunny-outline" title="يوم هادئ" hint="اضغط + لإضافة دوام أو موعد أو مهمة" />
+          ) : focus ? (
+            <TimelineCard
+              item={focus}
+              live={state(focus).live}
+              past={state(focus).past}
+              remainingMin={state(focus).live ? remainingMinutes(focus, nowMin) : undefined}
+              onPress={() => open(focus)}
+            />
+          ) : null}
+        </View>
+    ),
+    planner: (
+        <Pressable
+          onPress={() => router.push("/planner/welcome" as never)}
+          accessibilityLabel="الواجهة الجديدة"
+          className="flex-row items-center gap-3 rounded-[24px] p-3"
+          style={{ backgroundColor: "#DCEBF9", borderWidth: 1, borderColor: "#B9D3EC" }}
+        >
+          <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: "#F7FBFF" }}>
+            <Image source={TREATMENT_ICONS.followup} style={{ width: 44, height: 44 }} resizeMode="contain" />
+          </View>
+          <View className="flex-1">
+            <Text w="bold" className="text-base" style={{ color: "#0F2F57" }}>
+              الواجهة الجديدة
+            </Text>
+            <Text className="text-xs" style={{ color: "#5F7C9C" }}>
+              جدول العيادة، المرضى، العلاجات والتذكيرات
+            </Text>
+          </View>
+          <Ionicons name="chevron-back" size={20} color="#5F7C9C" />
+        </Pressable>
+    ),
+    clinic: <ClinicHomeCard />,
+    alarms: showTasks ? <UpcomingAlarmsCard now={now} /> : null,
+    docs: (
+        <Pressable
+          onPress={() => router.push("/documents")}
+          onLongPress={docsMenu}
+          accessibilityLabel="المستندات"
+          className="flex-row items-center gap-3 bg-surface border border-line rounded-[24px] p-3"
+        >
+          <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: "#D6EBF7" }}>
+            <Image source={NAV_ICONS.docs.on} style={{ width: 44, height: 44 }} resizeMode="contain" />
+          </View>
+          <View className="flex-1">
+            <Text w="bold" className="text-base">
+              المستندات
+            </Text>
+            <Text className="text-xs text-muted">{docsCount > 0 ? `${docsCount} ملف • PDF وWord وExcel وصور` : "PDF وWord وExcel وصور"}</Text>
+          </View>
+          <Ionicons name="chevron-back" size={20} color="#94A3B8" />
+        </Pressable>
+    ),
+    knowledge: (
+        <Pressable onPress={() => router.push("/knowledge")} accessibilityLabel="المعرفة" className="bg-surface border border-line rounded-[24px] p-3">
+          <View className="w-11 h-11 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: "#DBEAFE" }}>
+            <Ionicons name="library" size={22} color="#2563EB" />
+          </View>
+          <Text w="bold">المعرفة</Text>
+          <Text className="text-xs text-muted">{knowCount > 0 ? `${knowCount} مادة • بلا إنترنت` : "مكتبة قراءة بلا إنترنت"}</Text>
+        </Pressable>
+    ),
+    places: (
+        <Pressable onPress={() => router.push("/places")} accessibilityLabel="أماكني" className="bg-surface border border-line rounded-[24px] p-3">
+          <View className="w-11 h-11 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: "#DCFCE7" }}>
+            <Ionicons name="map" size={22} color="#16A34A" />
+          </View>
+          <Text w="bold">أماكني</Text>
+          <Text className="text-xs text-muted">{placesCount > 0 ? `${placesCount} مكان • مسارات GPS` : "مواقع ومسارات GPS"}</Text>
+        </Pressable>
+    ),
+    countdown: <HomeCountdownCard />,
+    recent: showDocs ? <RecentDocs /> : null,
+  };
 
   return (
     <Screen
@@ -163,7 +289,24 @@ export default function HomeScreen() {
           <Logo uri={logo} size={44} app />
         </Pressable>
       }
-      onPull={() => router.push("/search")}
+      onPull={editing ? undefined : () => router.push("/search")}
+      scrollEnabled={scrollOn}
+      right={
+        <Pressable
+          onPress={() => setEditing((v) => !v)}
+          hitSlop={8}
+          accessibilityLabel={editing ? "إنهاء تخصيص الرئيسية" : "تخصيص الرئيسية"}
+          style={{ height: 40, minWidth: 40, borderRadius: 20, paddingHorizontal: editing ? 14 : 0, backgroundColor: editing ? "#6366F1" : "#FFFFFF", borderWidth: 1, borderColor: editing ? "#6366F1" : "#E3E6EB", alignItems: "center", justifyContent: "center" }}
+        >
+          {editing ? (
+            <Text w="bold" style={{ color: "#FFFFFF", fontSize: 13 }}>
+              تم
+            </Text>
+          ) : (
+            <Ionicons name="grid-outline" size={20} color="#0F1B3D" />
+          )}
+        </Pressable>
+      }
       overlay={
         <>
           <ShortcutMenuHost />
@@ -178,134 +321,27 @@ export default function HomeScreen() {
         </>
       }
     >
-      {/* ضغط مطوّل على أي مساحة غير تفاعلية = الإضافة السريعة */}
-      <Pressable onLongPress={quickAddNow} delayLongPress={600}>
-      {/* الصلاة + الطقس جنبًا إلى جنب */}
-      <View className="flex-row gap-3 mb-4">
-        <PrayerCard compact next={np} now={now} onPress={() => router.push("/prayer")} onLongPress={prayerMenu} />
-        <WeatherTile />
-      </View>
-
-      {/* الأسبوع: جدول زمني بأعمدة */}
-      <WeekTimeline
-        selected={selected}
-        onSelect={setSelected}
-        onOpenCalendar={() => router.push("/calendar")}
-        onOpenItem={open}
-        input={input}
-        nowMin={nowMin}
-      />
-
-      {/* اليوم المحدّد: العنصر الجاري أو التالي */}
-      <View className="bg-surface rounded-[28px] border border-line p-4">
-        <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-1">
-            <Text w="bold" className="text-xl">
-              {relativeDay(selected)}
-            </Text>
-            <Text className="text-xs text-muted">
-              {agenda.length === 0
-                ? "لا شيء مجدول"
-                : isToday || selected < today
-                  ? `أُنجز ${doneCount} من ${agenda.length}`
-                  : `${agenda.length} ${agenda.length === 1 ? "نشاط" : "أنشطة"} مجدولة`}
-            </Text>
+      {editing ? (
+        <HomeEditor onDone={() => setEditing(false)} onLock={(l) => setScrollOn(!l)} />
+      ) : (
+        /* ضغط مطوّل على أي مساحة غير تفاعلية = الإضافة السريعة */
+        <Pressable onLongPress={quickAddNow} delayLongPress={600}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+            {layoutItems.map((it) => {
+              const node = blocks[it.id];
+              if (it.hidden || !node) return null;
+              return (
+                <View
+                  key={it.id}
+                  style={{ width: SPAN_PCT[it.span], marginBottom: 12, ...(it.height > 0 ? { height: it.height, overflow: "hidden" as const } : null) }}
+                >
+                  {node}
+                </View>
+              );
+            })}
           </View>
-          <Pressable
-            onPress={() => showQuickAdd(selected)}
-            className="w-10 h-10 rounded-full items-center justify-center"
-            style={{ backgroundColor: BLUE }}
-            accessibilityLabel="إضافة"
-          >
-            <Ionicons name="add" size={24} color="#FFFFFF" />
-          </Pressable>
-        </View>
-        {agenda.length === 0 ? (
-          <EmptyState icon="sunny-outline" title="يوم هادئ" hint="اضغط + لإضافة دوام أو موعد أو مهمة" />
-        ) : focus ? (
-          <TimelineCard
-            item={focus}
-            live={state(focus).live}
-            past={state(focus).past}
-            remainingMin={state(focus).live ? remainingMinutes(focus, nowMin) : undefined}
-            onPress={() => open(focus)}
-          />
-        ) : null}
-      </View>
-
-      {/* مدخل الواجهة الجديدة (Alteesh Planner) */}
-      <Pressable
-        onPress={() => router.push("/planner/welcome" as never)}
-        accessibilityLabel="الواجهة الجديدة"
-        className="flex-row items-center gap-3 rounded-[24px] p-3 mt-4"
-        style={{ backgroundColor: "#DCEBF9", borderWidth: 1, borderColor: "#B9D3EC" }}
-      >
-        <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: "#F7FBFF" }}>
-          <Image source={TREATMENT_ICONS.followup} style={{ width: 44, height: 44 }} resizeMode="contain" />
-        </View>
-        <View className="flex-1">
-          <Text w="bold" className="text-base" style={{ color: "#0F2F57" }}>
-            الواجهة الجديدة
-          </Text>
-          <Text className="text-xs" style={{ color: "#5F7C9C" }}>
-            جدول العيادة، المرضى، العلاجات والتذكيرات
-          </Text>
-        </View>
-        <Ionicons name="chevron-back" size={20} color="#5F7C9C" />
-      </Pressable>
-
-      {/* العيادة: أرقام وأدوات */}
-      <ClinicHomeCard />
-
-      {/* المنبّهات القادمة */}
-      {showTasks ? <UpcomingAlarmsCard now={now} /> : null}
-
-      {/* المستندات: مدخل دائم في الرئيسية (صار تبويب الطقس مكانها في الشريط) */}
-      <Pressable
-        onPress={() => router.push("/documents")}
-        onLongPress={docsMenu}
-        accessibilityLabel="المستندات"
-        className="flex-row items-center gap-3 bg-surface border border-line rounded-[24px] p-3 mt-4"
-      >
-        <View className="w-14 h-14 rounded-2xl items-center justify-center" style={{ backgroundColor: "#D6EBF7" }}>
-          <Image source={NAV_ICONS.docs.on} style={{ width: 44, height: 44 }} resizeMode="contain" />
-        </View>
-        <View className="flex-1">
-          <Text w="bold" className="text-base">
-            المستندات
-          </Text>
-          <Text className="text-xs text-muted">{docsCount > 0 ? `${docsCount} ملف • PDF وWord وExcel وصور` : "PDF وWord وExcel وصور"}</Text>
-        </View>
-        <Ionicons name="chevron-back" size={20} color="#94A3B8" />
-      </Pressable>
-
-
-      {/* المعرفة + أماكني */}
-      <View className="flex-row gap-3 mt-3">
-        <Pressable onPress={() => router.push("/knowledge")} accessibilityLabel="المعرفة" className="flex-1 bg-surface border border-line rounded-[24px] p-3">
-          <View className="w-11 h-11 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: "#DBEAFE" }}>
-            <Ionicons name="library" size={22} color="#2563EB" />
-          </View>
-          <Text w="bold">المعرفة</Text>
-          <Text className="text-xs text-muted">{knowCount > 0 ? `${knowCount} مادة • بلا إنترنت` : "مكتبة قراءة بلا إنترنت"}</Text>
         </Pressable>
-        <Pressable onPress={() => router.push("/places")} accessibilityLabel="أماكني" className="flex-1 bg-surface border border-line rounded-[24px] p-3">
-          <View className="w-11 h-11 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: "#DCFCE7" }}>
-            <Ionicons name="map" size={22} color="#16A34A" />
-          </View>
-          <Text w="bold">أماكني</Text>
-          <Text className="text-xs text-muted">{placesCount > 0 ? `${placesCount} مكان • مسارات GPS` : "مواقع ومسارات GPS"}</Text>
-        </Pressable>
-      </View>
-
-      {/* لحظاتي: العدّادات التنازلية والتصاعدية */}
-      <View className="mt-3">
-        <HomeCountdownCard />
-      </View>
-
-      {/* المستندات الأخيرة */}
-      {showDocs ? <RecentDocs /> : null}
-      </Pressable>
+      )}
     </Screen>
   );
 }
