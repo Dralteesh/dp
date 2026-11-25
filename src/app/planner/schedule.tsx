@@ -164,7 +164,7 @@ export default function PlannerSchedule() {
   return (
     <PlannerShell
       title="جدول العيادة"
-      nav="schedule"
+     
       back
       right={
         <Pressable

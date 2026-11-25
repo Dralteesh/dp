@@ -36,7 +36,7 @@ export default function PlannerTreatments() {
   const book = (procedure: string) => router.push({ pathname: "/clinic/appointment-form", params: { procedure } } as never);
 
   return (
-    <PlannerShell title="العلاجات" nav="treatments" maxWidth={1000}>
+    <PlannerShell title="العلاجات" maxWidth={1000}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: PL.card, borderRadius: 999, paddingHorizontal: 14, borderWidth: 1, borderColor: PL.border }}>
         <Ionicons name="search" size={18} color={PL.muted} />
         <TextInput

@@ -32,7 +32,7 @@ export default function PlannerPatients() {
   return (
     <PlannerShell
       title="المرضى"
-      nav="patients"
+     
       scroll={false}
       maxWidth={1200}
       right={

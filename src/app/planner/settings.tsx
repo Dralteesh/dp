@@ -26,7 +26,7 @@ export default function PlannerSettings() {
   const appName = useSettings((s) => s.appName);
   const logo = useSettings((s) => s.logo);
   return (
-    <PlannerShell title="الإعدادات" nav="settings">
+    <PlannerShell title="الإعدادات">
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: PL.cardStrong, borderRadius: 24, padding: 16, borderWidth: 1, borderColor: PL.border }}>
         <Logo uri={logo} size={64} app />
         <View style={{ flex: 1 }}>

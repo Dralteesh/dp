@@ -1,97 +1,20 @@
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, View, type StyleProp, type ViewStyle } from "react-native";
-import { useRouter, usePathname } from "expo-router";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { Text } from "@/components/ui/Text";
 import { PL } from "@/design/planner";
-import { useLayout } from "@/hooks/useLayout";
 import { initial } from "@/lib/format";
 import type { AppointmentStatus } from "@/types";
 
-type IconName = React.ComponentProps<typeof Ionicons>["name"];
-
-export const PLANNER_TABS: { key: string; label: string; icon: IconName; iconOn: IconName; href: string }[] = [
-  { key: "home", label: "الرئيسية", icon: "home-outline", iconOn: "home", href: "/planner/home" },
-  { key: "schedule", label: "الجدول", icon: "calendar-outline", iconOn: "calendar", href: "/planner/schedule" },
-  { key: "patients", label: "المرضى", icon: "people-outline", iconOn: "people", href: "/planner/patients" },
-  { key: "treatments", label: "العلاجات", icon: "notifications-outline", iconOn: "notifications", href: "/planner/treatments" },
-  { key: "tools", label: "الأدوات", icon: "apps-outline", iconOn: "apps", href: "/planner/tools" },
-  { key: "settings", label: "الإعدادات", icon: "settings-outline", iconOn: "settings", href: "/planner/settings" },
-];
-
-/** الشريط السفلي للواجهة الجديدة */
-export function PlannerBottomNav({ active }: { active?: string }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const insets = useSafeAreaInsets();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        backgroundColor: PL.white,
-        borderTopWidth: 1,
-        borderTopColor: PL.border,
-        paddingTop: 8,
-        paddingBottom: Math.max(insets.bottom, 8),
-        paddingHorizontal: 6,
-      }}
-    >
-      {PLANNER_TABS.map((t) => {
-        const on = active ? active === t.key : pathname === t.href;
-        return (
-          <Pressable
-            key={t.key}
-            onPress={() => !on && router.replace(t.href as never)}
-            accessibilityLabel={t.label}
-            style={{ flex: 1, alignItems: "center", paddingVertical: 6, borderRadius: 16, backgroundColor: on ? PL.cardStrong : "transparent" }}
-          >
-            <Ionicons name={on ? t.iconOn : t.icon} size={22} color={on ? PL.navy : PL.muted} />
-            <Text w={on ? "bold" : "regular"} style={{ fontSize: 10.5, color: on ? PL.navy : PL.muted }}>
-              {t.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-
-/** شريط جانبي (بدل السفلي) على الشاشات العريضة */
-export function PlannerSideRail({ active }: { active?: string }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  return (
-    <View style={{ width: 92, backgroundColor: PL.white, borderEndWidth: 1, borderEndColor: PL.border, paddingVertical: 14, paddingHorizontal: 8, gap: 6 }}>
-      {PLANNER_TABS.map((t) => {
-        const on = active ? active === t.key : pathname === t.href;
-        return (
-          <Pressable
-            key={t.key}
-            onPress={() => !on && router.replace(t.href as never)}
-            accessibilityLabel={t.label}
-            style={{ alignItems: "center", paddingVertical: 12, borderRadius: 16, backgroundColor: on ? PL.cardStrong : "transparent" }}
-          >
-            <Ionicons name={on ? t.iconOn : t.icon} size={24} color={on ? PL.navy : PL.muted} />
-            <Text w={on ? "bold" : "regular"} style={{ fontSize: 11, color: on ? PL.navy : PL.muted, marginTop: 2 }}>
-              {t.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-/** غلاف شاشات الواجهة الجديدة: خلفية زرقاء فاتحة + ترويسة + شريط سفلي اختياري */
+/** غلاف شاشات الواجهة الجديدة: خلفية زرقاء فاتحة + ترويسة (بلا شريط تنقل؛ التنقل من الرئيسية وزر الرجوع) */
 export function PlannerShell({
   title,
   left,
   right,
   back,
-  nav,
   scroll = true,
   maxWidth = 820,
   children,
@@ -101,8 +24,6 @@ export function PlannerShell({
   left?: ReactNode;
   right?: ReactNode;
   back?: boolean;
-  /** مفتاح التبويب الفعّال، أو undefined لإخفاء الشريط */
-  nav?: string;
   scroll?: boolean;
   /** أقصى عرض للمحتوى على الشاشات العريضة */
   maxWidth?: number;
@@ -111,11 +32,8 @@ export function PlannerShell({
 }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isWide } = useLayout();
-  const rail = !!nav && isWide;
   return (
-    <View style={{ flex: 1, backgroundColor: PL.bg, paddingTop: insets.top, flexDirection: rail ? "row" : "column" }}>
-      {rail ? <PlannerSideRail active={nav} /> : null}
+    <View style={{ flex: 1, backgroundColor: PL.bg, paddingTop: insets.top }}>
       <View style={{ flex: 1 }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 10 }}>
         {back ? (
@@ -137,19 +55,18 @@ export function PlannerShell({
       </View>
       {scroll ? (
         <ScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: 32, alignItems: "center" }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32 + insets.bottom, alignItems: "center" }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={{ width: "100%", maxWidth }}>{children}</View>
         </ScrollView>
       ) : (
-        <View style={{ flex: 1, paddingHorizontal: 16, alignItems: "center" }}>
+        <View style={{ flex: 1, paddingHorizontal: 16, paddingBottom: insets.bottom, alignItems: "center" }}>
           <View style={{ flex: 1, width: "100%", maxWidth }}>{children}</View>
         </View>
       )}
       {overlay}
-      {nav && !rail ? <PlannerBottomNav active={nav} /> : null}
       </View>
     </View>
   );

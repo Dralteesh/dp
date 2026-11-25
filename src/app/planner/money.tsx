@@ -29,7 +29,7 @@ export default function PlannerMoney() {
   const open = (id: string) => router.push({ pathname: "/planner/patient/[id]", params: { id } } as never);
 
   return (
-    <PlannerShell title="المالية" back nav="tools">
+    <PlannerShell title="المالية" back>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <PCard style={{ flex: 1, backgroundColor: PL.goodSoft }}>
           <Text style={{ fontSize: 12, color: PL.good }}>المقبوض هذا الشهر</Text>

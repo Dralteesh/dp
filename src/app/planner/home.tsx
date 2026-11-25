@@ -19,6 +19,12 @@ import { usePlanner } from "@/store/usePlanner";
 import { switchUi } from "@/lib/ui";
 import { useSettings } from "@/store/useSettings";
 
+const SECTIONS: { label: string; icon: keyof typeof Ionicons.glyphMap; href: string }[] = [
+  { label: "العيادة", icon: "medkit-outline", href: "/planner/clinic" },
+  { label: "الأدوات", icon: "apps-outline", href: "/planner/tools" },
+  { label: "الإعدادات", icon: "settings-outline", href: "/planner/settings" },
+];
+
 function Stat({ icon, value, label, color }: { icon: keyof typeof Ionicons.glyphMap; value: number; label: string; color: string }) {
   return (
     <PCard style={{ flex: 1, alignItems: "center", paddingVertical: 12, paddingHorizontal: 6 }}>
@@ -80,7 +86,7 @@ export default function PlannerHome() {
   return (
     <PlannerShell
       title={appName || "Alteesh Planner"}
-      nav="home"
+     
       maxWidth={1000}
       left={
         <Pressable
@@ -128,7 +134,24 @@ export default function PlannerHome() {
         </PCard>
       </View>
 
-      <SectionTitle title="جدول اليوم" action="عرض الكل" onAction={() => router.replace("/planner/schedule" as never)} />
+      {/* مداخل الأقسام (لا أشرطة تنقل): العيادة، الأدوات، الإعدادات. الصلاة والمنبّه والجدول لها بطاقاتها أدناه */}
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+        {SECTIONS.map((x) => (
+          <Pressable
+            key={x.href}
+            onPress={() => router.push(x.href as never)}
+            accessibilityLabel={x.label}
+            style={{ flex: 1, borderRadius: 20, backgroundColor: PL.card, borderWidth: 1, borderColor: PL.border, alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14 }}
+          >
+            <Ionicons name={x.icon} size={28} color={PL.blue} />
+            <Text w="semi" numberOfLines={1} style={{ fontSize: 12.5, color: PL.navy }}>
+              {x.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <SectionTitle title="جدول اليوم" action="عرض الكل" onAction={() => router.push("/planner/schedule" as never)} />
       {todays.length === 0 ? (
         <PCard style={{ alignItems: "center", paddingVertical: 24 }}>
           <Image source={TREATMENT_ICONS.exam} style={{ width: 56, height: 56 }} resizeMode="contain" />
