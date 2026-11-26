@@ -13,6 +13,8 @@ import { DictateField } from "@/components/DictateField";
 import { MedicalAlertBar, WarningLines } from "@/components/clinic/MedicalAlertBar";
 import { useEndoPlanPrompt } from "@/components/clinic/PlanWizard";
 import { ApptTeethSection } from "@/components/clinic/ApptTeethSection";
+import { ApptPlanSection, costFor } from "@/components/clinic/ApptPlanSection";
+import { MoneyField, useMoneyInput } from "@/components/MoneyField";
 import { ApptTypeSettings } from "@/components/clinic/ApptTypeSettings";
 import { PatientStatusHeader } from "@/components/clinic/PatientStatusHeader";
 import { usePatientTypes } from "@/hooks/usePatientTypes";
@@ -27,7 +29,7 @@ import { DURATIONS, STATUS_META } from "@/constants/clinic";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { describeClash, findClashes } from "@/lib/conflicts";
 import { patientFlags, procedureWarnings } from "@/lib/alerts";
-import { fmtTime, minutesToTime, toMinutes } from "@/lib/dates";
+import { fmtTime, minutesToTime, toMinutes, todayISO } from "@/lib/dates";
 import { initial } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
@@ -80,6 +82,13 @@ export default function AppointmentFormScreen() {
   const [teeth, setTeeth] = useState<string[]>(existing?.teeth ?? (params.teeth ? params.teeth.split(",").filter(Boolean) : []));
   const [linked, setLinked] = useState<string[]>(existing?.planItemIds ?? (params.planItemIds ? params.planItemIds.split(",").filter(Boolean) : []));
   const [extra, setExtra] = useState<ApptExtra>(existing?.extra ?? {});
+  const currency = useSettings((s) => s.currency);
+  /** الخطة المستهدفة للبنود الجديدة: معرّف خطة أو "new"؛ الافتراضي أحدث خطة للمريض */
+  const [planChoice, setPlanChoice] = useState<string | undefined>();
+  /** تكلفة يدوية لكل سن (تتقدّم على قائمة الأسعار) */
+  const [costs, setCosts] = useState<Record<string, string>>({});
+  /** دفعة مقدّمة اختيارية عند الحجز */
+  const advance = useMoneyInput();
 
   const patient = patients.find((p) => p.id === patientId);
   const list = useMemo(
@@ -100,20 +109,24 @@ export default function AppointmentFormScreen() {
     const changed = !existing || existing.procedure !== proc || (existing.teeth ?? []).join() !== teeth.join();
     const wizardNeeded = isEndoProcedure(proc) && !hasOpenEndoPlan(st.plans, patientId!, isEndoProcedure);
 
-    // 1) بنود الخطة: ما اختاره المستخدم + بند لكل سن محدد لا بند مفتوحًا له (السعر من قائمة الأسعار)
+    // 1) بنود الخطة: ما اختاره المستخدم + بند لكل سن محدد لا بند مفتوحًا له (التكلفة المكتوبة وإلا من قائمة الأسعار)
     const ids = new Set(linked);
+    const unit = priceForProcedure(proc, priceList, usdRate);
+    const hasPlans = st.plans.some((p) => p.patientId === patientId);
+    let target: string | undefined = planSel !== "new" ? planSel : undefined;
+    if (planSel === "new" && hasPlans) target = st.addPlan(patientId!, "خطة علاج", []);
     if (!done && changed && isPlanProcedure(proc) && !wizardNeeded) {
       const fresh = openItems(st.plans, patientId!);
       const toCreate: ReturnType<typeof itemsForTeeth> = [];
       for (const t of teeth) {
         const ex = findOpenFor(fresh, proc, t);
         if (ex) ids.add(ex.item.id);
-        else if (!linked.some((id) => fresh.some((o) => o.item.id === id && itemTeeth(o.item).includes(t)))) toCreate.push(...itemsForTeeth(proc, [t], priceList, usdRate));
+        else if (!linked.some((id) => fresh.some((o) => o.item.id === id && itemTeeth(o.item).includes(t)))) toCreate.push(...itemsForTeeth(proc, [t], priceList, usdRate).map((it) => ({ ...it, cost: costFor(t, costs, unit) })));
       }
       if (!teeth.length && ids.size === 0 && !existing && !st.plans.some((p) => p.patientId === patientId) && !/كشف|استشار|مراجعة|متابعة|فحص/.test(proc)) {
         toCreate.push(...itemsForTeeth(proc, [], priceList, usdRate));
       }
-      if (toCreate.length) for (const id of st.addPlanItems(patientId!, toCreate)) ids.add(id);
+      if (toCreate.length) for (const id of st.addPlanItems(patientId!, toCreate, target)) ids.add(id);
     }
 
     const payload = {
@@ -133,6 +146,20 @@ export default function AppointmentFormScreen() {
       apptId = existing.id;
     } else {
       apptId = addAppointment(payload);
+      // دفعة مقدّمة (إن كُتبت): تُربط بخطة العلاج التي ضُمّت إليها بنود الموعد
+      const adv = advance.value > 0 ? advance.result() : null;
+      if (adv) {
+        const first = [...ids][0];
+        const planOfFirst = first ? useClinic.getState().plans.find((p) => p.items.some((i) => i.id === first))?.id : undefined;
+        useClinic.getState().addPayment({
+          patientId: patientId!,
+          date: todayISO(),
+          amount: adv.amount,
+          foreign: adv.foreign,
+          note: "دفعة عند الحجز",
+          planId: planOfFirst ?? target,
+        });
+      }
       // حُجز من قائمة الانتظار: يُعلَّم محجوزًا الآن فقط (بعد حفظ الموعد فعلًا)
       if (params.waitId) setWaitStatus(params.waitId, "booked");
     }
@@ -143,6 +170,8 @@ export default function AppointmentFormScreen() {
 
   const { detected, types } = usePatientTypes(patientId);
   const opens = useMemo(() => (patientId ? openItems(plans, patientId) : []), [plans, patientId]);
+  const patientPlans = useMemo(() => plans.filter((p) => p.patientId === patientId), [plans, patientId]);
+  const planSel = planChoice && (planChoice === "new" || patientPlans.some((p) => p.id === planChoice)) ? planChoice : patientPlans[0]?.id ?? "new";
   const procOf = () => procedure.trim() || "كشف واستشارة";
 
   const toggleTooth = (t: string) => setTeeth((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
@@ -207,6 +236,10 @@ export default function AppointmentFormScreen() {
     }
     if (!date || !startTime) {
       Alert.alert("حدّد التاريخ والوقت", "لتثبيت الموعد يلزم اختيار اليوم والوقت. يمكنك بدلًا من ذلك حفظ المريض في قائمة الانتظار.");
+      return;
+    }
+    if (!existing && advance.value > 0 && !advance.result()) {
+      Alert.alert("سعر الدولار", "اكتب سعر الدولار ليُحسب مبلغ الدفعة.");
       return;
     }
     const list = warnings();
@@ -294,35 +327,21 @@ export default function AppointmentFormScreen() {
         />
       ) : null}
 
-      {patient ? <ApptTeethSection patient={patient} teeth={teeth} onToggleTooth={toggleTooth} opens={opens} linked={linked} onToggleItem={toggleItem} /> : null}
-
-      {willCreate.length ? (
+      {patient ? (
+        <ApptTeethSection patient={patient} teeth={teeth} onToggleTooth={toggleTooth} opens={[]} linked={linked} onToggleItem={toggleItem} />
+      ) : (
         <Card className="mt-3">
-          <Text w="semi" className="mb-1">
-            سيُضاف لخطة العلاج عند الحفظ
+          <Text w="bold" className="mb-1">
+            ١. المخطط السني
           </Text>
-          {willCreate.map((t) => (
-            <Text key={t} className="text-sm text-muted">
-              + {procOf()} • سن {t}
-              {unitCost ? ` • ${unitCost}` : ""}
-            </Text>
-          ))}
+          <Text className="text-xs text-muted">اختر المريض أولًا ليظهر مخطط أسنانه؛ ثم حدّد السن ونوع الإجراء وخطة العلاج.</Text>
         </Card>
-      ) : null}
+      )}
 
       <Card className="mt-3">
-        <DateField label={existing ? "التاريخ" : "التاريخ (يلزم عند التثبيت)"} value={date} onChange={(v) => v && setDate(v)} placeholder="اختر التاريخ" />
-        <TimeField label={endTime ? `الوقت (ينتهي ${fmtTime(endTime)})` : "الوقت (يلزم عند التثبيت)"} value={startTime} onChange={setStartTime} />
-        <FieldRow label="المدة بالدقائق">
-          <View className="flex-row flex-wrap gap-2">
-            {DURATIONS.map((d) => (
-              <Chip key={d} label={`${d}`} selected={duration === d} color={TYPE_META.private.hex} onPress={() => setDuration(d)} />
-            ))}
-          </View>
-        </FieldRow>
-      </Card>
-
-      <Card className="mt-3">
+        <Text w="bold" className="mb-2">
+          ٢. نوع الإجراء
+        </Text>
         <FieldRow label="الإجراء">
           <View className="flex-row flex-wrap gap-2">
             {procedures.map((p) => (
@@ -345,6 +364,39 @@ export default function AppointmentFormScreen() {
             تعديل الإجراءات ›
           </Text>
         </Pressable>
+      </Card>
+
+      {patient ? (
+        <ApptPlanSection
+          procedure={procOf()}
+          teeth={teeth}
+          opens={opens}
+          linked={linked}
+          onToggleItem={toggleItem}
+          plans={patientPlans}
+          planId={planSel}
+          onPlanId={setPlanChoice}
+          willCreate={willCreate}
+          unitCost={unitCost}
+          costs={costs}
+          onCost={(t, v) => setCosts((cur) => ({ ...cur, [t]: v }))}
+          currency={currency}
+        />
+      ) : null}
+
+      <Card className="mt-3">
+        <DateField label={existing ? "التاريخ" : "التاريخ (يلزم عند التثبيت)"} value={date} onChange={(v) => v && setDate(v)} placeholder="اختر التاريخ" />
+        <TimeField label={endTime ? `الوقت (ينتهي ${fmtTime(endTime)})` : "الوقت (يلزم عند التثبيت)"} value={startTime} onChange={setStartTime} />
+        <FieldRow label="المدة بالدقائق">
+          <View className="flex-row flex-wrap gap-2">
+            {DURATIONS.map((d) => (
+              <Chip key={d} label={`${d}`} selected={duration === d} color={TYPE_META.private.hex} onPress={() => setDuration(d)} />
+            ))}
+          </View>
+        </FieldRow>
+      </Card>
+
+      <Card className="mt-3">
         <DictateField label="ملاحظات" value={notes} onChangeText={setNotes} multiline />
         {existing ? (
           <FieldRow label="الحالة">
@@ -356,6 +408,16 @@ export default function AppointmentFormScreen() {
           </FieldRow>
         ) : null}
       </Card>
+
+      {!existing && patient ? (
+        <Card className="mt-3">
+          <Text w="bold" className="mb-1">
+            دفعة مقدّمة (اختياري)
+          </Text>
+          <Text className="text-xs text-muted mb-2">تُسجَّل في حساب المريض وتُربط بخطة العلاج أعلاه.</Text>
+          <MoneyField label="المبلغ" m={advance} />
+        </Card>
+      ) : null}
 
       <View className="flex-row gap-3 mt-5">
         <View className="flex-1">

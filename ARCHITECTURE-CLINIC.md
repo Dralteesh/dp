@@ -30,7 +30,7 @@
 | `TreatmentPlan` | `patientId, title, items: PlanItem[]` |
 | `PlanItem` | `procedure, tooth? (قديم، نص), **teeth?: string[]**, cost, done, sessionId?, **dueOn?**, **flow?: {id, step}**` |
 | `ClinicSession` | `patientId, date, procedure, tooth?, cost, notes` — تُنشأ عند إنجاز بند أو إضافة يدوية |
-| `Payment` | `patientId, date, amount, foreign? (دولار), note` |
+| `Payment` | `patientId, date, amount, foreign? (دولار), note, planId? (الخطة المدفوع لها)` |
 | `FollowUpRule` | `id, label, everyDays, matchSource? (regex نصًا), anchor, active` |
 | `ApptExtra` | `ortho{work,wire,elastics,nextWeeks}, implant{stage,system,size}, endo{stage,canals}, crowns{stage}, pedo{work}` |
 | `extras.ts` | `LabOrder`, `OrthoCase{visits[]}`, `WaitEntry`, `PriceItem` (قائمة الأسعار) وغيرها |
@@ -71,7 +71,7 @@
 **Hooks**: `usePatientTypes` (أنواع بلا آثار جانبية)، `useNeeds(windowDays)`، `useSmartPatient` (⚠ ينشئ مواعيد تلقائية — لا تستعمله في العرض فقط).
 
 ## 7) المسارات الرئيسية (Flows)
-1. **حجز موعد**: اختر المريض ← (اختياري) فعّل نوعه ← اختر الأسنان/بنود الخطة ← الإجراء والوقت ← حفظ ← تُنشأ البنود وتُربط (`planItemIds`, `teeth`).
+1. **حجز موعد** (`appointment-form`): المريض ← ١. المخطط (تحديد الأسنان) ← ٢. نوع الإجراء ← ٣. خطة العلاج والتكلفة (`ApptPlanSection`: تكلفة كل سن تُعدَّل يدويًا وإلا من قائمة الأسعار، اختيار الخطة المستهدفة أو «خطة جديدة»، ربط البنود المفتوحة) ← التاريخ والوقت ← (اختياري) دفعة مقدّمة تُسجَّل بـ`planId` ← حفظ ← تُنشأ البنود وتُربط (`planItemIds`, `teeth`).
 2. **إنهاء الزيارة** `completeVisit`: (1) `completePlanItem` لكل بند محدد ← جلسة بتكلفته. (2) زيارة تقويم في `OrthoCase.visits` إن وُجد `extra.ortho.work`. (3) جلسة بتكلفة 0 إن لم تُنجَز بنود وكان هناك `extra` (ليلتقطها كشف الأنواع). (4) دفعة إن أُدخل مبلغ. (5) بنود المرحلة التالية بـ`dueOn` عبر `nextStepAfter`. (6) الموعد `status: "done"` و`visitDone: true`.
 3. **يحتاجون موعدًا** `computeNeeds`: بنود مفتوحة (بلا موعد مجدول يغطيها؛ `dueOn` ضمن النافذة أو بلا تاريخ) + تقويم مستحق بلا موعد + مخبر وصل بلا حجز تركيب + إدخالات الانتظار اليدوية. مرتّبة بالأعجل.
 4. **المتابعة الدورية**: `Patient.followUps`؛ المستحق = آخر زيارة مطابقة (`matchSource` أو أي زيارة) + `everyDays`. التأجيل يرفع `anchor`.

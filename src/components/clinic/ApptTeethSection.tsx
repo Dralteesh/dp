@@ -34,7 +34,7 @@ export function ApptTeethSection({ patient, teeth, onToggleTooth, opens, linked,
   return (
     <Card className="mt-3">
       <Text w="bold" className="mb-2">
-        الأسنان في هذا الموعد
+        ١. اختر الأسنان من المخطط
       </Text>
       <Odontogram
         teeth={patient.teeth}

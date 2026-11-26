@@ -75,7 +75,7 @@ type ClinicState = {
   removePlan: (id: string) => void;
   addPlanItem: (planId: string, item: Omit<PlanItem, "id" | "done" | "sessionId">) => void;
   /** يضيف بنودًا لخطة المريض الحالية (أحدث خطة، أو تُنشأ «خطة علاج») ويُرجع معرّفات البنود الجديدة بالترتيب */
-  addPlanItems: (patientId: string, items: Omit<PlanItem, "id" | "done" | "sessionId">[]) => string[];
+  addPlanItems: (patientId: string, items: Omit<PlanItem, "id" | "done" | "sessionId">[], planId?: string) => string[];
   /** يعدّل بندًا (مثل dueOn) في أي خطة */
   patchPlanItem: (itemId: string, patch: Partial<Omit<PlanItem, "id">>) => void;
   removePlanItem: (planId: string, itemId: string) => void;
@@ -227,11 +227,11 @@ export const useClinic = create<ClinicState>()(
             p.id === planId ? { ...p, items: [...p.items, { ...item, id: uid(), done: false }] } : p,
           ),
         })),
-      addPlanItems: (patientId, items) => {
+      addPlanItems: (patientId, items, planId) => {
         const ids = items.map(() => uid());
         set((s) => {
           const made: PlanItem[] = items.map((i, n) => ({ ...i, id: ids[n], done: false }));
-          const cur = s.plans.find((p) => p.patientId === patientId);
+          const cur = (planId ? s.plans.find((p) => p.id === planId && p.patientId === patientId) : undefined) ?? s.plans.find((p) => p.patientId === patientId);
           if (cur) return { plans: s.plans.map((p) => (p.id === cur.id ? { ...p, items: [...p.items, ...made] } : p)) };
           const plan: TreatmentPlan = { id: uid(), patientId, title: "خطة علاج", items: made, createdAt: Date.now() };
           return { plans: [plan, ...s.plans] };

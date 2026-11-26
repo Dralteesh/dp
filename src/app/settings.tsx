@@ -77,6 +77,7 @@ export default function SettingsScreen() {
         <SettingsLink icon="calendar-number-outline" title="جدولة الدوامات" hint="املأ الشهر بالدوامات والمناوبات بضغطة" href="/shifts-bulk" />
         <SettingsLink icon="briefcase-outline" title="أماكن العمل" hint="أنواع الدوام والمناوبة، الألوان، الأماكن الافتراضية" href="/workplaces" />
         <SettingsLink icon="color-palette-outline" title="المظهر والشعارات" hint="ألوان الأنواع، اسم التطبيق وشعار العيادة" href="/appearance" />
+        <SettingsLink icon="images-outline" title="شعارات العيادة في الخط الزمني" hint="بدّل شعار كل إجراء: جاهز أو صورة من المعرض" href="/appearance" />
         <SettingsLink icon="cloud-outline" title="الحساب والمزامنة" hint="نسخ احتياطي سحابي ومزامنة بين الأجهزة" href="/account" />
         <SettingsLink icon="hourglass-outline" title="لحظاتي (العدّادات)" hint="عدّ تنازلي وتصاعدي، تذكيرات، ودجات، نسخ مشفّر" href="/countdowns" />
         <SettingsLink icon="shield-checkmark-outline" title="الأمان والنسخ الاحتياطي" hint="قفل التطبيق، تصدير واستعادة بياناتك" href="/security" last />

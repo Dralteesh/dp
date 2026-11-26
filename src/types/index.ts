@@ -271,6 +271,8 @@ export type Payment = {
   /** إن دُفعت بالدولار: amount = المبلغ بالدولار × سعر الصرف وقت الدفع */
   foreign?: ForeignAmount;
   note?: string;
+  /** خطة العلاج التي دُفعت لها (اختياري؛ الدفعات القديمة بلا خطة تُحسب على حساب المريض عمومًا) */
+  planId?: string;
   createdAt: number;
 };
 

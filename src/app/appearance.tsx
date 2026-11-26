@@ -2,6 +2,10 @@ import { useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
+import { ProcedureGlyph } from "@/components/clinic/ProcedureIcon";
+import { ProcedureImageSheet } from "@/components/clinic/ProcedureImageSheet";
+import { useRouter } from "expo-router";
+import { useProcedures } from "@/hooks/useProcedures";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
@@ -15,7 +19,36 @@ import { useTheme } from "@/hooks/useTheme";
 import { normalizeHex } from "@/lib/color";
 import { pickLogo } from "@/lib/logo";
 import { useSettings } from "@/store/useSettings";
-import type { ShiftType } from "@/types";
+import type { ProcedureDef, ShiftType } from "@/types";
+
+
+/** شعارات الإجراءات التي تظهر في الخط الزمني والمواعيد: اضغط شعارًا لتبديله أو قصّ صورة من المعرض */
+function ProcedureLogos() {
+  const router = useRouter();
+  const list = useProcedures();
+  const [imgFor, setImgFor] = useState<ProcedureDef | null>(null);
+  return (
+    <Card>
+      <Text className="text-xs text-muted mb-3 leading-5">اضغط أي شعار لتغييره: اختر شعارًا جاهزًا أو صورة من المعرض (مع قصّها وتدويرها). يظهر في الخط الزمني والمواعيد.</Text>
+      <View className="flex-row flex-wrap gap-3">
+        {list.map((p) => (
+          <Pressable key={p.id} onPress={() => setImgFor(p)} className="items-center" style={{ width: 72 }} accessibilityLabel={`تغيير شعار ${p.name}`}>
+            <View className="rounded-2xl border border-line bg-bg items-center justify-center" style={{ width: 64, height: 64 }}>
+              <ProcedureGlyph icon={p.icon} size={48} />
+            </View>
+            <Text className="text-[11px] text-center mt-1" numberOfLines={2}>
+              {p.name}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View className="mt-3">
+        <Button label="إضافة وترتيب الإجراءات" icon="options-outline" variant="soft" onPress={() => router.push("/clinic/procedures" as never)} />
+      </View>
+      <ProcedureImageSheet proc={imgFor} onClose={() => setImgFor(null)} />
+    </Card>
+  );
+}
 
 function ColorRow({ type }: { type: ShiftType }) {
   const typeColors = useSettings((s) => s.typeColors);
@@ -214,6 +247,8 @@ export default function AppearanceScreen() {
           onChange={(v) => s.update({ clinicLogo: v })}
         />
       </Card>
+      <SectionHeader title="شعارات العيادة في الخط الزمني" />
+      <ProcedureLogos />
       <Text className="text-xs text-muted mt-2 leading-5">
         الألوان والشعارات تُحفظ مع إعداداتك وتُزامَن مع حسابك.
       </Text>

@@ -12,6 +12,7 @@ type Item = { icon: keyof typeof Ionicons.glyphMap; title: string; hint: string;
 const ITEMS: Item[] = [
   { icon: "settings-outline", title: "كل الإعدادات", hint: "الصلاة، الإجراءات، الأسعار، النسخ الاحتياطي...", href: "/settings" },
   { icon: "sunny-outline", title: "المظهر", hint: "الألوان والشعار", href: "/appearance" },
+  { icon: "images-outline", title: "شعارات العيادة في الخط الزمني", hint: "بدّل شعار كل إجراء: جاهز أو صورة من المعرض", href: "/appearance" },
   { icon: "cloud-upload-outline", title: "الحساب والمزامنة", hint: "النسخ الاحتياطي والمزامنة السحابية", href: "/account" },
   { icon: "lock-closed-outline", title: "الأمان والقفل", hint: "رمز القفل والبصمة", href: "/security" },
   { icon: "notifications-outline", title: "التذكيرات والأذكار", hint: "إشعارات الصلاة والأذكار", href: "/reminders-prayer" },
@@ -39,7 +40,7 @@ export default function PlannerSettings() {
       <PCard style={{ marginTop: 14, paddingVertical: 4 }}>
         {ITEMS.map((it, i) => (
           <Pressable
-            key={it.href}
+            key={it.title}
             onPress={() => router.push(it.href as never)}
             style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: i === ITEMS.length - 1 ? 0 : 1, borderBottomColor: PL.border }}
           >
