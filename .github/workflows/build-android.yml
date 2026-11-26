@@ -36,12 +36,23 @@ jobs:
             src/store/useFocus.ts src/lib/focusStats.ts \
             "src/app/(tabs)/docs.tsx" MERGE-AR.md
 
+      # بيانات المصحف المولَّدة تُحفظ بين البناءات: نجاح توليد واحد يكفي ولا نعتمد على الشبكة كل مرة
+      - name: Cache Quran data
+        uses: actions/cache@v4
+        with:
+          path: src/data
+          key: quran-data-v1
+
       - name: Install dependencies
         run: |
           npm install
           # المكتبات الأصلية الجديدة تُثبَّت بالإصدار المناسب لـ SDK الحالي
           npx expo install expo-audio expo-camera expo-location
           npx expo install --fix
+
+      - name: Verify embedded Quran
+        run: |
+          node -e "const t=require('./src/data/quran-text.json'); if(!t.ok||Object.keys(t.pages).length!==604){console.error('Quran data missing'); process.exit(1)} console.log('Quran OK')"
 
       # يكشف أخطاء كود JavaScript خلال دقيقة، قبل بناء أندرويد الطويل
       - name: Check JS bundle
