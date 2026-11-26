@@ -199,7 +199,7 @@ export default function SettingsScreen() {
           href="/clinic/import"
         />
         <Text className="text-sm text-muted mb-3">
-          البيانات محفوظة على هذا الهاتف فقط (AsyncStorage). المزامنة السحابية عبر Supabase ستُضاف لاحقًا.
+          بيانات المرضى والمواعيد محفوظة على هذا الهاتف مشفّرة (مفتاحها في Keystore)، وتُزامَن مع حسابك عند تسجيل الدخول.
         </Text>
         <View className="gap-2">
           <Button

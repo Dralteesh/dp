@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { uid } from "@/lib/id";
-import { STORAGE_KEYS, storage } from "@/lib/storage";
+import { STORAGE_KEYS, secureStorage } from "@/lib/storage";
 import type { Note, PlannerEvent, Task } from "@/types";
 
 type NewEvent = Omit<PlannerEvent, "id" | "createdAt">;
@@ -102,7 +102,7 @@ export const usePlanner = create<PlannerState>()(
     }),
     {
       name: STORAGE_KEYS.planner,
-      storage,
+      storage: secureStorage,
       partialize: (s) => ({ events: s.events, tasks: s.tasks, notes: s.notes }),
     },
   ),

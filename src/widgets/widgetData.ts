@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { peekSecure } from "@/lib/secureStore";
 import { agendaFor, type AgendaItem } from "@/lib/agenda";
 import { combine, fmtDateLong, fmtTime, fmtTimeDate, relativeDay, toISO } from "@/lib/dates";
 import { CITY, PRAYER_LABELS, nextPrayer } from "@/lib/prayer";
@@ -23,7 +23,7 @@ export type WidgetData = {
 
 async function readPersisted<T>(key: string): Promise<Partial<T>> {
   try {
-    const raw = await AsyncStorage.getItem(key);
+    const raw = await peekSecure(key);
     if (!raw) return {};
     return (JSON.parse(raw)?.state ?? {}) as Partial<T>;
   } catch {

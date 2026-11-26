@@ -1,4 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { secureStateStorage, flushSecure } from "@/lib/secureStore";
+import { mergeItems, stable } from "@/lib/syncMerge";
 import { supabase } from "@/lib/supabase";
 import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
@@ -153,19 +155,6 @@ const SLICES: Slice[] = [
   settingsSlice,
 ];
 
-/** تحويل ثابت الترتيب: jsonb في Postgres لا يحفظ ترتيب المفاتيح */
-function stable(v: any): string {
-  if (Array.isArray(v)) return `[${v.map(stable).join(",")}]`;
-  if (v && typeof v === "object") {
-    return `{${Object.keys(v)
-      .filter((k) => v[k] !== undefined)
-      .sort()
-      .map((k) => `${JSON.stringify(k)}:${stable(v[k])}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(v);
-}
-
 const K = {
   owner: "dp.cloud.owner",
   snap: (u: string) => `dp.cloud.snap.${u}`,
@@ -175,9 +164,10 @@ const K = {
 type Snap = Record<string, Record<string, string>>;
 type PullMap = Record<string, string>;
 
-async function readJSON<T>(key: string, fallback: T): Promise<T> {
+/** لقطة المزامنة تحوي نسخة من بيانات المرضى، فتُقرأ وتُكتب عبر التخزين المشفّر */
+async function readJSON<T>(key: string, fallback: T, secure = false): Promise<T> {
   try {
-    const raw = await AsyncStorage.getItem(key);
+    const raw = secure ? await secureStateStorage.getItem(key) : await AsyncStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
@@ -249,7 +239,22 @@ async function pull(userId: string, snap: Snap) {
       let dirty = mine ? stable(mine) !== known : known !== undefined;
       // الإعدادات في جهاز جديد: القيم الافتراضية المحلية ليست «تعديلًا»، فنأخذ ما في السحابة
       if (slice.singleton && known === undefined) dirty = false;
-      if (dirty) continue;
+      if (dirty) {
+        // تعديل محلي لم يُرفع بعد وتغيّرت النسخة السحابية أيضًا: ندمج حقلًا بحقل بدل أن يضيع تعديل الجهاز الآخر
+        if (mine && known !== undefined && !r.deleted) {
+          let base: Item | null = null;
+          try {
+            base = JSON.parse(known) as Item;
+          } catch {
+            base = null;
+          }
+          if (base && typeof base === "object") {
+            const { merged } = mergeItems(base, mine, { ...r.data, id: r.id });
+            if (stable(merged) !== stable(mine)) ups.push(merged);
+          }
+        }
+        continue;
+      }
       if (r.deleted) {
         if (mine) rm.push(r.id);
         delete tableSnap[r.id];
@@ -314,13 +319,14 @@ export async function syncAll(userId: string): Promise<void> {
   try {
     do {
       again = false;
-      const snap = await readJSON<Snap>(K.snap(userId), {});
+      const snap = await readJSON<Snap>(K.snap(userId), {}, true);
       try {
         await pull(userId, snap);
         await push(userId, snap);
       } finally {
         // نحفظ ما أُنجز حتى لو فشلت مرحلة لاحقة
-        await AsyncStorage.setItem(K.snap(userId), JSON.stringify(snap));
+        secureStateStorage.setItem(K.snap(userId), JSON.stringify(snap));
+        await flushSecure();
       }
     } while (again);
   } finally {

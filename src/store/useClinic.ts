@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { uid } from "@/lib/id";
-import { STORAGE_KEYS, storage } from "@/lib/storage";
+import { STORAGE_KEYS, secureStorage } from "@/lib/storage";
 import type {
   Appointment,
   AppointmentStatus,
@@ -284,7 +284,7 @@ export const useClinic = create<ClinicState>()(
     }),
     {
       name: STORAGE_KEYS.clinic,
-      storage,
+      storage: secureStorage,
       partialize: (s) => ({
         patients: s.patients,
         appointments: s.appointments,

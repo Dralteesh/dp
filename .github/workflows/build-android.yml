@@ -47,7 +47,7 @@ jobs:
         run: |
           npm install
           # المكتبات الأصلية الجديدة تُثبَّت بالإصدار المناسب لـ SDK الحالي
-          npx expo install expo-audio expo-camera expo-location
+          npx expo install expo-audio expo-camera expo-location expo-secure-store
           npx expo install --fix
 
       - name: Verify embedded Quran

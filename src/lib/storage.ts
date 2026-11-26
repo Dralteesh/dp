@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createJSONStorage } from "zustand/middleware";
+import { secureStateStorage } from "@/lib/secureStore";
 
 /**
  * طبقة التخزين الوحيدة في التطبيق.
@@ -7,6 +8,9 @@ import { createJSONStorage } from "zustand/middleware";
  * (أو نضيف مزامنة فوقه) دون تعديل الشاشات.
  */
 export const storage = createJSONStorage(() => AsyncStorage);
+
+/** تخزين مشفّر (Keystore) لبيانات المرضى والمواعيد: المخطّط والعيادة وإضافاتها */
+export const secureStorage = createJSONStorage(() => secureStateStorage);
 
 export const STORAGE_KEYS = {
   planner: "dp.planner.v1",

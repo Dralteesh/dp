@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { uid } from "@/lib/id";
-import { storage } from "@/lib/storage";
+import { secureStorage } from "@/lib/storage";
 import type {
   ConsentRecord,
   DentalExam,
@@ -137,7 +137,7 @@ export const useExtras = create<ExtrasState>()(
     }),
     {
       name: "dp.extras.v1",
-      storage,
+      storage: secureStorage,
       partialize: (s) => ({
         priceList: s.priceList,
         waitlist: s.waitlist,
