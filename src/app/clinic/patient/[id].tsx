@@ -6,6 +6,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DictateField } from "@/components/DictateField";
 import { MoneyField, useMoneyInput } from "@/components/MoneyField";
+import { PatientStatusHeader } from "@/components/clinic/PatientStatusHeader";
+import { openItems } from "@/lib/clinicLink";
 import { MedicalAlertBar } from "@/components/clinic/MedicalAlertBar";
 import { TagPills } from "@/components/clinic/TagPills";
 import { PatientTypePanel } from "@/components/clinic/PatientTypePanel";
@@ -325,6 +327,23 @@ export default function PatientScreen() {
       {/* ---------------- نظرة عامة ---------------- */}
       {section === "overview" && (
         <View className="mt-4">
+          <PatientStatusHeader patientId={patient.id} />
+          {openItems(allPlans, patient.id).length ? (
+            <View className="mt-3">
+              <Button
+                label="احجز موعدًا لبنود الخطة"
+                icon="calendar"
+                type="private"
+                onPress={() => {
+                  const o = openItems(allPlans, patient.id);
+                  router.push({
+                    pathname: "/clinic/appointment-form",
+                    params: { patientId: patient.id, planItemIds: o.map((x) => x.item.id).join(","), teeth: [...new Set(o.flatMap((x) => (x.item.teeth ?? (x.item.tooth ? [x.item.tooth] : []))))].join(","), procedure: o[0].item.procedure },
+                  });
+                }}
+              />
+            </View>
+          ) : null}
           <PatientTypePanel patientId={patient.id} />
           <View className="flex-row flex-wrap gap-2 mb-3">
             {[

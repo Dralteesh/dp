@@ -4,6 +4,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DateField } from "@/components/pickers";
 import { PlanWizard } from "@/components/clinic/PlanWizard";
+import { Odontogram } from "@/components/Odontogram";
+import { itemTeeth, itemsForTeeth } from "@/lib/clinicLink";
+import { useExtras } from "@/store/useExtras";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -43,7 +46,10 @@ export default function PlanScreen() {
 
   const [itemFor, setItemFor] = useState<string | null>(null);
   const [proc, setProc] = useState("");
-  const [tooth, setTooth] = useState("");
+  const [teethSel, setTeethSel] = useState<string[]>([]);
+  const priceList = useExtras((s) => s.priceList);
+  const usdRate = useSettings((s) => s.usdRate);
+  const updatePatient = useClinic((s) => s.updatePatient);
   const [cost, setCost] = useState("");
 
   const [doneFor, setDoneFor] = useState<{ planId: string; itemId: string } | null>(null);
@@ -65,14 +71,16 @@ export default function PlanScreen() {
     setTitle("");
     setItemFor(id);
     setProc("");
-    setTooth("");
+    setTeethSel([]);
     setCost("");
   };
 
   const saveItem = () => {
     if (!itemFor) return;
     if (!proc.trim()) return Alert.alert("اكتب الإجراء");
-    addPlanItem(itemFor, { procedure: proc.trim(), tooth: tooth.trim() || undefined, cost: parseAmount(cost) });
+    // بند لكل سن؛ التكلفة المكتوبة تُطبَّق على كل سن، وإن تُركت فارغة تُؤخذ من قائمة الأسعار
+    const typed = parseAmount(cost);
+    for (const it of itemsForTeeth(proc.trim(), teethSel, priceList, usdRate)) addPlanItem(itemFor, { ...it, cost: typed > 0 ? typed : it.cost });
     setItemFor(null);
   };
 
@@ -141,10 +149,21 @@ export default function PlanScreen() {
                     <View className="flex-1">
                       <Text w="semi" style={{ textDecorationLine: it.done ? "line-through" : "none", opacity: it.done ? 0.6 : 1 }}>
                         {n + 1}. {it.procedure}
-                        {it.tooth ? ` • سن ${it.tooth}` : ""}
+                        {itemTeeth(it).length ? ` • سن ${itemTeeth(it).join("،")}` : it.tooth ? ` • سن ${it.tooth}` : ""}
                       </Text>
-                      <Text className="text-xs text-muted">{fmtMoney(it.cost, currency)}</Text>
+                      <Text className="text-xs text-muted">
+                        {fmtMoney(it.cost, currency)}
+                        {it.dueOn && !it.done ? ` • مستهدف ${it.dueOn}` : ""}
+                      </Text>
                     </View>
+                    {!it.done ? (
+                      <Pressable
+                        hitSlop={10}
+                        onPress={() => router.push({ pathname: "/clinic/appointment-form", params: { patientId: patient.id, planItemIds: it.id, teeth: itemTeeth(it).join(","), procedure: it.procedure, ...(it.dueOn ? { date: it.dueOn } : {}) } })}
+                      >
+                        <Ionicons name="calendar-outline" size={20} color={green} />
+                      </Pressable>
+                    ) : null}
                     {!it.done ? (
                       <Pressable hitSlop={10} onPress={() => removePlanItem(plan.id, it.id)}>
                         <Ionicons name="close" size={18} color="#94A3B8" />
@@ -161,7 +180,7 @@ export default function PlanScreen() {
                     onPress={() => {
                       setItemFor(plan.id);
                       setProc("");
-                      setTooth("");
+                      setTeethSel([]);
                       setCost("");
                     }}
                   />
@@ -186,14 +205,21 @@ export default function PlanScreen() {
           </View>
         </FieldRow>
         <Field label="الإجراء" value={proc} onChangeText={setProc} />
-        <View className="flex-row gap-3">
-          <View className="flex-1">
-            <Field label="السن (اختياري)" value={tooth} onChangeText={setTooth} keyboardType="number-pad" />
-          </View>
-          <View className="flex-1">
-            <Field label={`التكلفة (${currency})`} value={cost} onChangeText={setCost} keyboardType="decimal-pad" />
-          </View>
-        </View>
+        <Odontogram
+          teeth={patient.teeth}
+          selected={teethSel[teethSel.length - 1]}
+          highlight={teethSel}
+          onSelect={(t) => setTeethSel((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))}
+          birthYear={patient.birthYear}
+          dentition={patient.dentition}
+          onDentitionChange={(d) => updatePatient(patient.id, { dentition: d })}
+          marks={patient.toothMarks}
+          bridges={patient.bridges}
+        />
+        <Text className="text-xs text-muted my-2">
+          {teethSel.length ? `الأسنان: ${teethSel.join("،")} — يُنشأ بند لكل سن` : "اختر الأسنان من المخطط (اختياري)"}
+        </Text>
+        <Field label={`التكلفة لكل سن (${currency}) — فارغ = من قائمة الأسعار`} value={cost} onChangeText={setCost} keyboardType="decimal-pad" />
         <Button label="إضافة" icon="checkmark" type="private" onPress={saveItem} />
       </Sheet>
 

@@ -74,6 +74,10 @@ type ClinicState = {
   updatePlan: (id: string, patch: Partial<Pick<TreatmentPlan, "title">>) => void;
   removePlan: (id: string) => void;
   addPlanItem: (planId: string, item: Omit<PlanItem, "id" | "done" | "sessionId">) => void;
+  /** يضيف بنودًا لخطة المريض الحالية (أحدث خطة، أو تُنشأ «خطة علاج») ويُرجع معرّفات البنود الجديدة بالترتيب */
+  addPlanItems: (patientId: string, items: Omit<PlanItem, "id" | "done" | "sessionId">[]) => string[];
+  /** يعدّل بندًا (مثل dueOn) في أي خطة */
+  patchPlanItem: (itemId: string, patch: Partial<Omit<PlanItem, "id">>) => void;
   removePlanItem: (planId: string, itemId: string) => void;
   /** إنجاز بند: يضع علامة تم وينشئ جلسة بنفس التكلفة (تدخل في حساب المريض) */
   completePlanItem: (planId: string, itemId: string, date: string) => void;
@@ -223,6 +227,21 @@ export const useClinic = create<ClinicState>()(
             p.id === planId ? { ...p, items: [...p.items, { ...item, id: uid(), done: false }] } : p,
           ),
         })),
+      addPlanItems: (patientId, items) => {
+        const ids = items.map(() => uid());
+        set((s) => {
+          const made: PlanItem[] = items.map((i, n) => ({ ...i, id: ids[n], done: false }));
+          const cur = s.plans.find((p) => p.patientId === patientId);
+          if (cur) return { plans: s.plans.map((p) => (p.id === cur.id ? { ...p, items: [...p.items, ...made] } : p)) };
+          const plan: TreatmentPlan = { id: uid(), patientId, title: "خطة علاج", items: made, createdAt: Date.now() };
+          return { plans: [plan, ...s.plans] };
+        });
+        return ids;
+      },
+      patchPlanItem: (itemId, patch) =>
+        set((s) => ({
+          plans: s.plans.map((p) => (p.items.some((i) => i.id === itemId) ? { ...p, items: p.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i)) } : p)),
+        })),
       removePlanItem: (planId, itemId) =>
         set((s) => ({
           plans: s.plans.map((p) =>
@@ -239,7 +258,7 @@ export const useClinic = create<ClinicState>()(
             patientId: plan.patientId,
             date,
             procedure: item.procedure,
-            tooth: item.tooth,
+            tooth: item.tooth ?? (item.teeth?.length ? item.teeth.join("،") : undefined),
             notes: `من خطة العلاج: ${plan.title}`,
             cost: item.cost,
             createdAt: Date.now(),

@@ -24,6 +24,8 @@ import { useExtras } from "@/store/useExtras";
 import { useSettings } from "@/store/useSettings";
 import type { PartOfDay, WaitEntry } from "@/types/extras";
 import { useProcedures } from "@/hooks/useProcedures";
+import { NeedsList } from "@/components/clinic/NeedsList";
+import { useNeeds } from "@/hooks/useNeeds";
 
 const PARTS: PartOfDay[] = ["any", "morning", "afternoon", "evening"];
 const STATUS_LABEL: Record<WaitEntry["status"], string> = {
@@ -47,7 +49,9 @@ export default function WaitlistScreen() {
   const clinicName = useSettings((s) => s.clinicName);
   const byId = useMemo(() => new Map(patients.map((p) => [p.id, p])), [patients]);
 
-  const [tab, setTab] = useState<"open" | "closed">("open");
+  const [tab, setTab] = useState<"need" | "closed">("need");
+  const [windowDays, setWindowDays] = useState(7);
+  const needs = useNeeds(windowDays);
   const [open, setOpen] = useState(false);
   const [patientId, setPatientId] = useState<string | undefined>();
   const [q, setQ] = useState("");
@@ -62,7 +66,7 @@ export default function WaitlistScreen() {
   const list = useMemo(
     () =>
       waitlist
-        .filter((w) => (tab === "open" ? w.status === "waiting" || w.status === "notified" : w.status === "booked" || w.status === "dropped"))
+        .filter((w) => w.status === "booked" || w.status === "dropped")
         .sort((a, b) => a.createdAt - b.createdAt),
     [waitlist, tab],
   );
@@ -92,8 +96,8 @@ export default function WaitlistScreen() {
 
   return (
     <Screen
-      title="قائمة الانتظار"
-      subtitle="مرضى يريدون موعدًا أبكر"
+      title="يحتاجون موعدًا"
+      subtitle="خطة العلاج • التقويم • المخبر • الانتظار"
       back
       overlay={
         <Fab
@@ -109,13 +113,30 @@ export default function WaitlistScreen() {
         value={tab}
         onChange={setTab}
         options={[
-          { value: "open", label: "بالانتظار" },
+          { value: "need", label: `يحتاجون موعدًا (${needs.length})` },
           { value: "closed", label: "منتهية" },
         ]}
       />
-      <View className="mt-4">
+      {tab === "need" ? (
+        <View className="mt-4">
+          <View className="flex-row gap-2 mb-3">
+            {[7, 14, 30].map((d) => (
+              <Chip key={d} label={`${d} يومًا`} selected={windowDays === d} color={green} onPress={() => setWindowDays(d)} />
+            ))}
+          </View>
+          <Text className="text-xs text-muted mb-3">
+            كل من له بند خطة بلا موعد، أو تقويم مستحق، أو عمل مخبر وصل، أو سُجّل يدويًا. اضغط + لإضافة مريض يدويًا.
+          </Text>
+          {needs.length === 0 ? (
+            <EmptyState icon="checkmark-circle-outline" title="لا أحد يحتاج موعدًا" hint={`لا بنود مستحقة خلال ${windowDays} يومًا`} />
+          ) : (
+            <NeedsList rows={needs} />
+          )}
+        </View>
+      ) : null}
+      <View className="mt-4" style={{ display: tab === "closed" ? "flex" : "none" }}>
         {list.length === 0 ? (
-          <EmptyState icon="hourglass-outline" title={tab === "open" ? "لا أحد بالانتظار" : "لا شيء هنا"} hint="اضغط + لإضافة مريض" />
+          <EmptyState icon="hourglass-outline" title="لا شيء هنا" hint="المحجوزة والمُسقطة تظهر هنا" />
         ) : (
           list.map((w) => {
             const p = byId.get(w.patientId);

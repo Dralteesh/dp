@@ -23,6 +23,7 @@ import { Text } from "@/components/ui/Text";
 import { getAlarmModule } from "@/lib/alarm";
 import { handlePrayerResponse } from "@/lib/notifications";
 import { useHydrated } from "@/lib/hydration";
+import { runClinicLinkMigration } from "@/lib/migrateClinic";
 import { setupRTL } from "@/lib/rtl";
 import { useAlarms } from "@/store/useAlarms";
 import { useClinic } from "@/store/useClinic";
@@ -61,6 +62,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  // ترحيل بيانات العيادة لنموذج الربط (مرة واحدة، بنسخة احتياطية قبلها)
+  useEffect(() => {
+    if (ready) runClinicLinkMigration();
   }, [ready]);
 
   // عند رنين منبّه إجباري: افتح شاشة الإيقاف/الغفوة

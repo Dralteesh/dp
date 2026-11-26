@@ -18,6 +18,9 @@ import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
 import { ClinicToolsSheet } from "@/components/clinic/ClinicToolsSheet";
 import { DaySchedule } from "@/components/clinic/DaySchedule";
+import { NeedsList } from "@/components/clinic/NeedsList";
+import { VisitSheet, visitNeedsSheet } from "@/components/clinic/VisitSheet";
+import { useNeeds } from "@/hooks/useNeeds";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { Text } from "@/components/ui/Text";
 import { STATUS_META } from "@/constants/clinic";
@@ -57,6 +60,8 @@ export default function ClinicScreen() {
   const [query, setQuery] = useState("");
   const [pFilter, setPFilter] = useState<PFilter>("active");
   const [fabOpen, setFabOpen] = useState(false);
+  const [visitFor, setVisitFor] = useState<string | null>(null);
+  const needs = useNeeds(7);
   const [toolsOpen, setToolsOpen] = useState(false);
   const toolsPending = useClinicTools((s) => s.pending);
   const consumeTools = useClinicTools((s) => s.consume);
@@ -114,16 +119,6 @@ export default function ClinicScreen() {
   );
   const totalDebt = balances.reduce((a, b) => a + Math.max(0, b.balance), 0);
 
-  // مراجعة دورية: مرضى قيد المعالجة بلا موعد قادم
-  const needRecall = useMemo(() => {
-    const withFuture = new Set(
-      appointments
-        .filter((a) => a.date >= today && (a.status === "scheduled" || a.status === "arrived"))
-        .map((a) => a.patientId),
-    );
-    return patients.filter((p) => p.status === "active" && !withFuture.has(p.id)).slice(0, 5);
-  }, [appointments, patients, today]);
-
   const filteredPatients = useMemo(() => {
     const q = query.trim();
     return patients.filter((p) => {
@@ -173,7 +168,7 @@ export default function ClinicScreen() {
           accessibilityLabel="المتابعات"
         >
           <Ionicons name="notifications-outline" size={20} color="#0F172A" />
-          {needRecall.length + todayCount > 0 ? (
+          {needs.length + todayCount > 0 ? (
             <View style={{ position: "absolute", top: 7, end: 8, width: 9, height: 9, borderRadius: 5, backgroundColor: "#F97316", borderWidth: 1.5, borderColor: "#FFFFFF" }} />
           ) : null}
         </Pressable>
@@ -293,7 +288,10 @@ export default function ClinicScreen() {
                         label={x.label}
                         selected={a.status === x.status}
                         color={STATUS_META[x.status].hex}
-                        onPress={() => setStatus(a.id, a.status === x.status ? "scheduled" : x.status)}
+                        onPress={() => {
+                          if (x.status === "done" && a.status !== "done" && visitNeedsSheet(a)) return setVisitFor(a.id);
+                          setStatus(a.id, a.status === x.status ? "scheduled" : x.status);
+                        }}
                       />
                     ))}
                     <Chip label="تأجيل" icon="time-outline" onPress={() => postpone(a)} />
@@ -307,30 +305,10 @@ export default function ClinicScreen() {
             })
           )}
 
-          {needRecall.length > 0 && (
+          {needs.length > 0 && (
             <>
-              <SectionHeader title="يحتاجون موعدًا" />
-              {needRecall.map((p) => (
-                <PressableScale
-                  key={p.id}
-                  className="flex-row items-center gap-3 bg-surface border border-line rounded-2xl px-3 py-2.5 mb-2"
-                  onPress={() =>
-                    router.push({ pathname: "/clinic/appointment-form", params: { patientId: p.id, date } })
-                  }
-                >
-                  <View className="w-9 h-9 rounded-full bg-amber-100 items-center justify-center">
-                    <Text w="bold" className="text-amber-800">
-                      {initial(p.name)}
-                    </Text>
-                  </View>
-                  <Text w="semi" className="flex-1">
-                    {p.name}
-                  </Text>
-                  <Text className="text-private-ink text-sm" w="semi">
-                    احجز
-                  </Text>
-                </PressableScale>
-              ))}
+              <SectionHeader title={`يحتاجون موعدًا (${needs.length})`} action="عرض الكل" onAction={() => router.push("/clinic/waitlist" as never)} />
+              <NeedsList rows={needs.slice(0, 4)} />
             </>
           )}
         </View>
@@ -488,6 +466,7 @@ export default function ClinicScreen() {
         </View>
       </Sheet>
 
+      <VisitSheet apptId={visitFor} onClose={() => setVisitFor(null)} />
       <ClinicToolsSheet visible={toolsOpen} onClose={() => setToolsOpen(false)} />
     </Screen>
   );

@@ -24,6 +24,8 @@ type Props = {
   bridges?: string[][];
   /** إن مُرّرت يظهر زر «جسر» لبناء جسور جديدة وحذفها */
   onBridgesChange?: (b: string[][]) => void;
+  /** أسنان مُبرزة (تحديد متعدد، مثل أسنان الموعد) بنفس شكل السن المحدّد */
+  highlight?: string[];
 };
 
 const SELECT = "#2B8FCB";
@@ -36,7 +38,7 @@ const TOOTH_BOTTOM = "#E6DFCB";
 const SOFT = "rgba(30,58,79,0.08)";
 
 /** مخطط الأسنان (FDI): أسنان Toothmap الواقعية على بطاقة فاتحة، مع علامات وجسور. اضغط قرب سن لتحديده */
-export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onDentitionChange, birthYear, marks, bridges, onBridgesChange }: Props) {
+export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onDentitionChange, birthYear, marks, bridges, onBridgesChange, highlight }: Props) {
   const [W, setW] = useState(340);
   const [own, setOwn] = useState<Dentition | null>(null);
   const [chainMode, setChainMode] = useState(false);
@@ -125,7 +127,7 @@ export function Odontogram({ teeth, selected, onSelect, dentition: dentProp, onD
     if (!sh) return null;
     const st = teeth[code];
     const meta = st ? TOOTH_STATUS[st] : null;
-    const active = sel === code;
+    const active = sel === code || !!highlight?.includes(code);
     const inDraft = draft.includes(code);
     const gone = st === "missing" || st === "extraction";
     const fill = active ? SELECT_FILL : meta ? meta.hex : "url(#tg)";

@@ -193,6 +193,29 @@ export type Patient = {
   createdAt: number;
   /** آخر مرة أُرسلت له رسالة استدعاء (متابعة) */
   recalledAt?: number;
+  /** قواعد المتابعة الدورية (تقويم كل 5 أسابيع، تنظيف كل 6 أشهر...) — انظر src/lib/periodic.ts */
+  followUps?: FollowUpRule[];
+};
+
+/** قاعدة متابعة دورية لمريض: تستحق بعد everyDays من آخر زيارة مطابقة (أو من anchor) */
+export type FollowUpRule = {
+  id: string;
+  label: string;
+  everyDays: number;
+  /** نص تعبير نمطي يطابق إجراء الزيارة التي تُعيد ضبط العدّاد؛ إن غاب فأي زيارة تُعيد ضبطه */
+  matchSource?: string;
+  /** تاريخ بداية العدّ (YYYY-MM-DD) إن لم توجد زيارة مطابقة */
+  anchor: string;
+  active: boolean;
+};
+
+/** حقول خاصة بنوع المريض تُحفظ مع الموعد (تُملأ في نموذج الموعد وتُستعمل عند إنهاء الزيارة) */
+export type ApptExtra = {
+  ortho?: { work?: string; wire?: string; elastics?: string; nextWeeks?: number };
+  implant?: { stage?: string; system?: string; size?: string };
+  endo?: { stage?: string; canals?: string };
+  crowns?: { stage?: string; labOrderId?: string };
+  pedo?: { work?: string };
 };
 
 export type AppointmentStatus =
@@ -216,6 +239,14 @@ export type Appointment = {
   createdAt: number;
   /** وقت إرسال تذكير الموعد للمريض */
   remindedAt?: number;
+  /** بنود خطة العلاج المرتبطة بهذا الموعد (التنفيذ عند إنهاء الزيارة) */
+  planItemIds?: string[];
+  /** الأسنان التي يُعمل عليها في هذا الموعد (FDI) */
+  teeth?: string[];
+  /** إعدادات خاصة بنوع المريض (تقويم/زرع/عصب/تيجان/أطفال) */
+  extra?: ApptExtra;
+  /** اكتملت الزيارة عبر completeVisit (لمنع التنفيذ المزدوج) */
+  visitDone?: boolean;
 };
 
 /** جلسة علاجية مع تكلفتها */
@@ -264,6 +295,12 @@ export type PlanItem = {
   done: boolean;
   /** الجلسة التي أُنشئت عند إنجاز البند (للتراجع) */
   sessionId?: string;
+  /** الأسنان (FDI). السجلات الجديدة سنّ واحد لكل بند؛ tooth يبقى للتوافق مع القديم */
+  teeth?: string[];
+  /** التاريخ المستهدف لتنفيذ البند (يُحسب من مراحل العلاج) — يغذّي «يحتاجون موعدًا» */
+  dueOn?: string;
+  /** المرحلة ضمن مسار علاج (انظر src/lib/workflows.ts) */
+  flow?: { id: string; step: number };
 };
 
 /** خطة علاج: بنود مرتّبة بتكلفة تقديرية، وإنجاز البند ينشئ جلسة تلقائيًا */

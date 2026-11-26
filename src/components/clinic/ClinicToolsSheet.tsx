@@ -3,13 +3,14 @@ import { ToolsSheet, type Tool } from "@/components/ui/ToolsSheet";
 import { useSettings } from "@/store/useSettings";
 
 export const CLINIC_TOOLS: Tool[] = [
-  { id: "followups", label: "المتابعة والاستدعاء", icon: "logo-whatsapp", path: "/clinic/followups" },
+  { id: "today", label: "اليوم في العيادة", icon: "today", path: "/clinic/today" },
+  { id: "followups", label: "المتابعة الدورية والاستدعاء", icon: "logo-whatsapp", path: "/clinic/followups" },
   { id: "drugs", label: "دليل الأدوية", icon: "medkit", path: "/clinic/drugs" },
   { id: "expenses", label: "المصاريف", icon: "wallet", path: "/clinic/expenses" },
   { id: "reports", label: "التقارير", icon: "stats-chart", path: "/clinic/reports" },
   { id: "inventory", label: "المخزون", icon: "cube", path: "/clinic/inventory" },
   { id: "prices", label: "قائمة الأسعار", icon: "pricetags", path: "/clinic/prices" },
-  { id: "waitlist", label: "قائمة الانتظار", icon: "hourglass", path: "/clinic/waitlist" },
+  { id: "waitlist", label: "يحتاجون موعدًا", icon: "hourglass", path: "/clinic/waitlist" },
   { id: "sterilization", label: "سجل التعقيم", icon: "flask", path: "/clinic/sterilization" },
   { id: "installments", label: "الأقساط", icon: "calendar", path: "/clinic/installments" },
   { id: "invoices", label: "الفواتير", icon: "receipt", path: "/clinic/invoices" },

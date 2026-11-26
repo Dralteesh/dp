@@ -160,11 +160,14 @@ export function implantFollowUps(surgeryISO: string): { date: string; procedure:
 /** آخر جلسة/موعد منجز لزرع (تاريخ الجراحة) */
 export function lastImplantSurgery(sessions: ClinicSession[], patientId: string): string | undefined {
   const d = sessions
-    .filter((s) => s.patientId === patientId && RX.implant.test(s.procedure))
+    // الجراحة فقط: مراحل ما بعدها (طبعة/اندماج/تركيب/متابعة) لا تُعدّ تاريخ جراحة جديدًا
+    .filter((s) => s.patientId === patientId && RX.implant.test(s.procedure) && !IMPLANT_NON_SURGERY.test(s.procedure))
     .map((s) => s.date)
     .sort();
   return d[d.length - 1];
 }
+
+const IMPLANT_NON_SURGERY = /تركيب|طبعة|اندماج|متابعة|مراجعة|كشف|تاج|دعامة/;
 
 /** هل أُنشئت مواعيد المتابعة لهذه الجراحة؟ (علامة في ملاحظات الموعد لمنع التكرار) */
 export const implantTag = (surgeryISO: string) => `[auto:implant:${surgeryISO}]`;

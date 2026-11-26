@@ -12,6 +12,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { DictateField } from "@/components/DictateField";
 import { MedicalAlertBar, WarningLines } from "@/components/clinic/MedicalAlertBar";
 import { useEndoPlanPrompt } from "@/components/clinic/PlanWizard";
+import { ApptTeethSection } from "@/components/clinic/ApptTeethSection";
+import { ApptTypeSettings } from "@/components/clinic/ApptTypeSettings";
+import { PatientStatusHeader } from "@/components/clinic/PatientStatusHeader";
+import { usePatientTypes } from "@/hooks/usePatientTypes";
+import { findOpenFor, isPlanProcedure, itemTeeth, itemsForTeeth, openItems, priceForProcedure, type OpenItem } from "@/lib/clinicLink";
+import { hasOpenEndoPlan } from "@/lib/planWizard";
+import { isEndoProcedure } from "@/lib/patientType";
 import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
@@ -19,14 +26,13 @@ import { Text } from "@/components/ui/Text";
 import { DURATIONS, STATUS_META } from "@/constants/clinic";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { describeClash, findClashes } from "@/lib/conflicts";
-import { priceInBase } from "@/lib/currency";
 import { patientFlags, procedureWarnings } from "@/lib/alerts";
 import { fmtTime, minutesToTime, toMinutes } from "@/lib/dates";
 import { initial } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
 import { useSettings } from "@/store/useSettings";
-import type { AppointmentStatus } from "@/types";
+import type { ApptExtra, AppointmentStatus } from "@/types";
 import { useProcedures } from "@/hooks/useProcedures";
 
 
@@ -41,10 +47,15 @@ export default function AppointmentFormScreen() {
     procedure?: string;
     startTime?: string;
     waitId?: string;
+    /** معرّفات بنود الخطة مفصولة بفواصل (من «يحتاجون موعدًا» أو شاشة الخطة) */
+    planItemIds?: string;
+    /** أسنان مفصولة بفواصل */
+    teeth?: string;
   }>();
 
   const patients = useClinic((s) => s.patients);
   const appointments = useClinic((s) => s.appointments);
+  const plans = useClinic((s) => s.plans);
   const addAppointment = useClinic((s) => s.addAppointment);
   const updateAppointment = useClinic((s) => s.updateAppointment);
   const removeAppointment = useClinic((s) => s.removeAppointment);
@@ -66,6 +77,9 @@ export default function AppointmentFormScreen() {
   const [status, setStatus] = useState<AppointmentStatus>(existing?.status ?? "scheduled");
   const [pickOpen, setPickOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [teeth, setTeeth] = useState<string[]>(existing?.teeth ?? (params.teeth ? params.teeth.split(",").filter(Boolean) : []));
+  const [linked, setLinked] = useState<string[]>(existing?.planItemIds ?? (params.planItemIds ? params.planItemIds.split(",").filter(Boolean) : []));
+  const [extra, setExtra] = useState<ApptExtra>(existing?.extra ?? {});
 
   const patient = patients.find((p) => p.id === patientId);
   const list = useMemo(
@@ -80,35 +94,110 @@ export default function AppointmentFormScreen() {
   const findConflicts = () => (!date || !startTime ? [] : findClashes(date, startTime, duration, agendaInput, { appointmentId: existing?.id }));
 
   const doSave = () => {
+    const proc = procOf();
+    const st = useClinic.getState();
+    const done = !!existing && (existing.status === "done" || !!existing.visitDone);
+    const changed = !existing || existing.procedure !== proc || (existing.teeth ?? []).join() !== teeth.join();
+    const wizardNeeded = isEndoProcedure(proc) && !hasOpenEndoPlan(st.plans, patientId!, isEndoProcedure);
+
+    // 1) بنود الخطة: ما اختاره المستخدم + بند لكل سن محدد لا بند مفتوحًا له (السعر من قائمة الأسعار)
+    const ids = new Set(linked);
+    if (!done && changed && isPlanProcedure(proc) && !wizardNeeded) {
+      const fresh = openItems(st.plans, patientId!);
+      const toCreate: ReturnType<typeof itemsForTeeth> = [];
+      for (const t of teeth) {
+        const ex = findOpenFor(fresh, proc, t);
+        if (ex) ids.add(ex.item.id);
+        else if (!linked.some((id) => fresh.some((o) => o.item.id === id && itemTeeth(o.item).includes(t)))) toCreate.push(...itemsForTeeth(proc, [t], priceList, usdRate));
+      }
+      if (!teeth.length && ids.size === 0 && !existing && !st.plans.some((p) => p.patientId === patientId) && !/كشف|استشار|مراجعة|متابعة|فحص/.test(proc)) {
+        toCreate.push(...itemsForTeeth(proc, [], priceList, usdRate));
+      }
+      if (toCreate.length) for (const id of st.addPlanItems(patientId!, toCreate)) ids.add(id);
+    }
+
     const payload = {
       patientId: patientId!,
       date: date!,
       startTime: startTime!,
       durationMin: duration,
-      procedure: procedure.trim() || "كشف واستشارة",
+      procedure: proc,
       notes: notes.trim() || undefined,
+      planItemIds: ids.size ? [...ids] : undefined,
+      teeth: teeth.length ? teeth : undefined,
+      extra: Object.keys(extra).length ? extra : undefined,
     };
-    if (existing) updateAppointment(existing.id, { ...payload, status });
-    else {
-      addAppointment(payload);
+    let apptId: string;
+    if (existing) {
+      updateAppointment(existing.id, { ...payload, status });
+      apptId = existing.id;
+    } else {
+      apptId = addAppointment(payload);
       // حُجز من قائمة الانتظار: يُعلَّم محجوزًا الآن فقط (بعد حفظ الموعد فعلًا)
       if (params.waitId) setWaitStatus(params.waitId, "booked");
     }
-    // معالجة لبية بلا خطة مفتوحة: معالج الأسئلة يبني الخطة، ثم نرجع
-    const procChanged = !existing || existing.procedure !== payload.procedure;
-    if (procChanged && endoPrompt.check(payload.patientId, payload.procedure, undefined, () => router.back())) return;
-    if (!existing) ensureBasicPlan(payload.patientId, payload.procedure);
+    // معالجة لبية بلا خطة مفتوحة: معالج الأسئلة يبني الخطة، ثم نربط الموعد بها ونرجع
+    if (changed && endoPrompt.check(payload.patientId, proc, teeth[0], () => { linkEndoAfterWizard(apptId, payload.patientId); router.back(); })) return;
     router.back();
   };
 
-  /** لكل مريض خطة علاج: إن لم تكن له أي خطة يُنشأ بند واحد بإجراء الموعد وسعره من قائمة الأسعار (عدا الكشوفات) */
-  const ensureBasicPlan = (pid: string, proc: string) => {
+  const { detected, types } = usePatientTypes(patientId);
+  const opens = useMemo(() => (patientId ? openItems(plans, patientId) : []), [plans, patientId]);
+  const procOf = () => procedure.trim() || "كشف واستشارة";
+
+  const toggleTooth = (t: string) => setTeeth((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+  const toggleItem = (o: OpenItem) => {
+    if (linked.includes(o.item.id)) {
+      setLinked(linked.filter((x) => x !== o.item.id));
+      return;
+    }
+    setLinked([...linked, o.item.id]);
+    const tt = itemTeeth(o.item);
+    setTeeth((cur) => [...cur, ...tt.filter((t) => !cur.includes(t))]);
+    if (!linked.length) {
+      setProcedure(o.item.procedure);
+      const def = procedures.find((p) => p.name === o.item.procedure);
+      if (def) setDuration(def.minutes);
+    }
+  };
+
+  /** بنود ستُنشأ في الخطة عند الحفظ (سنّ لكل بند) — تُعرض كمعاينة ولا تتكرر إن وُجد بند مفتوح مطابق */
+  const willCreate = useMemo(() => {
+    const proc = procOf();
+    if (!patientId || !isPlanProcedure(proc) || !teeth.length) return [];
+    if (isEndoProcedure(proc) && !hasOpenEndoPlan(plans, patientId, isEndoProcedure)) return [];
+    const linkedTeeth = new Set(linked.flatMap((id) => opens.filter((o) => o.item.id === id).flatMap((o) => itemTeeth(o.item))));
+    return teeth.filter((t) => !linkedTeeth.has(t) && !findOpenFor(opens, proc, t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId, procedure, teeth, linked, opens, plans]);
+  const unitCost = priceForProcedure(procOf(), priceList, usdRate);
+
+  /** يربط الموعد بعد معالج العصب ببند العصب المفتوح الناتج عنه */
+  const linkEndoAfterWizard = (apptId: string, pid: string) => {
     const st = useClinic.getState();
-    if (st.plans.some((p) => p.patientId === pid)) return;
-    if (/كشف|استشار|مراجعة|متابعة|فحص/.test(proc)) return;
-    const item = priceList.find((p) => p.active && (p.name === proc || proc.includes(p.name) || p.name.includes(proc)));
-    const cost = item ? priceInBase(item, usdRate) ?? 0 : 0;
-    st.addPlan(pid, "خطة علاج", [{ procedure: proc, cost }]);
+    const cand = openItems(st.plans, pid).filter((o) => isEndoProcedure(o.item.procedure));
+    const pick = cand.find((o) => itemTeeth(o.item).some((t) => teeth.includes(t))) ?? cand[0];
+    if (pick) st.updateAppointment(apptId, { planItemIds: [pick.item.id], teeth: teeth.length ? teeth : itemTeeth(pick.item) });
+  };
+
+  /** تحذيرات قبل التثبيت: تعارض وقت، وتركيب تاج قبل وصول طلب المخبر */
+  const warnings = (): { title: string; msg: string; ok: string }[] => {
+    const out: { title: string; msg: string; ok: string }[] = [];
+    const c = findConflicts();
+    if (c.length) out.push({ title: "تعارض في الوقت", msg: c.slice(0, 3).map((x) => `• ${describeClash(x)}`).join("\n"), ok: "حجز رغم التعارض" });
+    const proc = procOf();
+    const fitting = /تركيب/.test(proc) && /تاج|جسر|تلبيس|تيجان/.test(proc);
+    if (fitting && patientId) {
+      const labs = useExtras.getState().labOrders.filter((l) => l.patientId === patientId && l.status !== "fitted");
+      if (!labs.some((l) => l.status === "received")) {
+        out.push({
+          title: "المخبر",
+          msg: labs.length ? "طلب المخبر لم يصل بعد، ولا يُنصح بحجز التركيب قبل وصوله." : "لا يوجد طلب مخبر لهذا المريض. هل أرسلت العمل للمخبر؟",
+          ok: "حجز رغم ذلك",
+        });
+      }
+    }
+    return out;
   };
 
   const save = () => {
@@ -120,15 +209,16 @@ export default function AppointmentFormScreen() {
       Alert.alert("حدّد التاريخ والوقت", "لتثبيت الموعد يلزم اختيار اليوم والوقت. يمكنك بدلًا من ذلك حفظ المريض في قائمة الانتظار.");
       return;
     }
-    const c = findConflicts();
-    if (c.length) {
-      Alert.alert("تعارض في الوقت", `${c.slice(0, 3).map((x) => `• ${describeClash(x)}`).join("\n")}\n\nهل تريد الحجز رغم ذلك؟`, [
-        { text: "تعديل الوقت", style: "cancel" },
-        { text: "حجز رغم التعارض", onPress: doSave },
+    const list = warnings();
+    const step = (i: number) => {
+      if (i >= list.length) return doSave();
+      const w = list[i];
+      Alert.alert(w.title, `${w.msg}\n\nهل تريد المتابعة؟`, [
+        { text: "تعديل", style: "cancel" },
+        { text: w.ok, onPress: () => step(i + 1) },
       ]);
-      return;
-    }
-    doSave();
+    };
+    step(0);
   };
 
   /** يضع المريض في قائمة الانتظار: اليوم والوقت اختياريان هنا */
@@ -186,6 +276,39 @@ export default function AppointmentFormScreen() {
         {patient ? <MedicalAlertBar patient={patient} /> : null}
         <WarningLines lines={patient ? procedureWarnings(patientFlags(patient), procedure) : []} />
       </Card>
+
+      {patient ? <PatientStatusHeader patientId={patient.id} /> : null}
+
+      {patient ? (
+        <ApptTypeSettings
+          patient={patient}
+          types={types}
+          detected={detected}
+          extra={extra}
+          onExtra={(patch) => setExtra((cur) => ({ ...cur, ...patch }))}
+          onProcedure={(name, minutes) => {
+            setProcedure(name);
+            if (minutes) setDuration(minutes);
+          }}
+          teeth={teeth}
+        />
+      ) : null}
+
+      {patient ? <ApptTeethSection patient={patient} teeth={teeth} onToggleTooth={toggleTooth} opens={opens} linked={linked} onToggleItem={toggleItem} /> : null}
+
+      {willCreate.length ? (
+        <Card className="mt-3">
+          <Text w="semi" className="mb-1">
+            سيُضاف لخطة العلاج عند الحفظ
+          </Text>
+          {willCreate.map((t) => (
+            <Text key={t} className="text-sm text-muted">
+              + {procOf()} • سن {t}
+              {unitCost ? ` • ${unitCost}` : ""}
+            </Text>
+          ))}
+        </Card>
+      ) : null}
 
       <Card className="mt-3">
         <DateField label={existing ? "التاريخ" : "التاريخ (يلزم عند التثبيت)"} value={date} onChange={(v) => v && setDate(v)} placeholder="اختر التاريخ" />
