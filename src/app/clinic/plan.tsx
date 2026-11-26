@@ -3,6 +3,7 @@ import { Alert, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DateField } from "@/components/pickers";
+import { PlanWizard } from "@/components/clinic/PlanWizard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -37,6 +38,7 @@ export default function PlanScreen() {
   const undoPlanItem = useClinic((s) => s.undoPlanItem);
 
   const [newOpen, setNewOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [title, setTitle] = useState("");
 
   const [itemFor, setItemFor] = useState<string | null>(null);
@@ -77,6 +79,8 @@ export default function PlanScreen() {
   return (
     <Screen title="خطط العلاج" subtitle={patient.name} back>
       <Button label="خطة جديدة" icon="add" type="private" onPress={() => { setTitle(""); setNewOpen(true); }} />
+      <View className="h-2" />
+      <Button label="خطة معالجة لبية بالأسئلة" icon="pulse-outline" variant="soft" type="private" onPress={() => setWizardOpen(true)} />
 
       <View className="mt-3">
         {plans.length === 0 ? (
@@ -208,6 +212,7 @@ export default function PlanScreen() {
           }}
         />
       </Sheet>
+      <PlanWizard visible={wizardOpen} patientId={patient.id} onClose={() => setWizardOpen(false)} />
     </Screen>
   );
 }

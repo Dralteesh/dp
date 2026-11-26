@@ -4,6 +4,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { ProcedureGlyph } from "@/components/clinic/ProcedureIcon";
+import { ImageTools } from "@/components/clinic/ProcedureImageSheet";
 import { Button } from "@/components/ui/Button";
 import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
@@ -14,7 +15,6 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import { useProcedures } from "@/hooks/useProcedures";
 import { useTheme } from "@/hooks/useTheme";
 import { uid } from "@/lib/id";
-import { pickLogo } from "@/lib/logo";
 import { useSettings } from "@/store/useSettings";
 import type { ProcedureDef, ProcedureIcon } from "@/types";
 
@@ -160,15 +160,6 @@ export default function ProceduresScreen() {
     setForm(null);
   };
 
-  const pickImage = async () => {
-    try {
-      const uri = await pickLogo();
-      if (uri) setForm((f) => (f ? { ...f, icon: { kind: "image", uri } } : f));
-    } catch {
-      Alert.alert("تعذّر فتح المعرض", "تحقق من إذن الصور.");
-    }
-  };
-
   const Tab = ({ id, label }: { id: typeof tab; label: string }) => (
     <Pressable
       onPress={() => setTab(id)}
@@ -263,7 +254,7 @@ export default function ProceduresScreen() {
                 </View>
               ) : null}
               {tab === "image" ? (
-                <Button label="اختيار صورة من المعرض" icon="image-outline" variant="ghost" onPress={pickImage} />
+                <ImageTools icon={form.icon} procedureId={form.id} onChange={(icon) => setForm({ ...form, icon })} />
               ) : null}
             </FieldRow>
             <Button label="حفظ" icon="checkmark" type="private" onPress={submit} />

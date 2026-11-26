@@ -1,5 +1,5 @@
 import { agendaFor, type AgendaInput, type AgendaItem } from "@/lib/agenda";
-import { addDays, fmtTime, toMinutes, weekdayOf } from "@/lib/dates";
+import { addDays, endDayWord, fmtTime, spanDaysOf, toMinutes, weekdayOf } from "@/lib/dates";
 import type { PlannerEvent } from "@/types";
 
 export type Clash = { date: string; item: AgendaItem };
@@ -44,7 +44,7 @@ export function findClashes(
   return out.sort((a, b) => (a.date + a.item.startTime < b.date + b.item.startTime ? -1 : 1));
 }
 
-type EventShape = Pick<PlannerEvent, "date" | "startTime" | "endTime" | "endsNextDay" | "repeat" | "weekdays" | "repeatUntil">;
+type EventShape = Pick<PlannerEvent, "date" | "startTime" | "endTime" | "endsNextDay" | "extraDays" | "repeat" | "weekdays" | "repeatUntil">;
 
 /** التواريخ التي سيقع فيها الحدث (حتى أفق محدد للتكرار الأسبوعي) */
 export function eventDates(ev: EventShape, horizonDays = 60): string[] {
@@ -61,13 +61,14 @@ export function eventDates(ev: EventShape, horizonDays = 60): string[] {
 /** تعارضات حدث جديد/معدّل مع المواعيد والأحداث الأخرى */
 export function eventClashes(ev: EventShape, input: AgendaInput, ignoreEventId?: string, horizonDays = 60): Clash[] {
   const s = toMinutes(ev.startTime);
-  const e = ev.endsNextDay ? 1440 : Math.max(toMinutes(ev.endTime), s + 1);
+  const span = spanDaysOf(ev);
+  const e = span >= 1 ? 1440 : Math.max(toMinutes(ev.endTime), s + 1);
   const out: Clash[] = [];
   for (const d of eventDates(ev, horizonDays)) {
     out.push(...clashesInDay(d, [s, e], input, { eventId: ignoreEventId }));
-    if (ev.endsNextDay) {
-      const e2 = toMinutes(ev.endTime);
-      if (e2 > 0) out.push(...clashesInDay(addDays(d, 1), [0, e2], input, { eventId: ignoreEventId }));
+    for (let k = 1; k <= span; k++) {
+      const end = k === span ? toMinutes(ev.endTime) : 1440;
+      if (end > 0) out.push(...clashesInDay(addDays(d, k), [0, end], input, { eventId: ignoreEventId }));
     }
   }
   // إزالة التكرار (نفس العنصر قد يظهر من يومين)
@@ -79,7 +80,7 @@ export function eventClashes(ev: EventShape, input: AgendaInput, ignoreEventId?:
 export function describeClash(c: Clash): string {
   const it = c.item;
   const who = it.source === "appointment" ? `موعد ${it.title}` : it.title;
-  const end = it.endsNextDay ? "اليوم التالي" : fmtTime(it.endTime);
+  const end = it.endsNextDay ? `${endDayWord(it.extraDays ?? 1)} ${fmtTime(it.endTime)}` : fmtTime(it.endTime);
   return `${who} ${fmtTime(it.startTime)} – ${end}`;
 }
 

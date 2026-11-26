@@ -6,7 +6,7 @@ import { STATUS_META } from "@/constants/clinic";
 import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { TYPE_META } from "@/constants/shiftTypes";
 import type { AgendaItem } from "@/lib/agenda";
-import { fmtTime } from "@/lib/dates";
+import { endDayWord, fmtTime } from "@/lib/dates";
 import type { AppointmentStatus } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -31,7 +31,7 @@ export function AgendaRow({ item, onPress, live }: Props) {
           {fmtTime(item.startTime)}
         </Text>
         <Text className="text-xs text-muted">
-          {item.endsNextDay ? "الغد " : ""}
+          {item.endsNextDay ? `${endDayWord(item.extraDays ?? 1)} ` : ""}
           {fmtTime(item.endTime)}
         </Text>
       </View>

@@ -44,6 +44,11 @@ const RX: Record<Exclude<PatientTypeKey, "pedo">, RegExp> = {
   endo: /عصب|لبية|لبيّة|قناة|قنوات|rct|endo/i,
 };
 
+/** هل اسم الإجراء معالجة لبية/عصب؟ */
+export function isEndoProcedure(name: string | undefined): boolean {
+  return !!name && RX.endo.test(name);
+}
+
 export type DetectInput = {
   patient: Patient;
   plans: TreatmentPlan[];

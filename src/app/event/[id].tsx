@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Switch, View } from "react-native";
+import { Alert, Pressable, Switch, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { DateField, TimeField } from "@/components/pickers";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +12,8 @@ import { DAYS, WEEK_ORDER } from "@/constants/arabic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { eventClashes, summarizeClashes } from "@/lib/conflicts";
-import { todayISO, weekdayOf } from "@/lib/dates";
+import { addDays, fmtDateFull, spanDaysOf, todayISO, weekdayOf } from "@/lib/dates";
+import { eventHours } from "@/lib/shiftPatterns";
 import { usePlanner } from "@/store/usePlanner";
 import { useSettings } from "@/store/useSettings";
 import type { PlannerEvent, ShiftType } from "@/types";
@@ -60,7 +61,8 @@ export default function EventFormScreen() {
   const [date, setDate] = useState<string>(initialDate);
   const [startTime, setStartTime] = useState(existing?.startTime ?? d0.start);
   const [endTime, setEndTime] = useState(existing?.endTime ?? d0.end);
-  const [endsNextDay, setEndsNextDay] = useState(existing?.endsNextDay ?? d0.endsNextDay);
+  const [extraDays, setExtraDays] = useState<number>(existing ? spanDaysOf(existing) : d0.endsNextDay ? 1 : 0);
+  const endsNextDay = extraDays > 0;
   const [location, setLocation] = useState(existing?.location ?? TYPE_META[initialType].place);
   const [locTouched, setLocTouched] = useState(!!existing);
   const [notes, setNotes] = useState(existing?.notes ?? "");
@@ -81,7 +83,7 @@ export default function EventFormScreen() {
       const d = TYPE_META[t].defaults;
       setStartTime(d.start);
       setEndTime(d.end);
-      setEndsNextDay(d.endsNextDay);
+      setExtraDays(d.endsNextDay ? 1 : 0);
       if (!titleTouched) setTitle(TYPE_META[t].defaultTitle);
       // منبّه إجباري افتراضي حسب إعدادات مكان العمل (المناوبة: قبل ساعة)
       setAlarm(d.alarmMinutes);
@@ -109,6 +111,7 @@ export default function EventFormScreen() {
       startTime,
       endTime,
       endsNextDay,
+      extraDays: extraDays > 0 ? extraDays : undefined,
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
       repeat,
@@ -193,16 +196,49 @@ export default function EventFormScreen() {
         </View>
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
-            <Text w="semi">ينتهي في اليوم التالي</Text>
-            <Text className="text-xs text-muted">لمناوبات 24 ساعة (من 8 صباحًا إلى 8 صباحًا)</Text>
+            <Text w="semi">تنتهي في يوم آخر</Text>
+            <Text className="text-xs text-muted">لمناوبات 24 ساعة أو 48 ساعة أو أكثر</Text>
           </View>
           <Switch
             value={endsNextDay}
-            onValueChange={setEndsNextDay}
+            onValueChange={(v) => setExtraDays(v ? 1 : 0)}
             trackColor={{ true: meta.hex, false: "#CBD5E1" }}
             thumbColor="#FFFFFF"
           />
         </View>
+        {endsNextDay ? (
+          <View>
+            <View className="flex-row items-center justify-between">
+              <Text w="semi">تنتهي بعد</Text>
+              <View className="flex-row items-center gap-3">
+                <Pressable
+                  onPress={() => setExtraDays((n) => Math.max(1, n - 1))}
+                  hitSlop={8}
+                  className="w-9 h-9 rounded-full items-center justify-center"
+                  style={{ backgroundColor: "#F1F5F9" }}
+                  accessibilityLabel="يوم أقل"
+                >
+                  <Text w="bold" className="text-lg">−</Text>
+                </Pressable>
+                <Text w="bold" className="text-lg" style={{ minWidth: 70, textAlign: "center" }}>
+                  {extraDays === 1 ? "يوم" : extraDays === 2 ? "يومين" : `${extraDays} أيام`}
+                </Text>
+                <Pressable
+                  onPress={() => setExtraDays((n) => Math.min(30, n + 1))}
+                  hitSlop={8}
+                  className="w-9 h-9 rounded-full items-center justify-center"
+                  style={{ backgroundColor: meta.hex }}
+                  accessibilityLabel="يوم أكثر"
+                >
+                  <Text w="bold" className="text-lg" style={{ color: "#FFFFFF" }}>+</Text>
+                </Pressable>
+              </View>
+            </View>
+            <Text className="text-xs text-muted mt-1">
+              تنتهي {fmtDateFull(addDays(date, extraDays))} الساعة {endTime} • المدة {Math.round(eventHours({ startTime, endTime, endsNextDay, extraDays }))} ساعة
+            </Text>
+          </View>
+        ) : null}
       </Card>
 
       <Card className="mt-3">

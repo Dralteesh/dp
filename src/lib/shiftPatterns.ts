@@ -1,4 +1,4 @@
-import { addDays, fromISO, pad, toMinutes } from "@/lib/dates";
+import { addDays, fromISO, pad, spanDaysOf, toMinutes } from "@/lib/dates";
 import { uid } from "@/lib/id";
 import type { PlannerEvent } from "@/types";
 
@@ -74,10 +74,12 @@ export function listSeries(events: PlannerEvent[]): SeriesInfo[] {
 }
 
 /** مدة حدث بالساعات (تدعم الانتهاء في اليوم التالي) */
-export function eventHours(e: Pick<PlannerEvent, "startTime" | "endTime" | "endsNextDay">): number {
+export function eventHours(e: Pick<PlannerEvent, "startTime" | "endTime" | "endsNextDay" | "extraDays">): number {
   const s = toMinutes(e.startTime);
   let m = toMinutes(e.endTime) - s;
-  if (e.endsNextDay || m <= 0) m += 1440;
+  const span = spanDaysOf(e);
+  if (span > 0) m += 1440 * span;
+  else if (m <= 0) m += 1440;
   return Math.round((m / 60) * 100) / 100;
 }
 

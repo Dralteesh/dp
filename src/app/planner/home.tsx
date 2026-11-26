@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
 import { PCard, ProcAvatar, PlannerShell, SectionTitle, StatusPill } from "@/components/planner/kit";
+import { WaitlistBanner } from "@/components/planner/WaitlistBanner";
 import { Text } from "@/components/ui/Text";
 import { TREATMENT_ICONS } from "@/constants/icons";
 import { PL } from "@/design/planner";
@@ -146,6 +147,7 @@ export default function PlannerHome() {
       </View>
 
       <SectionTitle title="جدول اليوم" action="عرض الكل" onAction={() => router.push("/planner/schedule" as never)} />
+      <WaitlistBanner day={today} />
       {todays.length === 0 ? (
         <PCard style={{ alignItems: "center", paddingVertical: 24 }}>
           <Image source={TREATMENT_ICONS.exam} style={{ width: 56, height: 56 }} resizeMode="contain" />

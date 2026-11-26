@@ -112,3 +112,17 @@ export function fmtCountdown(ms: number): string {
   const sec = s % 60;
   return `${pad(h)}:${pad(m)}:${pad(sec)}`;
 }
+
+/** عدد الأيام التي تمتد إليها المناوبة بعد يوم البدء (0 = نفس اليوم، 1 = الغد، 2 = بعد غد ...) */
+export function spanDaysOf(e: { endsNextDay: boolean; extraDays?: number }): number {
+  if (typeof e.extraDays === "number" && e.extraDays >= 0) return Math.min(30, Math.floor(e.extraDays));
+  return e.endsNextDay ? 1 : 0;
+}
+
+/** كلمة يوم الانتهاء نسبةً ليوم العرض: «الغد» / «بعد غد» / «بعد 3 أيام» */
+export function endDayWord(days: number): string {
+  if (days <= 0) return "";
+  if (days === 1) return "الغد";
+  if (days === 2) return "بعد غد";
+  return `بعد ${days} أيام`;
+}

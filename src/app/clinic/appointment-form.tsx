@@ -11,6 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DictateField } from "@/components/DictateField";
 import { MedicalAlertBar, WarningLines } from "@/components/clinic/MedicalAlertBar";
+import { useEndoPlanPrompt } from "@/components/clinic/PlanWizard";
 import { Field, FieldRow } from "@/components/ui/Field";
 import { Screen } from "@/components/ui/Screen";
 import { Sheet } from "@/components/ui/Sheet";
@@ -18,11 +19,13 @@ import { Text } from "@/components/ui/Text";
 import { DURATIONS, STATUS_META } from "@/constants/clinic";
 import { useAgendaInput } from "@/hooks/useAgenda";
 import { describeClash, findClashes } from "@/lib/conflicts";
+import { priceInBase } from "@/lib/currency";
 import { patientFlags, procedureWarnings } from "@/lib/alerts";
 import { fmtTime, minutesToTime, toMinutes } from "@/lib/dates";
 import { initial } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
+import { useSettings } from "@/store/useSettings";
 import type { AppointmentStatus } from "@/types";
 import { useProcedures } from "@/hooks/useProcedures";
 
@@ -46,6 +49,9 @@ export default function AppointmentFormScreen() {
   const updateAppointment = useClinic((s) => s.updateAppointment);
   const removeAppointment = useClinic((s) => s.removeAppointment);
   const addWait = useExtras((s) => s.addWait);
+  const priceList = useExtras((s) => s.priceList);
+  const usdRate = useSettings((s) => s.usdRate);
+  const endoPrompt = useEndoPlanPrompt();
   const setWaitStatus = useExtras((s) => s.setWaitStatus);
 
   const existing = params.id ? appointments.find((a) => a.id === params.id) : undefined;
@@ -88,7 +94,21 @@ export default function AppointmentFormScreen() {
       // حُجز من قائمة الانتظار: يُعلَّم محجوزًا الآن فقط (بعد حفظ الموعد فعلًا)
       if (params.waitId) setWaitStatus(params.waitId, "booked");
     }
+    // معالجة لبية بلا خطة مفتوحة: معالج الأسئلة يبني الخطة، ثم نرجع
+    const procChanged = !existing || existing.procedure !== payload.procedure;
+    if (procChanged && endoPrompt.check(payload.patientId, payload.procedure, undefined, () => router.back())) return;
+    if (!existing) ensureBasicPlan(payload.patientId, payload.procedure);
     router.back();
+  };
+
+  /** لكل مريض خطة علاج: إن لم تكن له أي خطة يُنشأ بند واحد بإجراء الموعد وسعره من قائمة الأسعار (عدا الكشوفات) */
+  const ensureBasicPlan = (pid: string, proc: string) => {
+    const st = useClinic.getState();
+    if (st.plans.some((p) => p.patientId === pid)) return;
+    if (/كشف|استشار|مراجعة|متابعة|فحص/.test(proc)) return;
+    const item = priceList.find((p) => p.active && (p.name === proc || proc.includes(p.name) || p.name.includes(proc)));
+    const cost = item ? priceInBase(item, usdRate) ?? 0 : 0;
+    st.addPlan(pid, "خطة علاج", [{ procedure: proc, cost }]);
   };
 
   const save = () => {
@@ -253,6 +273,7 @@ export default function AppointmentFormScreen() {
           ))
         )}
       </Sheet>
+      {endoPrompt.node}
     </Screen>
   );
 }

@@ -7,7 +7,7 @@ import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
 import type { AgendaItem } from "@/lib/agenda";
-import { fmtTime, toMinutes } from "@/lib/dates";
+import { endDayWord, fmtTime, toMinutes } from "@/lib/dates";
 import type { AppointmentStatus } from "@/types";
 
 type Props = {
@@ -54,7 +54,7 @@ export function TimelineCard({ item, live, past, remainingMin, onPress }: Props)
         <View className="flex-row items-center gap-1 mt-1">
           <Ionicons name="time-outline" size={13} color={m.inkHex} />
           <Text className="text-xs" style={{ color: m.inkHex, fontVariant: ["tabular-nums"] }}>
-            {fmtTime(item.startTime)} - {item.endsNextDay ? "الغد " : ""}
+            {fmtTime(item.startTime)} - {item.endsNextDay ? `${endDayWord(item.extraDays ?? 1)} ` : ""}
             {fmtTime(item.endTime)}
           </Text>
           {live && remainingMin != null ? (
@@ -87,6 +87,6 @@ export function TimelineCard({ item, live, past, remainingMin, onPress }: Props)
 /** دقائق متبقية على نهاية عنصر جارٍ اليوم */
 export function remainingMinutes(item: AgendaItem, nowMin: number): number {
   const e = toMinutes(item.endTime);
-  const end = item.endsNextDay && !item.continuation ? 24 * 60 + e : e;
+  const end = item.endsNextDay ? (item.extraDays ?? 1) * 24 * 60 + e : e;
   return Math.max(0, end - nowMin);
 }

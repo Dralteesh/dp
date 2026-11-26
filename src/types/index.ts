@@ -36,6 +36,8 @@ export type PlannerEvent = {
   endTime: string;
   /** تنتهي في اليوم التالي (مناوبة 24 ساعة مثلًا) */
   endsNextDay: boolean;
+  /** عدد الأيام بعد يوم البداية الذي تنتهي فيه (مناوبة 48 ساعة فأكثر). فارغ = endsNextDay ? 1 : 0 */
+  extraDays?: number;
   location?: string;
   notes?: string;
   repeat: "none" | "weekly";

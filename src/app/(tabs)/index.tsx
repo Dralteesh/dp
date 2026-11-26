@@ -82,8 +82,8 @@ export default function HomeScreen() {
     if (!isToday) return { live: false, past: selected < today };
     const s = toMinutes(it.startTime);
     const e = toMinutes(it.endTime);
-    if (it.continuation) return { live: nowMin < e, past: nowMin >= e };
-    if (it.endsNextDay) return { live: nowMin >= s, past: false };
+    if (it.continuation && !it.endsNextDay) return { live: nowMin < e, past: nowMin >= e };
+    if (it.endsNextDay) return { live: it.continuation ? true : nowMin >= s, past: false };
     return { live: nowMin >= s && nowMin < e, past: nowMin >= e };
   };
 

@@ -3,6 +3,7 @@ import { Linking, Pressable, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ProcedureGlyph } from "@/components/clinic/ProcedureIcon";
+import { ProcedureImageSheet } from "@/components/clinic/ProcedureImageSheet";
 import { PCard, PlannerShell, SectionTitle } from "@/components/planner/kit";
 import { Text } from "@/components/ui/Text";
 import { PL } from "@/design/planner";
@@ -12,6 +13,7 @@ import { recallCandidates } from "@/lib/followups";
 import { whatsappLink } from "@/lib/phone";
 import { useClinic } from "@/store/useClinic";
 import { usePlanner } from "@/store/usePlanner";
+import type { ProcedureDef } from "@/types";
 
 /** العلاجات والتذكيرات (الواجهة الجديدة) */
 export default function PlannerTreatments() {
@@ -25,6 +27,7 @@ export default function PlannerTreatments() {
   const tasks = usePlanner((s) => s.tasks);
   const toggleTask = usePlanner((s) => s.toggleTask);
   const [q, setQ] = useState("");
+  const [imgFor, setImgFor] = useState<ProcedureDef | null>(null);
 
   const shown = useMemo(() => {
     const t = q.trim();
@@ -36,7 +39,20 @@ export default function PlannerTreatments() {
   const book = (procedure: string) => router.push({ pathname: "/clinic/appointment-form", params: { procedure } } as never);
 
   return (
-    <PlannerShell title="العلاجات" maxWidth={1000}>
+    <PlannerShell
+      title="العلاجات"
+      maxWidth={1000}
+      right={
+        <Pressable
+          onPress={() => router.push("/clinic/procedures" as never)}
+          hitSlop={8}
+          accessibilityLabel="تعديل الإجراءات"
+          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+        >
+          <Ionicons name="create-outline" size={24} color={PL.navy} />
+        </Pressable>
+      }
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: PL.card, borderRadius: 999, paddingHorizontal: 14, borderWidth: 1, borderColor: PL.border }}>
         <Ionicons name="search" size={18} color={PL.muted} />
         <TextInput
@@ -48,11 +64,14 @@ export default function PlannerTreatments() {
         />
       </View>
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
+      <Text style={{ fontSize: 11.5, color: PL.muted, textAlign: "center", marginTop: 8 }}>اضغط مطوّلًا على إجراء لتعديل صورته</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 }}>
         {shown.map((p) => (
           <Pressable
             key={p.id}
             onPress={() => book(p.name)}
+            onLongPress={() => setImgFor(p)}
+            delayLongPress={350}
             style={{ width: isWide ? "18%" : "31.5%", aspectRatio: 1, borderRadius: 20, backgroundColor: PL.card, borderWidth: 1, borderColor: PL.border, alignItems: "center", justifyContent: "center", gap: 4, padding: 6 }}
           >
             <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: PL.white, alignItems: "center", justifyContent: "center" }}>
@@ -115,6 +134,7 @@ export default function PlannerTreatments() {
           </PCard>
         ) : null}
       </View>
+      <ProcedureImageSheet proc={imgFor} onClose={() => setImgFor(null)} />
     </PlannerShell>
   );
 }

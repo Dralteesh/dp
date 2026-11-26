@@ -1,5 +1,5 @@
 import type { Appointment, Patient, PlannerEvent, ShiftType } from "@/types";
-import { addDays, minutesToTime, toMinutes, weekdayOf } from "@/lib/dates";
+import { addDays, minutesToTime, spanDaysOf, toMinutes, weekdayOf } from "@/lib/dates";
 
 /** عنصر موحّد يظهر في جدول اليوم: حدث من التقويم أو موعد من العيادة الخاصة */
 export type AgendaItem = {
@@ -13,7 +13,9 @@ export type AgendaItem = {
   startTime: string;
   endTime: string;
   endsNextDay: boolean;
-  /** تكملة مناوبة بدأت أمس */
+  /** كم يومًا بعد يوم العرض ينتهي العنصر (للمناوبات الأطول من 24 ساعة) */
+  extraDays?: number;
+  /** تكملة مناوبة بدأت قبل هذا اليوم */
   continuation?: boolean;
   status?: string;
   /** نوع العلاج لمواعيد العيادة (لأيقونة البطاقة) */
@@ -38,9 +40,9 @@ export function occursOn(e: PlannerEvent, iso: string): boolean {
 
 export function agendaFor(iso: string, input: AgendaInput): AgendaItem[] {
   const items: AgendaItem[] = [];
-  const yesterday = addDays(iso, -1);
 
   for (const e of input.events) {
+    const span = spanDaysOf(e);
     if (occursOn(e, iso)) {
       items.push({
         key: `e:${e.id}:${iso}`,
@@ -52,21 +54,26 @@ export function agendaFor(iso: string, input: AgendaInput): AgendaItem[] {
         date: iso,
         startTime: e.startTime,
         endTime: e.endTime,
-        endsNextDay: e.endsNextDay,
+        endsNextDay: span >= 1,
+        extraDays: span,
       });
     }
-    if (e.endsNextDay && occursOn(e, yesterday)) {
+    // مناوبة تمتد عدة أيام: كل يوم لاحق يحمل تكملة (اليوم الأخير ينتهي عند وقت النهاية)
+    for (let k = 1; k <= span; k++) {
+      if (!occursOn(e, addDays(iso, -k))) continue;
+      const last = k === span;
       items.push({
-        key: `e:${e.id}:${iso}:c`,
+        key: k === 1 ? `e:${e.id}:${iso}:c` : `e:${e.id}:${iso}:c${k}`,
         source: "event",
         refId: e.id,
         type: e.type,
         title: e.title,
-        subtitle: "تكملة من الأمس",
+        subtitle: last ? "تكملة من الأمس" : `مناوبة ممتدة • اليوم ${k + 1} من ${span + 1}`,
         date: iso,
         startTime: "00:00",
         endTime: e.endTime,
-        endsNextDay: false,
+        endsNextDay: !last,
+        extraDays: span - k,
         continuation: true,
       });
     }

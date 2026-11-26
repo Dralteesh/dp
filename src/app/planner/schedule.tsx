@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PatientPanel } from "@/components/planner/PatientPanel";
 import { PlannerShell, ProcAvatar } from "@/components/planner/kit";
+import { WaitlistBanner } from "@/components/planner/WaitlistBanner";
 import { Text } from "@/components/ui/Text";
 import { PL } from "@/design/planner";
 import { useLayout } from "@/hooks/useLayout";
@@ -214,6 +215,8 @@ export default function PlannerSchedule() {
           );
         })}
       </View>
+
+      <WaitlistBanner day={date} />
 
       <View style={{ height: 34, justifyContent: "center", marginBottom: 4 }}>
         {hover !== null ? (

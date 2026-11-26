@@ -6,7 +6,7 @@ import { Text } from "@/components/ui/Text";
 import { DAYS, MONTHS } from "@/constants/arabic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { agendaFor, type AgendaInput, type AgendaItem } from "@/lib/agenda";
-import { addDays, fmtTime, fromISO, todayISO } from "@/lib/dates";
+import { addDays, endDayWord, fmtTime, fromISO, todayISO } from "@/lib/dates";
 
 type Props = {
   start: string;
@@ -69,7 +69,7 @@ export function DayCards({ start, days = 10, input, onOpen, onAdd }: Props) {
                       </Text>
                       <Text className="text-xs" style={{ color: m.onSolid, opacity: 0.85, fontVariant: ["tabular-nums"] }}>
                         {fmtTime(it.startTime)} – {fmtTime(it.endTime)}
-                        {it.endsNextDay ? " (الغد)" : ""}
+                        {it.endsNextDay ? ` (${endDayWord(it.extraDays ?? 1)})` : ""}
                       </Text>
                     </PressableScale>
                   );
