@@ -4,15 +4,18 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PatientPick } from "@/components/clinic/PatientPick";
 import { MoneyField, useMoneyInput } from "@/components/MoneyField";
+import { MoneyAddSheet, type MoneyMode } from "@/components/clinic/MoneyAddSheet";
 import { PCard, PlannerShell, SectionTitle } from "@/components/planner/kit";
 import { ToolGrid, type ToolItem } from "@/components/planner/ToolGrid";
 import { DateField } from "@/components/pickers";
 import { Button } from "@/components/ui/Button";
+import { Fab } from "@/components/ui/Fab";
 import { Field } from "@/components/ui/Field";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { PL } from "@/design/planner";
 import { useLayout } from "@/hooks/useLayout";
+import { usePlanDebts } from "@/hooks/usePlanDebts";
 import { addDays, fmtDateShort, toISO } from "@/lib/dates";
 import { OPENING_PROCEDURE, PERIOD_LABEL, periodStart, type FinPeriod } from "@/lib/finance";
 import { fmtMoney } from "@/lib/format";
@@ -27,7 +30,6 @@ const LINKS: ToolItem[] = [
   { label: "الأسعار", icon: "pricetag", path: "/clinic/prices" },
 ];
 
-type SheetMode = "payment" | "opening";
 
 /** المالية: ملخّص الفترة (مقبوض/علاج/مصاريف/صافي)، الذمم، دفعة سريعة، رصيد سابق، وروابط الفواتير والأقساط والمصاريف والتقارير */
 export default function PlannerMoney() {
@@ -44,13 +46,14 @@ export default function PlannerMoney() {
   const today = toISO(new Date());
   const [period, setPeriod] = useState<FinPeriod>("month");
   const [showAllDebts, setShowAllDebts] = useState(false);
+  const planDebts = usePlanDebts();
+  const plansAll = useClinic((s) => s.plans);
+  const planTitle = (id?: string) => (id ? plansAll.find((x) => x.id === id)?.title : undefined);
 
-  // نافذة الإدخال السريع
-  const [mode, setMode] = useState<SheetMode | null>(null);
-  const [patientId, setPatientId] = useState<string | undefined>();
-  const [date, setDate] = useState(today);
-  const [note, setNote] = useState("");
-  const m = useMoneyInput();
+  // نافذة الإضافة: دفعة أو ذمة (بلا mode = تسأل أولًا)
+  const [addOpen, setAddOpen] = useState(false);
+  const [addMode, setAddMode] = useState<MoneyMode | undefined>();
+  const [addPatient, setAddPatient] = useState<string | undefined>();
 
   const byId = useMemo(() => new Map(patients.map((p) => [p.id, p])), [patients]);
   const from = periodStart(period, today, addDays);
@@ -71,31 +74,10 @@ export default function PlannerMoney() {
   );
 
   const open = (id: string) => router.push({ pathname: "/planner/patient/[id]", params: { id } } as never);
-  const openSheet = (md: SheetMode, pid?: string) => {
-    setMode(md);
-    setPatientId(pid);
-    setDate(today);
-    setNote("");
-    m.reset();
-  };
-
-  const save = () => {
-    if (!patientId) return Alert.alert("اختر المريض");
-    const r = m.result();
-    if (!r) return Alert.alert("أدخل المبلغ", "المبلغ مطلوب (وسعر الدولار إن كان بالدولار).");
-    if (mode === "payment") {
-      addPayment({ patientId, date, amount: r.amount, foreign: r.foreign, note: note.trim() || undefined });
-    } else {
-      addSession({
-        patientId,
-        date,
-        procedure: OPENING_PROCEDURE,
-        notes: note.trim() || "رصيد قبل استخدام التطبيق",
-        cost: r.amount,
-        foreign: r.foreign,
-      });
-    }
-    setMode(null);
+  const openSheet = (md?: MoneyMode, pid?: string) => {
+    setAddMode(md);
+    setAddPatient(pid);
+    setAddOpen(true);
   };
 
   const Stat = ({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) => (
@@ -108,7 +90,7 @@ export default function PlannerMoney() {
   );
 
   return (
-    <PlannerShell title="المالية" back maxWidth={1000}>
+    <PlannerShell title="المالية" back maxWidth={1000} overlay={<Fab color={PL.navy} onPress={() => openSheet()} />}>
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
         {(Object.keys(PERIOD_LABEL) as FinPeriod[]).map((k) => {
           const on = k === period;
@@ -150,7 +132,7 @@ export default function PlannerMoney() {
           <Button label="دفعة جديدة" icon="add" type="private" onPress={() => openSheet("payment")} />
         </View>
         <View style={{ flex: 1 }}>
-          <Button label="رصيد سابق" icon="time-outline" variant="soft" onPress={() => openSheet("opening")} />
+          <Button label="ذمة جديدة" icon="receipt-outline" variant="soft" onPress={() => openSheet("debt")} />
         </View>
       </View>
 
@@ -183,6 +165,34 @@ export default function PlannerMoney() {
         ))
       )}
 
+      <SectionTitle title="خطط العلاج (المتبقي)" />
+      {planDebts.length === 0 ? (
+        <PCard style={{ alignItems: "center", paddingVertical: 20 }}>
+          <Text w="semi" style={{ color: PL.navy }}>لا متبقٍ على أي خطة</Text>
+        </PCard>
+      ) : (
+        planDebts.slice(0, 8).map(({ patient, fin }) => (
+          <PCard
+            key={fin.plan.id}
+            onPress={() => router.push({ pathname: "/clinic/plan", params: { patientId: patient.id } } as never)}
+            style={{ marginBottom: 8 }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text w="semi" numberOfLines={1} style={{ color: PL.navy }}>{patient.name}</Text>
+                <Text numberOfLines={1} style={{ fontSize: 11.5, color: PL.muted }}>
+                  {fin.plan.title} • مدفوع {fmtMoney(fin.paid, currency)} من {fmtMoney(fin.net, currency)}
+                </Text>
+              </View>
+              <Text w="bold" style={{ color: PL.bad }}>{fmtMoney(fin.remaining, currency)}</Text>
+            </View>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: PL.border, marginTop: 8, overflow: "hidden" }}>
+              <View style={{ width: `${Math.min(100, Math.round((fin.paid / Math.max(1, fin.net)) * 100))}%`, height: 6, backgroundColor: PL.good }} />
+            </View>
+          </PCard>
+        ))
+      )}
+
       <SectionTitle title="آخر الدفعات" />
       {recent.length === 0 ? (
         <PCard style={{ alignItems: "center", paddingVertical: 20 }}>
@@ -195,6 +205,7 @@ export default function PlannerMoney() {
               <Text w="semi" style={{ color: PL.navy }}>{byId.get(p.patientId)?.name ?? "مريض محذوف"}</Text>
               <Text style={{ fontSize: 12, color: PL.muted }}>
                 {fmtDateShort(p.date)}
+                {planTitle(p.planId) ? ` • ${planTitle(p.planId)}` : ""}
                 {p.note ? ` • ${p.note}` : ""}
               </Text>
             </View>
@@ -203,18 +214,7 @@ export default function PlannerMoney() {
         ))
       )}
 
-      <Sheet visible={mode !== null} onClose={() => setMode(null)} title={mode === "payment" ? "دفعة جديدة" : "رصيد سابق (قبل التطبيق)"}>
-        {mode === "opening" ? (
-          <Text className="text-xs text-muted mb-3">
-            لمريض عليه مبلغ من علاج سابق لاستخدام التطبيق: يُضاف إلى ذمّته دون أن يُحسب كعلاج هذا الشهر.
-          </Text>
-        ) : null}
-        <PatientPick value={patientId} onChange={setPatientId} />
-        <MoneyField label={mode === "payment" ? "المبلغ المدفوع" : "المبلغ المتبقي عليه"} m={m} />
-        <DateField label={mode === "payment" ? "تاريخ الدفع" : "تاريخ العلاج (تقريبي)"} value={date} onChange={(v) => v && setDate(v)} />
-        <Field label="ملاحظة (اختياري)" value={note} onChangeText={setNote} placeholder={mode === "opening" ? "مثال: حشو عصب قبل التطبيق" : "مثال: دفعة أولى"} />
-        <Button label="حفظ" icon="checkmark" type="private" onPress={save} />
-      </Sheet>
+      <MoneyAddSheet visible={addOpen} mode={addMode} patientId={addPatient} onClose={() => setAddOpen(false)} />
     </PlannerShell>
   );
 }

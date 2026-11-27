@@ -5,7 +5,11 @@ import { Text } from "@/components/ui/Text";
 import { STATUS_META } from "@/constants/clinic";
 import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { TYPE_META } from "@/constants/shiftTypes";
+import { useDebts } from "@/hooks/useDebts";
 import { useTheme } from "@/hooks/useTheme";
+import { fmtMoney } from "@/lib/format";
+import { useClinic } from "@/store/useClinic";
+import { useSettings } from "@/store/useSettings";
 import type { AgendaItem } from "@/lib/agenda";
 import { endDayWord, fmtTime, toMinutes } from "@/lib/dates";
 import type { AppointmentStatus } from "@/types";
@@ -25,6 +29,11 @@ export function TimelineCard({ item, live, past, remainingMin, onPress }: Props)
   const m = TYPE_META[item.type];
   const status = item.status ? STATUS_META[item.status as AppointmentStatus] : null;
   const done = past || item.status === "done";
+  // شارة الذمّة: رصيد المريض المتبقي عليه (لمواعيد العيادة فقط)
+  const currency = useSettings((s) => s.currency);
+  const debts = useDebts();
+  const pid = useClinic((s) => (item.source === "appointment" ? s.appointments.find((a) => a.id === item.refId)?.patientId : undefined));
+  const debt = pid ? debts.get(pid) ?? 0 : 0;
 
   return (
     <PressableScale
@@ -63,6 +72,13 @@ export function TimelineCard({ item, live, past, remainingMin, onPress }: Props)
             </Text>
           ) : null}
         </View>
+        {debt > 0 ? (
+          <View className="self-start rounded-full px-2 py-0.5 mt-1.5" style={{ backgroundColor: "#FEE2E2" }}>
+            <Text w="semi" className="text-[11px]" style={{ color: "#991B1B" }}>
+              عليه {fmtMoney(debt, currency)}
+            </Text>
+          </View>
+        ) : null}
         {status && !live ? (
           <View className="self-start rounded-full px-2 py-0.5 mt-1.5" style={{ backgroundColor: status.soft }}>
             <Text w="semi" className="text-[11px]" style={{ color: status.hex }}>

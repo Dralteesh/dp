@@ -1,7 +1,9 @@
 import { useMemo } from "react";
-import { View } from "react-native";
+import { Linking, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/ui/Card";
+import { Chip } from "@/components/ui/Chip";
+import { whatsappLink } from "@/lib/phone";
 import { Text } from "@/components/ui/Text";
 import { usePatientTypes } from "@/hooks/usePatientTypes";
 import { planSummary } from "@/lib/clinicLink";
@@ -19,6 +21,8 @@ export function PatientStatusHeader({ patientId }: { patientId: string }) {
   const sessions = useClinic((s) => s.sessions);
   const payments = useClinic((s) => s.payments);
   const { types } = usePatientTypes(patientId);
+  const patient = useClinic((s) => s.patients.find((p) => p.id === patientId));
+  const clinicName = useSettings((s) => s.clinicName);
   const today = todayISO();
 
   const next = useMemo(
@@ -52,6 +56,18 @@ export function PatientStatusHeader({ patientId }: { patientId: string }) {
         {cell("clipboard-outline", "المتبقي من الخطة", sum.open ? `${sum.open} بند • ${fmtMoney(sum.openCost, currency)}` : "لا بنود مفتوحة", "#0F766E")}
         {cell("wallet-outline", "الرصيد", bal.balance > 0 ? fmtMoney(bal.balance, currency) : "مسدَّد", bal.balance > 0 ? "#DC2626" : "#16A34A")}
       </View>
+      {bal.balance > 0 && patient?.phone ? (
+        <View className="flex-row mt-2">
+          <Chip
+            label="تذكير واتساب بالمتبقي"
+            icon="logo-whatsapp"
+            color="#16A34A"
+            onPress={() =>
+              Linking.openURL(whatsappLink(patient.phone!, `السلام عليكم ${patient.name}، المتبقي لك من حساب العلاج ${fmtMoney(bal.balance, currency)}${clinicName ? ` لدى ${clinicName}` : ""}. شكرًا لك.`))
+            }
+          />
+        </View>
+      ) : null}
       {types.length ? (
         <View className="flex-row flex-wrap gap-1.5 mt-2">
           {types.map((k) => (

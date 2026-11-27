@@ -126,6 +126,8 @@ export type InstallPlan = {
   title: string;
   items: InstallmentItem[];
   note?: string;
+  /** خطة العلاج المقسَّطة (اختياري): دفعات الأقساط تُسجَّل عليها */
+  treatmentPlanId?: string;
   createdAt: number;
 };
 

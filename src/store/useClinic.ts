@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { uid } from "@/lib/id";
+import { itemNet } from "@/lib/planFinance";
 import { STORAGE_KEYS, secureStorage } from "@/lib/storage";
 import type {
   Appointment,
@@ -259,8 +260,8 @@ export const useClinic = create<ClinicState>()(
             date,
             procedure: item.procedure,
             tooth: item.tooth ?? (item.teeth?.length ? item.teeth.join("،") : undefined),
-            notes: `من خطة العلاج: ${plan.title}`,
-            cost: item.cost,
+            notes: `من خطة العلاج: ${plan.title}${item.discount ? ` (بعد خصم ${item.discount}${item.discountNote ? ` — ${item.discountNote}` : ""})` : ""}`,
+            cost: itemNet(item),
             createdAt: Date.now(),
           };
           return {

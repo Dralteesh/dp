@@ -16,6 +16,7 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import { itemTeeth } from "@/lib/clinicLink";
 import { fmtTime, toISO, toMinutes } from "@/lib/dates";
 import { fmtMoney } from "@/lib/format";
+import { itemNet } from "@/lib/planFinance";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
 
@@ -46,7 +47,7 @@ export default function TodayScreen() {
   );
   const byId = useMemo(() => new Map(patients.map((p) => [p.id, p])), [patients]);
   const costOf = (ids: string[] | undefined) =>
-    plans.flatMap((p) => p.items).filter((i) => ids?.includes(i.id) && !i.done).reduce((a, i) => a + i.cost, 0);
+    plans.flatMap((p) => p.items).filter((i) => ids?.includes(i.id) && !i.done).reduce((a, i) => a + itemNet(i), 0);
   const expected = list.reduce((a, x) => a + costOf(x.planItemIds), 0);
   const doneCount = list.filter((a) => a.status === "done").length;
 

@@ -7,6 +7,8 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { itemTeeth } from "@/lib/clinicLink";
+import { itemNet, patientPlanFinance } from "@/lib/planFinance";
+import { Chip } from "@/components/ui/Chip";
 import { fmtDateShort } from "@/lib/dates";
 import { fmtMoney } from "@/lib/format";
 import { completeVisit, proposalsFor, type NextProposal } from "@/lib/visitFlow";
@@ -28,6 +30,7 @@ export function VisitSheet({ apptId, onClose }: { apptId: string | null; onClose
   const payments = useClinic((s) => s.payments);
   const patient = useClinic((s) => s.patients.find((p) => p.id === appt?.patientId));
   const money = useMoneyInput();
+  const expenses = useClinic((s) => s.expenses);
 
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
@@ -42,7 +45,7 @@ export function VisitSheet({ apptId, onClose }: { apptId: string | null; onClose
       for (const it of pl.items) {
         if (it.done) continue;
         const t = itemTeeth(it);
-        const row = { id: it.id, label: `${it.procedure}${t.length ? ` • سن ${t.join("،")}` : ""}`, cost: it.cost };
+        const row = { id: it.id, label: `${it.procedure}${t.length ? ` • سن ${t.join("،")}` : ""}`, cost: itemNet(it) };
         (linked.has(it.id) ? lo : oo).push(row);
       }
     }
@@ -69,6 +72,16 @@ export function VisitSheet({ apptId, onClose }: { apptId: string | null; onClose
   const chargeNow = all.filter((x) => checked.has(x.id)).reduce((a, x) => a + x.cost, 0);
   const afterBalance = bal.balance + chargeNow - (money.text.trim() ? money.value || 0 : 0);
 
+  // الخطة التي ستُسجَّل عليها الدفعة: خطة أول بند منجز في هذه الزيارة، وإلا الخطة ذات المتبقي الأكبر
+  const fin = patientPlanFinance(plans, payments, expenses, patient.id);
+  const firstId = all.find((x) => checked.has(x.id))?.id;
+  const planOfFirst = firstId ? fin.plans.find((f) => f.plan.items.some((i) => i.id === firstId)) : undefined;
+  const target = planOfFirst ?? [...fin.plans].sort((a, b) => b.remaining - a.remaining)[0];
+  const suggest = (v: number) => {
+    money.setCur("base");
+    money.setText(String(Math.max(0, Math.round(v))));
+  };
+
   const toggle = (id: string) =>
     setChecked((s) => {
       const n = new Set(s);
@@ -84,7 +97,7 @@ export function VisitSheet({ apptId, onClose }: { apptId: string | null; onClose
       if (!r) return Alert.alert("المبلغ غير صالح", money.cur === "usd" ? "اكتب مبلغًا وسعر الدولار." : "اكتب مبلغًا أكبر من صفر.");
       pay = r;
     }
-    completeVisit(appt.id, { itemIds: [...checked], payment: pay, accept: proposals.filter((p) => accepted.has(pKey(p))) });
+    completeVisit(appt.id, { itemIds: [...checked], payment: pay, paymentPlanId: pay ? target?.plan.id : undefined, accept: proposals.filter((p) => accepted.has(pKey(p))) });
     onClose();
   };
 
@@ -156,6 +169,13 @@ export function VisitSheet({ apptId, onClose }: { apptId: string | null; onClose
       ) : null}
 
       <MoneyField label="المقبوض الآن (اختياري)" m={money} />
+      {chargeNow > 0 || (target && target.remaining > 0) ? (
+        <View className="flex-row flex-wrap gap-2 mb-2">
+          {chargeNow > 0 ? <Chip label={`كلفة الزيارة ${fmtMoney(chargeNow, currency)}`} onPress={() => suggest(chargeNow)} /> : null}
+          {target && target.remaining > 0 ? <Chip label={`متبقي «${target.plan.title}» ${fmtMoney(target.remaining, currency)}`} color={green} onPress={() => suggest(target.remaining)} /> : null}
+        </View>
+      ) : null}
+      {target && money.text.trim() ? <Text className="text-xs text-muted mb-1">تُسجَّل الدفعة على الخطة: {target.plan.title}</Text> : null}
       <Text className="text-xs text-muted mb-3">
         الرصيد الحالي {fmtMoney(bal.balance, currency)} • بعد الزيارة {fmtMoney(afterBalance, currency)}
       </Text>

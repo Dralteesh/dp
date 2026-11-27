@@ -3,6 +3,7 @@
  * الموعد ← أسنان ← بنود خطة ← جلسات ← دفعات. انظر ARCHITECTURE-CLINIC.md.
  */
 import { priceInBase } from "@/lib/currency";
+import { itemNet } from "@/lib/planFinance";
 import type { Appointment, Patient, PlanItem, TreatmentPlan } from "@/types";
 import type { PriceItem } from "@/types/extras";
 
@@ -81,7 +82,7 @@ export function planSummary(plans: TreatmentPlan[], patientId: string) {
       if (it.done) done++;
       else {
         open++;
-        openCost += it.cost;
+        openCost += itemNet(it);
       }
     }
   }

@@ -28,7 +28,8 @@
 | `Patient` | `id, name, phone, birthYear, status, teeth (حالة كل سن FDI), toothMarks, bridges, dentition, types (يدويًا), alerts, followUps?: FollowUpRule[]` |
 | `Appointment` | `patientId, date (YYYY-MM-DD), startTime, durationMin, procedure, status, notes, **planItemIds?**, **teeth?**, **extra?: ApptExtra**, **visitDone?**` |
 | `TreatmentPlan` | `patientId, title, items: PlanItem[]` |
-| `PlanItem` | `procedure, tooth? (قديم، نص), **teeth?: string[]**, cost, done, sessionId?, **dueOn?**, **flow?: {id, step}**` |
+| `PlanItem` | `procedure, tooth? (قديم، نص), **teeth?: string[]**, cost, **discount?, discountNote?**, done, sessionId?, **dueOn?**, **flow?: {id, step}**` |
+| `Expense` / `InstallPlan` | `Expense.planId?` (مصروف على خطة)، `InstallPlan.treatmentPlanId?` (تقسيط خطة علاج) |
 | `ClinicSession` | `patientId, date, procedure, tooth?, cost, notes` — تُنشأ عند إنجاز بند أو إضافة يدوية |
 | `Payment` | `patientId, date, amount, foreign? (دولار), note, planId? (الخطة المدفوع لها)` |
 | `FollowUpRule` | `id, label, everyDays, matchSource? (regex نصًا), anchor, active` |
@@ -93,3 +94,9 @@
 - التحقق: `npx tsc --noEmit` ثم `npx expo export --platform android` (الدفع إلى `main` يبني APK عبر GitHub Actions).
 - اختبار المنطق النقي: ملفات `lib/clinicLink|workflows|needs|periodic` لا تستورد React أو المخازن.
 - أفكار لاحقة: ربط مواعيد قديمة ببنودها، تكرار متابعة تلقائي بعد الإنهاء، حالة «بدأ» للموعد.
+
+## 11) مالية خطط العلاج (`src/lib/planFinance.ts` — نقي)
+- **الصافي** `itemNet = cost − discount`؛ إنجاز البند ينشئ جلسة بالصافي (فيبقى `patientBalance` صحيحًا).
+- **توزيع الدفعات** `patientPlanFinance(plans, payments, expenses, patientId)`: دفعات `planId` تخص خطتها؛ الدفعات العامة (بلا خطة) توزَّع على الخطط من الأقدم؛ ثم تُوزَّع دفعة كل خطة على بنودها بالترتيب ← حالة كل بند `paid|partial|unpaid`، المتبقي، مصاريف الخطة والربح (`مدفوع − مصاريف`).
+- `distributeDiscount`: خصم نسبة/مبلغ على بنود الخطة غير المنجزة بالتناسب.
+- **الواجهة**: `clinic/plan.tsx` (حساب المريض، دفعة/خصم/مصروف/تقسيط/فاتورة لكل خطة، حالة دفع كل بند، تذكير واتساب)، `VisitSheet` (اقتراح كلفة الزيارة/متبقي الخطة وتسجيل الدفعة على الخطة عبر `completeVisit.paymentPlanId`)، `usePlanDebts` (قائمة «خطط العلاج (المتبقي)» في المالية بالواجهتين)، `useDebts` (شارة «عليه X» في بطاقة الخط الزمني)، `PatientStatusHeader` (واتساب)، `installments`/`invoices` تستقبل `planId` من شاشة الخطة، `reports` (متوسط ونسبة كل إجراء).

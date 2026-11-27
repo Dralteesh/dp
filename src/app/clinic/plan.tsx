@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Pressable, View } from "react-native";
+import { Alert, Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DateField } from "@/components/pickers";
@@ -20,7 +20,11 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
 import { toISO } from "@/lib/dates";
 import { fmtMoney, parseAmount } from "@/lib/format";
+import { distributeDiscount, itemNet, patientPlanFinance, PAY_COLOR, PAY_LABEL } from "@/lib/planFinance";
+import { whatsappLink } from "@/lib/phone";
+import { EXPENSE_CATEGORIES } from "@/constants/clinic";
 import { patientBalance, useClinic } from "@/store/useClinic";
+import type { ExpenseCategory } from "@/types";
 import { useSettings } from "@/store/useSettings";
 import { useProcedures } from "@/hooks/useProcedures";
 
@@ -51,7 +55,18 @@ export default function PlanScreen() {
   const [payDate, setPayDate] = useState(toISO(new Date()));
   const [payNote, setPayNote] = useState("");
   const pm = useMoneyInput();
-  const [costEdit, setCostEdit] = useState<{ itemId: string; text: string } | null>(null);
+  const [costEdit, setCostEdit] = useState<{ itemId: string; text: string; disc: string; note: string; done: boolean } | null>(null);
+  const [discFor, setDiscFor] = useState<string | null>(null);
+  const [discMode, setDiscMode] = useState<"percent" | "amount">("percent");
+  const [discVal, setDiscVal] = useState("");
+  const [discNote, setDiscNote] = useState("");
+  const [expFor, setExpFor] = useState<string | null>(null);
+  const [expCat, setExpCat] = useState<ExpenseCategory>("lab");
+  const [expNote, setExpNote] = useState("");
+  const em = useMoneyInput();
+  const expenses = useClinic((s) => s.expenses);
+  const addExpense = useClinic((s) => s.addExpense);
+  const clinicName = useSettings((s) => s.clinicName);
 
   const [newOpen, setNewOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -79,7 +94,32 @@ export default function PlanScreen() {
   }
 
   const bal = patientBalance(patient.id, sessions, payments);
-  const plansTotal = plans.reduce((a, pl) => a + pl.items.reduce((x, i) => x + i.cost, 0), 0);
+  const fin = patientPlanFinance(allPlans, payments, expenses, patient.id);
+  const finOf = new Map(fin.plans.map((f) => [f.plan.id, f]));
+  const plansTotal = fin.plans.reduce((a, f) => a + f.net, 0);
+  const remindWhatsapp = () => {
+    if (!patient.phone) return Alert.alert("لا رقم هاتف", "أضف رقم المريض من ملفه.");
+    const txt = `السلام عليكم ${patient.name}، المتبقي لك من حساب العلاج ${fmtMoney(bal.balance, currency)}${clinicName ? ` لدى ${clinicName}` : ""}. شكرًا لك.`;
+    Linking.openURL(whatsappLink(patient.phone, txt));
+  };
+
+  const saveExpense = () => {
+    if (!expFor) return;
+    const r = em.result();
+    if (!r) return Alert.alert("أدخل المبلغ", "المبلغ مطلوب (وسعر الدولار إن كان بالدولار).");
+    addExpense({ date: toISO(new Date()), category: expCat, amount: r.amount, foreign: r.foreign, note: expNote.trim() || undefined, planId: expFor });
+    setExpFor(null);
+  };
+
+  const applyPlanDiscount = () => {
+    const plan = plans.find((x) => x.id === discFor);
+    const v = parseAmount(discVal);
+    if (!plan || v <= 0) return Alert.alert("اكتب قيمة الخصم");
+    const map = distributeDiscount(plan.items, discMode, v, discNote.trim());
+    if (!map.size) return Alert.alert("لا بنود مفتوحة", "الخصم يُطبَّق على البنود غير المنجزة فقط.");
+    for (const [id, d] of map) patchPlanItem(id, d);
+    setDiscFor(null);
+  };
 
   const savePayment = () => {
     if (!payFor) return;
@@ -116,7 +156,7 @@ export default function PlanScreen() {
         </Text>
         <View className="flex-row flex-wrap gap-y-2">
           {[
-            { label: "تكلفة الخطط", value: plansTotal, color: "#0F172A" },
+            { label: "تكلفة الخطط (بعد الخصم)", value: plansTotal, color: "#0F172A" },
             { label: "المنجز (مستحق)", value: bal.charged, color: "#0F172A" },
             { label: "المدفوع", value: bal.paid, color: "#16A34A" },
             { label: "المتبقي عليه", value: bal.balance, color: bal.balance > 0 ? "#DC2626" : "#16A34A" },
@@ -129,6 +169,12 @@ export default function PlanScreen() {
             </View>
           ))}
         </View>
+        {fin.credit > 0 ? <Text className="text-xs mt-2" style={{ color: "#166534" }}>رصيد دائن غير موزَّع على الخطط: {fmtMoney(fin.credit, currency)}</Text> : null}
+        {bal.balance > 0 ? (
+          <View className="mt-3 self-start">
+            <Button small label="تذكير واتساب بالمتبقي" icon="logo-whatsapp" variant="soft" onPress={remindWhatsapp} />
+          </View>
+        ) : null}
       </Card>
       <Button label="خطة جديدة" icon="add" type="private" onPress={() => { setTitle(""); setNewOpen(true); }} />
       <View className="h-2" />
@@ -139,12 +185,13 @@ export default function PlanScreen() {
           <EmptyState icon="clipboard-outline" title="لا خطط" hint="أنشئ خطة وأضف بنودها بتكلفتها التقديرية" />
         ) : (
           plans.map((plan) => {
-            const total = plan.items.reduce((a, i) => a + i.cost, 0);
+            const f = finOf.get(plan.id);
+            const total = f?.net ?? 0;
             const done = plan.items.filter((i) => i.done);
-            const doneCost = done.reduce((a, i) => a + i.cost, 0);
+            const doneCost = f?.doneNet ?? 0;
             const pct = plan.items.length ? Math.round((done.length / plan.items.length) * 100) : 0;
             const planPays = payments.filter((x) => x.planId === plan.id);
-            const planPaid = planPays.reduce((a, x) => a + x.amount, 0);
+            const planPaid = f?.paid ?? 0;
             return (
               <Card key={plan.id} className="mb-4">
                 <View className="flex-row items-center justify-between">
@@ -164,7 +211,7 @@ export default function PlanScreen() {
                   </Pressable>
                 </View>
                 <Text className="text-xs text-muted mt-1">
-                  {done.length}/{plan.items.length} منجز • الإجمالي {fmtMoney(total, currency)} • المنجز {fmtMoney(doneCost, currency)}
+                  {done.length}/{plan.items.length} منجز • الصافي {fmtMoney(total, currency)}{f && f.discount > 0 ? ` (خصم ${fmtMoney(f.discount, currency)})` : ""} • المنجز {fmtMoney(doneCost, currency)}
                 </Text>
                 <View className="h-2 rounded-full bg-slate-100 mt-2 mb-3 overflow-hidden">
                   <View style={{ width: `${pct}%`, height: 8, backgroundColor: green }} />
@@ -189,6 +236,47 @@ export default function PlanScreen() {
                       setPayFor(plan.id);
                     }}
                   />
+                </View>
+                {f && f.expenses > 0 ? (
+                  <Text className="text-xs text-muted mb-1">
+                    مصاريف الخطة {fmtMoney(f.expenses, currency)} • الربح {fmtMoney(f.profit, currency)}
+                  </Text>
+                ) : null}
+                <View className="flex-row flex-wrap gap-2 mb-2">
+                  <Button
+                    small
+                    label="خصم"
+                    icon="pricetag-outline"
+                    variant="outline"
+                    onPress={() => {
+                      setDiscMode("percent");
+                      setDiscVal("");
+                      setDiscNote("");
+                      setDiscFor(plan.id);
+                    }}
+                  />
+                  <Button
+                    small
+                    label="مصروف"
+                    icon="flask-outline"
+                    variant="outline"
+                    onPress={() => {
+                      em.reset();
+                      setExpNote("");
+                      setExpCat("lab");
+                      setExpFor(plan.id);
+                    }}
+                  />
+                  {f && f.remaining > 0 ? (
+                    <Button
+                      small
+                      label="تقسيط المتبقي"
+                      icon="calendar-outline"
+                      variant="outline"
+                      onPress={() => router.push({ pathname: "/clinic/installments", params: { patientId: patient.id, planId: plan.id, amount: String(Math.round(f.remaining)), title: plan.title } } as never)}
+                    />
+                  ) : null}
+                  <Button small label="فاتورة" icon="receipt-outline" variant="outline" onPress={() => router.push({ pathname: "/clinic/invoices", params: { patientId: patient.id, planId: plan.id } } as never)} />
                 </View>
                 {planPays.map((x) => (
                   <Pressable
@@ -238,13 +326,31 @@ export default function PlanScreen() {
                         {n + 1}. {it.procedure}
                         {itemTeeth(it).length ? ` • سن ${itemTeeth(it).join("،")}` : it.tooth ? ` • سن ${it.tooth}` : ""}
                       </Text>
-                      <Pressable disabled={it.done} onPress={() => setCostEdit({ itemId: it.id, text: it.cost ? String(Math.round(it.cost)) : "" })} hitSlop={6}>
+                      <Pressable
+                        disabled={it.done}
+                        onPress={() => setCostEdit({ itemId: it.id, text: it.cost ? String(Math.round(it.cost)) : "", disc: it.discount ? String(Math.round(it.discount)) : "", note: it.discountNote ?? "", done: it.done })}
+                        hitSlop={6}
+                      >
                         <Text className="text-xs text-muted">
-                          {fmtMoney(it.cost, currency)}
+                          {it.discount ? `${fmtMoney(it.cost, currency)} − ${fmtMoney(it.discount, currency)} = ` : ""}
+                          {fmtMoney(itemNet(it), currency)}
                           {!it.done ? " ✎" : ""}
                           {it.dueOn && !it.done ? ` • مستهدف ${it.dueOn}` : ""}
+                          {it.discountNote ? ` • ${it.discountNote}` : ""}
                         </Text>
                       </Pressable>
+                      {(() => {
+                        const st = f?.items.get(it.id);
+                        if (!st || itemNet(it) <= 0) return null;
+                        return (
+                          <View className="self-start rounded-full px-2 py-0.5 mt-1" style={{ backgroundColor: PAY_COLOR[st.status].bg }}>
+                            <Text w="semi" className="text-[11px]" style={{ color: PAY_COLOR[st.status].fg }}>
+                              {PAY_LABEL[st.status]}
+                              {st.status === "partial" ? ` ${fmtMoney(st.paid, currency)}` : ""}
+                            </Text>
+                          </View>
+                        );
+                      })()}
                     </View>
                     {!it.done ? (
                       <Pressable
@@ -335,14 +441,44 @@ export default function PlanScreen() {
         <Button label="حفظ الدفعة" icon="checkmark" type="private" onPress={savePayment} />
       </Sheet>
 
+      <Sheet visible={!!discFor} onClose={() => setDiscFor(null)} title="خصم على الخطة">
+        <Text className="text-xs text-muted mb-2">يُوزَّع بالتناسب على البنود غير المنجزة فقط، ويظهر على كل بند.</Text>
+        <View className="flex-row gap-2 mb-3">
+          <Chip label="نسبة ٪" selected={discMode === "percent"} color={green} onPress={() => setDiscMode("percent")} />
+          <Chip label={`مبلغ (${currency})`} selected={discMode === "amount"} color={green} onPress={() => setDiscMode("amount")} />
+        </View>
+        <Field label={discMode === "percent" ? "النسبة ٪" : `المبلغ (${currency})`} value={discVal} onChangeText={setDiscVal} keyboardType="decimal-pad" autoFocus />
+        <Field label="سبب الخصم" value={discNote} onChangeText={setDiscNote} placeholder="مثال: زميل / قريب / عرض" />
+        <Button label="تطبيق الخصم" icon="checkmark" type="private" onPress={applyPlanDiscount} />
+      </Sheet>
+
+      <Sheet visible={!!expFor} onClose={() => setExpFor(null)} title="مصروف على هذه الخطة">
+        <FieldRow label="النوع">
+          <View className="flex-row flex-wrap gap-2">
+            {(Object.keys(EXPENSE_CATEGORIES) as ExpenseCategory[]).map((k) => (
+              <Chip key={k} label={EXPENSE_CATEGORIES[k]} selected={expCat === k} color={green} onPress={() => setExpCat(k)} />
+            ))}
+          </View>
+        </FieldRow>
+        <MoneyField label="المبلغ" m={em} />
+        <Field label="ملاحظة" value={expNote} onChangeText={setExpNote} placeholder="مثال: أجرة مخبر تاج" />
+        <Button label="حفظ المصروف" icon="checkmark" type="private" onPress={saveExpense} />
+      </Sheet>
+
       <Sheet visible={!!costEdit} onClose={() => setCostEdit(null)} title="تكلفة البند">
         <Field label={`التكلفة (${currency})`} value={costEdit?.text ?? ""} onChangeText={(v) => setCostEdit((c) => (c ? { ...c, text: v } : c))} keyboardType="decimal-pad" autoFocus />
+        <Field label={`خصم على البند (${currency}) — اختياري`} value={costEdit?.disc ?? ""} onChangeText={(v) => setCostEdit((c) => (c ? { ...c, disc: v } : c))} keyboardType="decimal-pad" />
+        <Field label="سبب الخصم" value={costEdit?.note ?? ""} onChangeText={(v) => setCostEdit((c) => (c ? { ...c, note: v } : c))} />
         <Button
           label="حفظ"
           icon="checkmark"
           type="private"
           onPress={() => {
-            if (costEdit) patchPlanItem(costEdit.itemId, { cost: parseAmount(costEdit.text) });
+            if (costEdit) {
+              const cost = parseAmount(costEdit.text);
+              const disc = Math.min(cost, parseAmount(costEdit.disc));
+              patchPlanItem(costEdit.itemId, { cost, discount: disc > 0 ? disc : undefined, discountNote: disc > 0 && costEdit.note.trim() ? costEdit.note.trim() : undefined });
+            }
             setCostEdit(null);
           }}
         />

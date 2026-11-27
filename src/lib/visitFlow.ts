@@ -38,6 +38,8 @@ export type VisitOptions = {
   /** مبلغ مقبوض الآن: amount بعملة العيادة، وforeign إن أُدخل بالدولار */
   payment?: { amount: number; foreign?: ForeignAmount };
   paymentNote?: string;
+  /** خطة العلاج التي تُسجَّل عليها الدفعة */
+  paymentPlanId?: string;
   /** المراحل التالية المقبولة */
   accept?: NextProposal[];
   date?: string;
@@ -93,6 +95,7 @@ export function completeVisit(apptId: string, opt: VisitOptions): VisitResult {
       amount: opt.payment.amount,
       foreign: opt.payment.foreign,
       note: opt.paymentNote?.trim() || "دفعة عند الزيارة",
+      planId: opt.paymentPlanId,
     });
     res.payment = opt.payment.amount;
   }

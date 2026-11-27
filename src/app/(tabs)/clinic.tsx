@@ -30,6 +30,8 @@ import { inputAlign } from "@/lib/rtl";
 import { whatsappLink } from "@/lib/phone";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useClinicTools } from "@/store/useClinicTools";
+import { usePlanDebts } from "@/hooks/usePlanDebts";
+import { MoneyAddSheet } from "@/components/clinic/MoneyAddSheet";
 import { useSettings } from "@/store/useSettings";
 import type { Appointment, AppointmentStatus, Patient, ShiftType } from "@/types";
 
@@ -60,6 +62,7 @@ export default function ClinicScreen() {
   const [query, setQuery] = useState("");
   const [pFilter, setPFilter] = useState<PFilter>("active");
   const [fabOpen, setFabOpen] = useState(false);
+  const [moneyOpen, setMoneyOpen] = useState(false);
   const [visitFor, setVisitFor] = useState<string | null>(null);
   const needs = useNeeds(7);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -133,6 +136,7 @@ export default function ClinicScreen() {
   const monthCharged = sessions.filter((s) => s.date.startsWith(monthPrefix)).reduce((a, s) => a + s.cost, 0);
   const debtors = balances.filter((b) => b.balance > 0).sort((a, b) => b.balance - a.balance).slice(0, 8);
   const recentPayments = payments.slice(0, 8);
+  const planDebts = usePlanDebts();
 
   const remind = (a: Appointment, p?: Patient) => {
     if (!p?.phone) return;
@@ -175,7 +179,7 @@ export default function ClinicScreen() {
       }
       overlay={
         <>
-          <Fab onPress={() => setFabOpen(true)} color={TYPE_META.private.hex} />
+          <Fab onPress={() => (tab === "money" ? setMoneyOpen(true) : setFabOpen(true))} color={TYPE_META.private.hex} />
         </>
       }
     >
@@ -418,6 +422,34 @@ export default function ClinicScreen() {
             ))
           )}
 
+          <SectionHeader title="خطط العلاج (المتبقي)" />
+          {planDebts.length === 0 ? (
+            <Card>
+              <EmptyState icon="happy-outline" title="لا متبقٍ على أي خطة" />
+            </Card>
+          ) : (
+            planDebts.slice(0, 8).map(({ patient, fin }) => (
+              <PressableScale
+                key={fin.plan.id}
+                className="bg-surface border border-line rounded-2xl px-4 py-3 mb-2"
+                onPress={() => router.push({ pathname: "/clinic/plan", params: { patientId: patient.id } })}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 pe-2">
+                    <Text w="semi" numberOfLines={1}>{patient.name}</Text>
+                    <Text className="text-xs text-muted" numberOfLines={1}>
+                      {fin.plan.title} • مدفوع {fmtMoney(fin.paid, currency)} من {fmtMoney(fin.net, currency)}
+                    </Text>
+                  </View>
+                  <Text w="bold" className="text-danger">{fmtMoney(fin.remaining, currency)}</Text>
+                </View>
+                <View className="h-1.5 rounded-full bg-slate-100 mt-2 overflow-hidden">
+                  <View style={{ width: `${Math.min(100, Math.round((fin.paid / Math.max(1, fin.net)) * 100))}%`, height: 6, backgroundColor: "#16A34A" }} />
+                </View>
+              </PressableScale>
+            ))
+          )}
+
           <SectionHeader title="آخر الدفعات" />
           {recentPayments.length === 0 ? (
             <Card>
@@ -466,6 +498,7 @@ export default function ClinicScreen() {
         </View>
       </Sheet>
 
+      <MoneyAddSheet visible={moneyOpen} onClose={() => setMoneyOpen(false)} />
       <VisitSheet apptId={visitFor} onClose={() => setVisitFor(null)} />
       <ClinicToolsSheet visible={toolsOpen} onClose={() => setToolsOpen(false)} />
     </Screen>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,7 +28,7 @@ const sumOf = (lines: InvoiceLine[], discount: number) => Math.max(0, lines.redu
 
 /** الفواتير: مرقّمة، تُبنى من الجلسات غير المفوتَرة أو ببنود يدوية، وتُصدَّر PDF */
 export default function InvoicesScreen() {
-  const params = useLocalSearchParams<{ patientId?: string }>();
+  const params = useLocalSearchParams<{ patientId?: string; planId?: string }>();
   const invoices = useExtras((s) => s.invoices);
   const addInvoice = useExtras((s) => s.addInvoice);
   const removeInvoice = useExtras((s) => s.removeInvoice);
@@ -59,6 +59,17 @@ export default function InvoicesScreen() {
     () => (pid ? sessions.filter((s) => s.patientId === pid && !billed.has(s.id)).sort((a, b) => (a.date < b.date ? -1 : 1)) : []),
     [sessions, pid, billed],
   );
+  const treatPlans = useClinic((s) => s.plans);
+  // قادمٌ من «فاتورة» في خطة علاج: نحدّد جلسات بنودها المنجزة وغير المفوتَرة
+  useEffect(() => {
+    if (!params.planId) return;
+    const pl = treatPlans.find((x) => x.id === params.planId);
+    if (!pl) return;
+    setPicked(pl.items.filter((i) => i.done && i.sessionId && !billed.has(i.sessionId)).map((i) => i.sessionId as string));
+    setNotes(`خطة العلاج: ${pl.title}`);
+    setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const list = useMemo(
     () => invoices.filter((i) => !params.patientId || i.patientId === params.patientId).sort((a, b) => b.number - a.number),
     [invoices, params.patientId],

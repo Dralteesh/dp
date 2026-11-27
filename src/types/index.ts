@@ -286,6 +286,8 @@ export type Expense = {
   amount: number;
   foreign?: ForeignAmount;
   note?: string;
+  /** خطة العلاج التي يخصّها المصروف (مخبر/مواد) لحساب ربح الخطة */
+  planId?: string;
   createdAt: number;
 };
 
@@ -303,6 +305,10 @@ export type PlanItem = {
   dueOn?: string;
   /** المرحلة ضمن مسار علاج (انظر src/lib/workflows.ts) */
   flow?: { id: string; step: number };
+  /** خصم على البند بعملة العيادة؛ الصافي = cost − discount (انظر src/lib/planFinance.ts) */
+  discount?: number;
+  /** سبب الخصم */
+  discountNote?: string;
 };
 
 /** خطة علاج: بنود مرتّبة بتكلفة تقديرية، وإنجاز البند ينشئ جلسة تلقائيًا */

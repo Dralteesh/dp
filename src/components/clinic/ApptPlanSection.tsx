@@ -7,6 +7,7 @@ import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { itemTeeth, type OpenItem } from "@/lib/clinicLink";
 import { fmtMoney, parseAmount } from "@/lib/format";
+import { itemNet } from "@/lib/planFinance";
 import type { TreatmentPlan } from "@/types";
 
 type Props = {
@@ -44,7 +45,7 @@ export function ApptPlanSection({ procedure, teeth, opens, linked, onToggleItem,
   // البنود المطابقة للأسنان المحددة تظهر أولًا
   const sel = new Set(teeth);
   const ordered = [...opens].sort((a, b) => Number(itemTeeth(b.item).some((t) => sel.has(t))) - Number(itemTeeth(a.item).some((t) => sel.has(t))));
-  const linkedCost = opens.filter((o) => linked.includes(o.item.id)).reduce((a, o) => a + o.item.cost, 0);
+  const linkedCost = opens.filter((o) => linked.includes(o.item.id)).reduce((a, o) => a + itemNet(o.item), 0);
   const newCost = willCreate.reduce((a, t) => a + costFor(t, costs, unitCost), 0);
   const total = linkedCost + newCost;
 
@@ -107,7 +108,7 @@ export function ApptPlanSection({ procedure, teeth, opens, linked, onToggleItem,
                     {tt.length ? ` • سن ${tt.join("،")}` : ""}
                   </Text>
                   <Text className="text-xs text-muted">
-                    {o.plan.title} • {fmtMoney(o.item.cost, currency)}
+                    {o.plan.title} • {fmtMoney(itemNet(o.item), currency)}
                     {o.item.dueOn ? ` • مستهدف ${o.item.dueOn}` : ""}
                   </Text>
                 </View>

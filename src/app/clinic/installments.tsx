@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -40,7 +40,7 @@ export function buildItems(total: number, n: number, firstDue: string): Installm
 
 /** الأقساط: خطط تقسيط للمريض مع متابعة المتأخر. السداد يسجّل دفعة في حساب المريض تلقائيًا. */
 export default function InstallmentsScreen() {
-  const params = useLocalSearchParams<{ patientId?: string }>();
+  const params = useLocalSearchParams<{ patientId?: string; planId?: string; amount?: string; title?: string }>();
   const plans = useExtras((s) => s.installPlans);
   const addPlan = useExtras((s) => s.addInstallPlan);
   const updatePlan = useExtras((s) => s.updateInstallPlan);
@@ -69,6 +69,14 @@ export default function InstallmentsScreen() {
         .sort((a, b) => b.late.length - a.late.length || a.p.createdAt - b.p.createdAt),
     [plans, params.patientId, today],
   );
+  // قادمٌ من «تقسيط المتبقي» في خطة علاج: نملأ الخطة الجديدة مسبقًا
+  useEffect(() => {
+    if (!params.planId) return;
+    setTitle(params.title ? `تقسيط: ${params.title}` : "");
+    setTotal(params.amount ?? "");
+    setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const lateTotal = list.reduce((s, x) => s + x.late.reduce((a, i) => a + i.amount, 0), 0);
 
   const create = () => {
@@ -77,14 +85,14 @@ export default function InstallmentsScreen() {
     if (!pid) return Alert.alert("اختر المريض");
     if (!t || t <= 0) return Alert.alert("المبلغ غير صحيح");
     if (!n || n < 1 || n > 36) return Alert.alert("عدد الدفعات", "اكتب رقمًا بين 1 و36.");
-    addPlan({ patientId: pid, title: title.trim() || "تقسيط علاج", items: buildItems(Math.round(t), n, first) });
+    addPlan({ patientId: pid, title: title.trim() || "تقسيط علاج", items: buildItems(Math.round(t), n, first), treatmentPlanId: params.planId });
     setOpen(false);
     setTitle("");
     setTotal("");
   };
 
   const pay = (plan: InstallPlan, item: InstallmentItem) => {
-    addPayment({ patientId: plan.patientId, date: today, amount: item.amount, note: `قسط: ${plan.title}` });
+    addPayment({ patientId: plan.patientId, date: today, amount: item.amount, note: `قسط: ${plan.title}`, planId: plan.treatmentPlanId });
     // الدفعة الجديدة تُضاف في أول القائمة؛ نربطها بالقسط ليمكن التراجع عنها
     const added = useClinic.getState().payments[0];
     const paymentId = added && added.patientId === plan.patientId && added.amount === item.amount ? added.id : undefined;

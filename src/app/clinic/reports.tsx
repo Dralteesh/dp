@@ -58,6 +58,7 @@ export default function ReportsScreen() {
   const green = TYPE_META.private.hex;
   const a = report.appointments;
   const apptTotal = a.done + a.no_show + a.cancelled + a.other;
+  const procSum = Math.max(1, report.byProcedure.reduce((x, p) => x + p.total, 0));
 
   return (
     <Screen title="التقارير" subtitle={`${range.from} → ${range.to}`} back>
@@ -119,7 +120,7 @@ export default function ReportsScreen() {
             <View key={p.name} className="mb-2.5">
               <View className="flex-row justify-between">
                 <Text w="semi" className="text-sm">
-                  {p.name} <Text className="text-xs text-muted">({p.count})</Text>
+                  {p.name} <Text className="text-xs text-muted">({p.count}) • متوسط {fmtMoney(p.total / Math.max(1, p.count), currency)} • {Math.round((p.total / procSum) * 100)}٪</Text>
                 </Text>
                 <Text className="text-sm" style={{ fontVariant: ["tabular-nums"] }}>
                   {fmtMoney(p.total, currency)}
