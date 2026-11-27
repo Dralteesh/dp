@@ -31,7 +31,6 @@ import { whatsappLink } from "@/lib/phone";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useClinicTools } from "@/store/useClinicTools";
 import { usePlanDebts } from "@/hooks/usePlanDebts";
-import { MoneyAddSheet } from "@/components/clinic/MoneyAddSheet";
 import { useSettings } from "@/store/useSettings";
 import type { Appointment, AppointmentStatus, Patient, ShiftType } from "@/types";
 
@@ -62,7 +61,6 @@ export default function ClinicScreen() {
   const [query, setQuery] = useState("");
   const [pFilter, setPFilter] = useState<PFilter>("active");
   const [fabOpen, setFabOpen] = useState(false);
-  const [moneyOpen, setMoneyOpen] = useState(false);
   const [visitFor, setVisitFor] = useState<string | null>(null);
   const needs = useNeeds(7);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -179,7 +177,7 @@ export default function ClinicScreen() {
       }
       overlay={
         <>
-          <Fab onPress={() => (tab === "money" ? setMoneyOpen(true) : setFabOpen(true))} color={TYPE_META.private.hex} />
+          <Fab onPress={() => setFabOpen(true)} color={TYPE_META.private.hex} />
         </>
       }
     >
@@ -498,7 +496,6 @@ export default function ClinicScreen() {
         </View>
       </Sheet>
 
-      <MoneyAddSheet visible={moneyOpen} onClose={() => setMoneyOpen(false)} />
       <VisitSheet apptId={visitFor} onClose={() => setVisitFor(null)} />
       <ClinicToolsSheet visible={toolsOpen} onClose={() => setToolsOpen(false)} />
     </Screen>
