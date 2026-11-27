@@ -25,7 +25,6 @@ import { whatsappLink } from "@/lib/phone";
 import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
 import { sharePdf } from "@/lib/pdf";
 import { priceForProcedure } from "@/lib/clinicLink";
-import { useExtras } from "@/store/useExtras";
 import type { TreatmentPackage } from "@/types/extras";
 import { statementHtml, type DocCtx } from "@/lib/pdfHtml";
 import { EXPENSE_CATEGORIES } from "@/constants/clinic";
@@ -64,7 +63,6 @@ export default function PlanScreen() {
   const [editMoney, setEditMoney] = useState<MoneyTarget>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
   const packages = useExtras((s) => s.packages);
-  const priceList = useExtras((s) => s.priceList);
   const addPlanItems = useClinic((s) => s.addPlanItems);
   const [pkgFor, setPkgFor] = useState<string | null>(null);
   const [costEdit, setCostEdit] = useState<{ itemId: string; text: string; disc: string; note: string; done: boolean } | null>(null);
