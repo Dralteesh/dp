@@ -16,7 +16,7 @@ import { fmtUsd } from "@/lib/currency";
 import { fmtMoney, parseAmount } from "@/lib/format";
 import { useExtras } from "@/store/useExtras";
 import { useSettings } from "@/store/useSettings";
-import type { PriceItem } from "@/types/extras";
+import type { PriceItem, TreatmentPackage } from "@/types/extras";
 import { useProcedures } from "@/hooks/useProcedures";
 
 /** قائمة أسعار الإجراءات: تُستعمل في «جلسة سريعة» داخل ملف المريض */
@@ -29,6 +29,32 @@ export default function PricesScreen() {
   const updatePrice = useExtras((s) => s.updatePrice);
   const removePrice = useExtras((s) => s.removePrice);
   const green = TYPE_META.private.hex;
+  const packages = useExtras((s) => s.packages);
+  const addPackage = useExtras((s) => s.addPackage);
+  const updatePackage = useExtras((s) => s.updatePackage);
+  const removePackage = useExtras((s) => s.removePackage);
+  const [pkgOpen, setPkgOpen] = useState(false);
+  const [pkgId, setPkgId] = useState<string | null>(null);
+  const [pkgName, setPkgName] = useState("");
+  const [pkgPrice, setPkgPrice] = useState("");
+  const [pkgProcs, setPkgProcs] = useState<string[]>([]);
+  const openPkg = (p?: TreatmentPackage) => {
+    setPkgId(p?.id ?? null);
+    setPkgName(p?.name ?? "");
+    setPkgPrice(p ? String(p.price) : "");
+    setPkgProcs(p?.procedures ?? []);
+    setPkgOpen(true);
+  };
+  const savePkg = () => {
+    const n = pkgName.trim();
+    const v = parseAmount(pkgPrice);
+    if (!n) return Alert.alert("اكتب اسم الحزمة");
+    if (pkgProcs.length < 2) return Alert.alert("اختر إجرائين على الأقل");
+    if (v <= 0) return Alert.alert("اكتب سعر الحزمة");
+    if (pkgId) updatePackage(pkgId, { name: n, price: v, procedures: pkgProcs });
+    else addPackage({ name: n, price: v, procedures: pkgProcs });
+    setPkgOpen(false);
+  };
 
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -114,6 +140,52 @@ export default function PricesScreen() {
           </View>
         </>
       )}
+
+      <Text w="bold" className="mt-6 mb-2">
+        الحزم (سعر واحد لعدة إجراءات)
+      </Text>
+      {packages.map((p) => (
+        <Card key={p.id} className="mb-2.5">
+          <View className="flex-row items-center gap-3">
+            <Pressable className="flex-1" onPress={() => openPkg(p)}>
+              <Text w="semi">{p.name}</Text>
+              <Text className="text-xs text-muted">{p.procedures.join(" + ")}</Text>
+            </Pressable>
+            <Text w="bold" style={{ color: "#14532D" }}>{fmtMoney(p.price, currency)}</Text>
+            <Pressable
+              hitSlop={10}
+              onPress={() =>
+                Alert.alert("حذف الحزمة", `حذف «${p.name}»؟`, [
+                  { text: "إلغاء", style: "cancel" },
+                  { text: "حذف", style: "destructive", onPress: () => removePackage(p.id) },
+                ])
+              }
+            >
+              <Ionicons name="trash-outline" size={20} color="#DC2626" />
+            </Pressable>
+          </View>
+        </Card>
+      ))}
+      <Button label="حزمة جديدة" icon="gift-outline" variant="soft" type="private" onPress={() => openPkg()} />
+
+      <Sheet visible={pkgOpen} onClose={() => setPkgOpen(false)} title={pkgId ? "تعديل الحزمة" : "حزمة جديدة"}>
+        <Field label="اسم الحزمة" value={pkgName} onChangeText={setPkgName} placeholder="مثال: تبييض + تنظيف" />
+        <FieldRow label="الإجراءات (اختر اثنين أو أكثر)">
+          <View className="flex-row flex-wrap gap-2">
+            {procedures.map((pr) => (
+              <Chip
+                key={pr.id}
+                label={pr.name}
+                selected={pkgProcs.includes(pr.name)}
+                color={green}
+                onPress={() => setPkgProcs((cur) => (cur.includes(pr.name) ? cur.filter((x) => x !== pr.name) : [...cur, pr.name]))}
+              />
+            ))}
+          </View>
+        </FieldRow>
+        <Field label={`سعر الحزمة (${currency})`} value={pkgPrice} onChangeText={setPkgPrice} keyboardType="decimal-pad" />
+        <Button label="حفظ" icon="checkmark" type="private" onPress={savePkg} />
+      </Sheet>
 
       <Sheet visible={open} onClose={() => setOpen(false)} title={editId ? "تعديل البند" : "بند جديد"}>
         <Field label="الإجراء" value={name} onChangeText={setName} placeholder="مثال: حشوة تجميلية" />

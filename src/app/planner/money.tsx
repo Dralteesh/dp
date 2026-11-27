@@ -4,10 +4,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PatientPick } from "@/components/clinic/PatientPick";
 import { MoneyField, useMoneyInput } from "@/components/MoneyField";
+import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
+import { MoneyAddSheet, type MoneyMode } from "@/components/clinic/MoneyAddSheet";
 import { PCard, PlannerShell, SectionTitle } from "@/components/planner/kit";
 import { ToolGrid, type ToolItem } from "@/components/planner/ToolGrid";
 import { DateField } from "@/components/pickers";
 import { Button } from "@/components/ui/Button";
+import { Fab } from "@/components/ui/Fab";
 import { Field } from "@/components/ui/Field";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
@@ -26,9 +29,10 @@ const LINKS: ToolItem[] = [
   { label: "المصاريف", icon: "wallet", path: "/clinic/expenses" },
   { label: "التقارير", icon: "stats-chart", path: "/clinic/reports" },
   { label: "الأسعار", icon: "pricetag", path: "/clinic/prices" },
+  { label: "الإغلاق اليومي", icon: "checkmark-done", path: "/clinic/daily-close" },
+  { label: "ربط الدفعات", icon: "git-merge", path: "/clinic/link-payments" },
 ];
 
-type SheetMode = "payment" | "opening";
 
 /** المالية: ملخّص الفترة (مقبوض/علاج/مصاريف/صافي)، الذمم، دفعة سريعة، رصيد سابق، وروابط الفواتير والأقساط والمصاريف والتقارير */
 export default function PlannerMoney() {
@@ -49,12 +53,11 @@ export default function PlannerMoney() {
   const plansAll = useClinic((s) => s.plans);
   const planTitle = (id?: string) => (id ? plansAll.find((x) => x.id === id)?.title : undefined);
 
-  // نافذة الإدخال السريع
-  const [mode, setMode] = useState<SheetMode | null>(null);
-  const [patientId, setPatientId] = useState<string | undefined>();
-  const [date, setDate] = useState(today);
-  const [note, setNote] = useState("");
-  const m = useMoneyInput();
+  // نافذة الإضافة: دفعة أو ذمة (بلا mode = تسأل أولًا)
+  const [editMoney, setEditMoney] = useState<MoneyTarget>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addMode, setAddMode] = useState<MoneyMode | undefined>();
+  const [addPatient, setAddPatient] = useState<string | undefined>();
 
   const byId = useMemo(() => new Map(patients.map((p) => [p.id, p])), [patients]);
   const from = periodStart(period, today, addDays);
@@ -75,31 +78,10 @@ export default function PlannerMoney() {
   );
 
   const open = (id: string) => router.push({ pathname: "/planner/patient/[id]", params: { id } } as never);
-  const openSheet = (md: SheetMode, pid?: string) => {
-    setMode(md);
-    setPatientId(pid);
-    setDate(today);
-    setNote("");
-    m.reset();
-  };
-
-  const save = () => {
-    if (!patientId) return Alert.alert("اختر المريض");
-    const r = m.result();
-    if (!r) return Alert.alert("أدخل المبلغ", "المبلغ مطلوب (وسعر الدولار إن كان بالدولار).");
-    if (mode === "payment") {
-      addPayment({ patientId, date, amount: r.amount, foreign: r.foreign, note: note.trim() || undefined });
-    } else {
-      addSession({
-        patientId,
-        date,
-        procedure: OPENING_PROCEDURE,
-        notes: note.trim() || "رصيد قبل استخدام التطبيق",
-        cost: r.amount,
-        foreign: r.foreign,
-      });
-    }
-    setMode(null);
+  const openSheet = (md?: MoneyMode, pid?: string) => {
+    setAddMode(md);
+    setAddPatient(pid);
+    setAddOpen(true);
   };
 
   const Stat = ({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) => (
@@ -112,7 +94,7 @@ export default function PlannerMoney() {
   );
 
   return (
-    <PlannerShell title="المالية" back maxWidth={1000}>
+    <PlannerShell title="المالية" back maxWidth={1000} overlay={<Fab color={PL.navy} onPress={() => openSheet()} />}>
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
         {(Object.keys(PERIOD_LABEL) as FinPeriod[]).map((k) => {
           const on = k === period;
@@ -154,7 +136,7 @@ export default function PlannerMoney() {
           <Button label="دفعة جديدة" icon="add" type="private" onPress={() => openSheet("payment")} />
         </View>
         <View style={{ flex: 1 }}>
-          <Button label="رصيد سابق" icon="time-outline" variant="soft" onPress={() => openSheet("opening")} />
+          <Button label="ذمة جديدة" icon="receipt-outline" variant="soft" onPress={() => openSheet("debt")} />
         </View>
       </View>
 
@@ -222,7 +204,7 @@ export default function PlannerMoney() {
         </PCard>
       ) : (
         recent.map((p) => (
-          <PCard key={p.id} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <PCard key={p.id} onPress={() => setEditMoney({ kind: "payment", id: p.id })} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <View style={{ flex: 1 }}>
               <Text w="semi" style={{ color: PL.navy }}>{byId.get(p.patientId)?.name ?? "مريض محذوف"}</Text>
               <Text style={{ fontSize: 12, color: PL.muted }}>
@@ -236,18 +218,8 @@ export default function PlannerMoney() {
         ))
       )}
 
-      <Sheet visible={mode !== null} onClose={() => setMode(null)} title={mode === "payment" ? "دفعة جديدة" : "رصيد سابق (قبل التطبيق)"}>
-        {mode === "opening" ? (
-          <Text className="text-xs text-muted mb-3">
-            لمريض عليه مبلغ من علاج سابق لاستخدام التطبيق: يُضاف إلى ذمّته دون أن يُحسب كعلاج هذا الشهر.
-          </Text>
-        ) : null}
-        <PatientPick value={patientId} onChange={setPatientId} />
-        <MoneyField label={mode === "payment" ? "المبلغ المدفوع" : "المبلغ المتبقي عليه"} m={m} />
-        <DateField label={mode === "payment" ? "تاريخ الدفع" : "تاريخ العلاج (تقريبي)"} value={date} onChange={(v) => v && setDate(v)} />
-        <Field label="ملاحظة (اختياري)" value={note} onChangeText={setNote} placeholder={mode === "opening" ? "مثال: حشو عصب قبل التطبيق" : "مثال: دفعة أولى"} />
-        <Button label="حفظ" icon="checkmark" type="private" onPress={save} />
-      </Sheet>
+      <EditMoneySheet target={editMoney} onClose={() => setEditMoney(null)} />
+      <MoneyAddSheet visible={addOpen} mode={addMode} patientId={addPatient} onClose={() => setAddOpen(false)} />
     </PlannerShell>
   );
 }

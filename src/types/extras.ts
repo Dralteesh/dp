@@ -1,6 +1,17 @@
 import type { ForeignAmount } from "@/types";
 
 /** بند في قائمة أسعار الإجراءات */
+/** حزمة علاج بسعر واحد (مثل تبييض + تنظيف): تُضاف لخطة العلاج كبنود بخصم موزَّع */
+export type TreatmentPackage = {
+  id: string;
+  name: string;
+  /** أسماء الإجراءات (من قائمة الإجراءات) */
+  procedures: string[];
+  /** سعر الحزمة الكلي بعملة العيادة */
+  price: number;
+  createdAt: number;
+};
+
 export type PriceItem = {
   id: string;
   name: string;

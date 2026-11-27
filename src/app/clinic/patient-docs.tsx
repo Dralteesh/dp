@@ -12,6 +12,7 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import { todayISO } from "@/lib/dates";
 import { perioStats } from "@/lib/perio";
 import { sharePdf } from "@/lib/pdf";
+import { patientPlanFinance } from "@/lib/planFinance";
 import { combineHtml, consentHtml, invoiceHtml, perioHtml, rxHtml, statementHtml, type DocCtx } from "@/lib/pdfHtml";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
@@ -25,6 +26,8 @@ export default function PatientDocsScreen() {
   const patient = useClinic((s) => s.patients.find((p) => p.id === patientId));
   const sessions = useClinic((s) => s.sessions);
   const payments = useClinic((s) => s.payments);
+  const plansAll = useClinic((s) => s.plans);
+  const expensesAll = useClinic((s) => s.expenses);
   const prescriptions = useClinic((s) => s.prescriptions);
   const invoices = useExtras((s) => s.invoices);
   const consents = useExtras((s) => s.consents);
@@ -69,7 +72,7 @@ export default function PatientDocsScreen() {
     const ctx: DocCtx = { clinicName, doctorName, logo: clinicLogo || undefined, currency, dateISO: todayISO() };
     const docs: string[] = [];
     if (sel.has("statement"))
-      docs.push(statementHtml(ctx, patient, sessions.filter((s) => s.patientId === patient.id), payments.filter((p) => p.patientId === patient.id)));
+      docs.push(statementHtml(ctx, patient, sessions.filter((s) => s.patientId === patient.id), payments.filter((p) => p.patientId === patient.id), patientPlanFinance(plansAll, payments, expensesAll, patient.id).plans));
     if (sel.has("rx")) for (const r of mine.rx) docs.push(rxHtml(ctx, patient, r));
     if (sel.has("invoices")) {
       const bal = patientBalance(patient.id, sessions, payments).balance;

@@ -10,6 +10,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { todayISO } from "@/lib/dates";
 import { OPENING_PROCEDURE } from "@/lib/finance";
+import { shareReceipt } from "@/lib/receipt";
 import { useClinic } from "@/store/useClinic";
 
 export type MoneyMode = "payment" | "debt";
@@ -29,6 +30,7 @@ export function MoneyAddSheet({ visible, onClose, mode, patientId: initialPatien
   const [note, setNote] = useState("");
   const [desc, setDesc] = useState("");
   const [previous, setPrevious] = useState(false);
+  const [withReceipt, setWithReceipt] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -38,6 +40,7 @@ export function MoneyAddSheet({ visible, onClose, mode, patientId: initialPatien
     setNote("");
     setDesc("");
     setPrevious(false);
+    setWithReceipt(false);
     m.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
@@ -48,6 +51,10 @@ export function MoneyAddSheet({ visible, onClose, mode, patientId: initialPatien
     if (!r) return Alert.alert("أدخل المبلغ", "المبلغ مطلوب (وسعر الدولار إن كان بالدولار).");
     if (step === "payment") {
       addPayment({ patientId, date, amount: r.amount, foreign: r.foreign, note: note.trim() || undefined });
+      if (withReceipt) {
+        const id = useClinic.getState().payments[0]?.id;
+        if (id) shareReceipt(id).then((err) => err && Alert.alert("PDF", err));
+      }
     } else {
       addSession({
         patientId,
@@ -86,6 +93,11 @@ export function MoneyAddSheet({ visible, onClose, mode, patientId: initialPatien
             </>
           ) : null}
           <DateField label={step === "payment" ? "تاريخ الدفع" : "التاريخ"} value={date} onChange={(v) => v && setDate(v)} />
+          {step === "payment" ? (
+            <View className="flex-row mb-3">
+              <Chip label="إرسال إيصال PDF بعد الحفظ" icon={withReceipt ? "checkmark" : "share-outline"} selected={withReceipt} color="#0E6FA5" onPress={() => setWithReceipt((v) => !v)} />
+            </View>
+          ) : null}
           <Field label="ملاحظة (اختياري)" value={note} onChangeText={setNote} placeholder={step === "payment" ? "مثال: دفعة أولى" : ""} />
           <Button label="حفظ" icon="checkmark" type="private" onPress={save} />
         </>

@@ -11,6 +11,7 @@ import { useAlarms } from "@/store/useAlarms";
 import { useQuranPrefs } from "@/store/useQuranPrefs";
 import { usePrayerLog } from "@/store/usePrayerLog";
 import { usePlanner } from "@/store/usePlanner";
+import { useClinic } from "@/store/useClinic";
 import { useCountdowns } from "@/store/useCountdowns";
 import { useSettings } from "@/store/useSettings";
 import { useWeather } from "@/store/useWeather";
@@ -29,6 +30,9 @@ export function AppSync() {
   // أي تعديل في العدّادات يعيد جدولة تذكيراتها ويحدّث الودجت
   const countdowns = useCountdowns((s) => s.items);
   const quranPage = useQuranPrefs((s) => s.lastPage);
+  // تغيّر ذمم المرضى يحدّث نص تذكير المواعيد وتنبيه اليوم السابق
+  const clinicSessions = useClinic((s) => s.sessions);
+  const clinicPayments = useClinic((s) => s.payments);
   // تحديث الطقس يعيد جدولة المنبّهات المرتبطة به (تقديم الرنين قبل المطر مثلًا)
   const weatherCache = useWeather((s) => s.cache);
 
@@ -80,7 +84,7 @@ export function AppSync() {
     },
     // prayerDone/prayerSnooze: لا تُقرأ هنا لكنها تعيد الجدولة عند تغيّرها (syncNotifications تقرؤها من المتجر)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [agenda, tasks, settings, alarms, countdowns, prayerDone, prayerSnooze, weatherCache],
+    [agenda, tasks, settings, alarms, countdowns, prayerDone, prayerSnooze, weatherCache, clinicSessions, clinicPayments],
   );
 
   // تحديث الطقس عند الفتح وعند العودة للواجهة (لتنبيهات المطر والمنبّهات المرتبطة)

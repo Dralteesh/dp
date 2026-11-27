@@ -7,6 +7,8 @@ import { CITY, FARD, PRAYER_LABELS, getPrayerTimes } from "@/lib/prayer";
 import { useSettings } from "@/store/useSettings";
 import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
 import { useCountdowns } from "@/store/useCountdowns";
+import { useClinic } from "@/store/useClinic";
+import { fmtMoney } from "@/lib/format";
 import { buildCountdownItems } from "@/lib/countdown/notify";
 import type { PrayerKey, Settings, Task } from "@/types";
 
@@ -40,7 +42,7 @@ const SNOOZE_MIN = 10;
 /**
  * البادئات التي يديرها التزامن فقط. أي إشعار آخر (مثل الإشعارات التجريبية) لا يُلمس. تكرارات الصلاة تبدأ بـ prayer-rep- فتدخل ضمن prayer-.
  */
-const MANAGED_PREFIXES = ["prayer-", "event-", "appt-", "task-", "dhikr-", "cd-"] as const;
+const MANAGED_PREFIXES = ["prayer-", "event-", "appt-", "task-", "dhikr-", "cd-", "debt-"] as const;
 const PRAYER_PREFIXES = ["prayer-", "dhikr-"] as const;
 
 /** Android يحدّ الإشعارات المجدولة (~500). نبقى تحت 400 */
@@ -496,13 +498,29 @@ async function doSync({ agenda, tasks, settings }: SyncInput): Promise<void> {
       if (it.status === "done" || it.status === "no_show") continue;
       const start = combine(iso, it.startTime);
       const at = new Date(start.getTime() - settings.appointmentReminder * 60000);
+      // ذمة المريض (جلسات − دفعات): تُضاف لنص التذكير + تنبيه صباح اليوم السابق
+      const pid = agenda.appointments.find((a) => a.id === it.refId)?.patientId;
+      const cl = useClinic.getState();
+      const debt = pid
+        ? cl.sessions.filter((x) => x.patientId === pid).reduce((a, x) => a + x.cost, 0) - cl.payments.filter((x) => x.patientId === pid).reduce((a, x) => a + x.amount, 0)
+        : 0;
+      const debtText = debt > 0 ? ` • عليه ذمة ${fmtMoney(debt, settings.currency)}` : "";
       items.push({
         id: `appt-${it.refId}`,
         title: `موعد: ${it.title}`,
-        body: `${it.subtitle ?? ""} • ${fmtTime(it.startTime)}`,
+        body: `${it.subtitle ?? ""} • ${fmtTime(it.startTime)}${debtText}`,
         date: at,
         channel: CHANNEL.events,
       });
+      if (debt > 0) {
+        items.push({
+          id: `debt-${it.refId}`,
+          title: `ذمة قبل الموعد: ${it.title}`,
+          body: `موعده ${i === 1 ? "غدًا" : iso} الساعة ${fmtTime(it.startTime)} وعليه ${fmtMoney(debt, settings.currency)}`,
+          date: combine(addDays(iso, -1), "09:00"),
+          channel: CHANNEL.events,
+        });
+      }
     }
   }
 

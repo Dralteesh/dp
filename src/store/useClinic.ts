@@ -53,6 +53,10 @@ type ClinicState = {
   addSession: (s: NewSession) => void;
   removeSession: (id: string) => void;
   addPayment: (p: NewPayment) => void;
+  /** تعديل دفعة (المبلغ/التاريخ/الملاحظة/الخطة) */
+  updatePayment: (id: string, patch: Partial<Omit<Payment, "id" | "createdAt">>) => void;
+  /** تعديل جلسة/ذمة (التكلفة/التاريخ/البيان) */
+  updateSession: (id: string, patch: Partial<Omit<ClinicSession, "id" | "createdAt">>) => void;
   removePayment: (id: string) => void;
 
   addDrug: (d: Omit<Drug, "id" | "createdAt" | "active">) => void;
@@ -164,6 +168,8 @@ export const useClinic = create<ClinicState>()(
       addPayment: (x) =>
         set((s) => ({ payments: [{ ...x, id: uid(), createdAt: Date.now() }, ...s.payments] })),
       removePayment: (id) => set((s) => ({ payments: s.payments.filter((x) => x.id !== id) })),
+      updatePayment: (id, patch) => set((s) => ({ payments: s.payments.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
+      updateSession: (id, patch) => set((s) => ({ sessions: s.sessions.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
 
       addDrug: (d) =>
         set((s) => ({ drugs: [{ ...d, id: uid(), active: true, createdAt: Date.now() }, ...s.drugs] })),

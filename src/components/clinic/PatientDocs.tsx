@@ -12,6 +12,7 @@ import { TYPE_META } from "@/constants/shiftTypes";
 import { fmtDateShort, todayISO } from "@/lib/dates";
 import { parseAmount } from "@/lib/format";
 import { sharePdf } from "@/lib/pdf";
+import { patientPlanFinance } from "@/lib/planFinance";
 import { medicalReportHtml, rxHtml, sickLeaveHtml, statementHtml, type DocCtx } from "@/lib/pdfHtml";
 import { useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
@@ -35,6 +36,8 @@ export function PatientDocs({ patient }: { patient: Patient }) {
   const allRx = useClinic((s) => s.prescriptions);
   const allSessions = useClinic((s) => s.sessions);
   const allPayments = useClinic((s) => s.payments);
+  const allPlans = useClinic((s) => s.plans);
+  const allExpenses = useClinic((s) => s.expenses);
   const green = TYPE_META.private.hex;
 
   const rxList = allRx.filter((r) => r.patientId === patient.id).sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -65,6 +68,7 @@ export function PatientDocs({ patient }: { patient: Patient }) {
                 patient,
                 allSessions.filter((s) => s.patientId === patient.id),
                 allPayments.filter((p) => p.patientId === patient.id),
+                patientPlanFinance(allPlans, allPayments, allExpenses, patient.id).plans,
               ),
               "كشف-حساب",
             )

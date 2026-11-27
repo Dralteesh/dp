@@ -22,6 +22,12 @@ import { toISO } from "@/lib/dates";
 import { fmtMoney, parseAmount } from "@/lib/format";
 import { distributeDiscount, itemNet, patientPlanFinance, PAY_COLOR, PAY_LABEL } from "@/lib/planFinance";
 import { whatsappLink } from "@/lib/phone";
+import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
+import { sharePdf } from "@/lib/pdf";
+import { priceForProcedure } from "@/lib/clinicLink";
+import { useExtras } from "@/store/useExtras";
+import type { TreatmentPackage } from "@/types/extras";
+import { statementHtml, type DocCtx } from "@/lib/pdfHtml";
 import { EXPENSE_CATEGORIES } from "@/constants/clinic";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import type { ExpenseCategory } from "@/types";
@@ -55,6 +61,12 @@ export default function PlanScreen() {
   const [payDate, setPayDate] = useState(toISO(new Date()));
   const [payNote, setPayNote] = useState("");
   const pm = useMoneyInput();
+  const [editMoney, setEditMoney] = useState<MoneyTarget>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const packages = useExtras((s) => s.packages);
+  const priceList = useExtras((s) => s.priceList);
+  const addPlanItems = useClinic((s) => s.addPlanItems);
+  const [pkgFor, setPkgFor] = useState<string | null>(null);
   const [costEdit, setCostEdit] = useState<{ itemId: string; text: string; disc: string; note: string; done: boolean } | null>(null);
   const [discFor, setDiscFor] = useState<string | null>(null);
   const [discMode, setDiscMode] = useState<"percent" | "amount">("percent");
@@ -67,6 +79,8 @@ export default function PlanScreen() {
   const expenses = useClinic((s) => s.expenses);
   const addExpense = useClinic((s) => s.addExpense);
   const clinicName = useSettings((s) => s.clinicName);
+  const doctorName = useSettings((s) => s.doctorName);
+  const clinicLogo = useSettings((s) => s.clinicLogo);
 
   const [newOpen, setNewOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -101,6 +115,41 @@ export default function PlanScreen() {
     if (!patient.phone) return Alert.alert("لا رقم هاتف", "أضف رقم المريض من ملفه.");
     const txt = `السلام عليكم ${patient.name}، المتبقي لك من حساب العلاج ${fmtMoney(bal.balance, currency)}${clinicName ? ` لدى ${clinicName}` : ""}. شكرًا لك.`;
     Linking.openURL(whatsappLink(patient.phone, txt));
+  };
+
+  const shareStatement = async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    const ctx: DocCtx = { clinicName, doctorName, logo: clinicLogo || undefined, currency, dateISO: toISO(new Date()) };
+    const err = await sharePdf(
+      statementHtml(ctx, patient, sessions.filter((x) => x.patientId === patient.id), payments.filter((x) => x.patientId === patient.id), fin.plans),
+      `كشف-حساب-${patient.name}`,
+    );
+    setPdfBusy(false);
+    if (err) Alert.alert("PDF", err);
+  };
+
+  /** يضيف حزمة للخطة كبنود: سعر كل إجراء من القائمة، والفرق عن سعر الحزمة يُوزَّع خصمًا بالتناسب */
+  const addPackageToPlan = (pk: TreatmentPackage) => {
+    if (!pkgFor) return;
+    const n = pk.procedures.length;
+    const list = pk.procedures.map((name) => priceForProcedure(name, priceList, usdRate));
+    const L = list.reduce((a, x) => a + x, 0);
+    const save = L > pk.price ? L - pk.price : 0;
+    let used = 0;
+    const items = pk.procedures.map((name, i) => {
+      const base = L > 0 ? list[i] : pk.price / n;
+      const scaled = L > 0 && L <= pk.price ? (base * pk.price) / L : base;
+      const d = save > 0 ? (i === n - 1 ? Math.round(save - used) : Math.round((save * base) / L)) : 0;
+      used += d;
+      return {
+        procedure: name,
+        cost: Math.round(scaled),
+        ...(d > 0 ? { discount: Math.min(Math.round(scaled), d), discountNote: `حزمة: ${pk.name}` } : { discountNote: undefined }),
+      };
+    });
+    addPlanItems(patient.id, items, pkgFor);
+    setPkgFor(null);
   };
 
   const saveExpense = () => {
@@ -170,11 +219,10 @@ export default function PlanScreen() {
           ))}
         </View>
         {fin.credit > 0 ? <Text className="text-xs mt-2" style={{ color: "#166534" }}>رصيد دائن غير موزَّع على الخطط: {fmtMoney(fin.credit, currency)}</Text> : null}
-        {bal.balance > 0 ? (
-          <View className="mt-3 self-start">
-            <Button small label="تذكير واتساب بالمتبقي" icon="logo-whatsapp" variant="soft" onPress={remindWhatsapp} />
-          </View>
-        ) : null}
+        <View className="flex-row flex-wrap gap-2 mt-3">
+          <Button small label="كشف حساب PDF" icon="document-text-outline" variant="soft" type="private" disabled={pdfBusy} onPress={shareStatement} />
+          {bal.balance > 0 ? <Button small label="تذكير واتساب بالمتبقي" icon="logo-whatsapp" variant="soft" onPress={remindWhatsapp} /> : null}
+        </View>
       </Card>
       <Button label="خطة جديدة" icon="add" type="private" onPress={() => { setTitle(""); setNewOpen(true); }} />
       <View className="h-2" />
@@ -276,17 +324,13 @@ export default function PlanScreen() {
                       onPress={() => router.push({ pathname: "/clinic/installments", params: { patientId: patient.id, planId: plan.id, amount: String(Math.round(f.remaining)), title: plan.title } } as never)}
                     />
                   ) : null}
+                  <Button small label="حزمة" icon="gift-outline" variant="outline" onPress={() => setPkgFor(plan.id)} />
                   <Button small label="فاتورة" icon="receipt-outline" variant="outline" onPress={() => router.push({ pathname: "/clinic/invoices", params: { patientId: patient.id, planId: plan.id } } as never)} />
                 </View>
                 {planPays.map((x) => (
                   <Pressable
                     key={x.id}
-                    onLongPress={() =>
-                      Alert.alert("حذف الدفعة", `${fmtMoney(x.amount, currency)} بتاريخ ${x.date}`, [
-                        { text: "إلغاء", style: "cancel" },
-                        { text: "حذف", style: "destructive", onPress: () => removePayment(x.id) },
-                      ])
-                    }
+                    onPress={() => setEditMoney({ kind: "payment", id: x.id })}
                     className="flex-row items-center justify-between py-1"
                   >
                     <Text className="text-xs text-muted">
@@ -434,11 +478,29 @@ export default function PlanScreen() {
           }}
         />
       </Sheet>
+      <EditMoneySheet target={editMoney} onClose={() => setEditMoney(null)} />
+
       <Sheet visible={!!payFor} onClose={() => setPayFor(null)} title="دفعة لهذه الخطة">
         <MoneyField label="المبلغ" m={pm} autoFocus />
         <DateField label="تاريخ الدفعة" value={payDate} onChange={setPayDate} />
         <Field label="ملاحظة" value={payNote} onChangeText={setPayNote} />
         <Button label="حفظ الدفعة" icon="checkmark" type="private" onPress={savePayment} />
+      </Sheet>
+
+      <Sheet visible={!!pkgFor} onClose={() => setPkgFor(null)} title="إضافة حزمة للخطة">
+        {packages.length === 0 ? (
+          <Text className="text-xs text-muted leading-5">لا حزم بعد. أنشئها من الأسعار ← «حزمة جديدة».</Text>
+        ) : (
+          packages.map((pk) => (
+            <Pressable key={pk.id} onPress={() => addPackageToPlan(pk)} className="flex-row items-center justify-between py-3 border-b border-line">
+              <View className="flex-1 pe-2">
+                <Text w="semi">{pk.name}</Text>
+                <Text className="text-xs text-muted">{pk.procedures.join(" + ")}</Text>
+              </View>
+              <Text w="bold" style={{ color: green }}>{fmtMoney(pk.price, currency)}</Text>
+            </Pressable>
+          ))
+        )}
       </Sheet>
 
       <Sheet visible={!!discFor} onClose={() => setDiscFor(null)} title="خصم على الخطة">

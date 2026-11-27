@@ -11,6 +11,7 @@ import type {
   PerioChart,
   OrthoCase,
   PriceItem,
+  TreatmentPackage,
   SterilCycle,
   WaitEntry,
   WaitStatus,
@@ -18,6 +19,10 @@ import type {
 
 type ExtrasState = {
   priceList: PriceItem[];
+  packages: TreatmentPackage[];
+  addPackage: (p: Omit<TreatmentPackage, "id" | "createdAt">) => void;
+  updatePackage: (id: string, patch: Partial<Omit<TreatmentPackage, "id" | "createdAt">>) => void;
+  removePackage: (id: string) => void;
   waitlist: WaitEntry[];
   sterilization: SterilCycle[];
   orthoCases: OrthoCase[];
@@ -68,6 +73,10 @@ export const useExtras = create<ExtrasState>()(
   persist(
     (set) => ({
       priceList: [],
+      packages: [],
+      addPackage: (p) => set((s) => ({ packages: [...s.packages, { ...p, id: uid(), createdAt: Date.now() }] })),
+      updatePackage: (id, patch) => set((s) => ({ packages: s.packages.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
+      removePackage: (id) => set((s) => ({ packages: s.packages.filter((x) => x.id !== id) })),
       waitlist: [],
       sterilization: [],
       orthoCases: [],
@@ -133,13 +142,14 @@ export const useExtras = create<ExtrasState>()(
       addCycle: (c) => set((s) => ({ sterilization: [{ ...c, id: uid(), createdAt: Date.now() }, ...s.sterilization] })),
       removeCycle: (id) => set((s) => ({ sterilization: s.sterilization.filter((x) => x.id !== id) })),
 
-      resetAll: () => set({ priceList: [], waitlist: [], sterilization: [], orthoCases: [], consents: [], installPlans: [], labOrders: [], perioCharts: [], dentalExams: [], invoices: [] }),
+      resetAll: () => set({ priceList: [], packages: [], waitlist: [], sterilization: [], orthoCases: [], consents: [], installPlans: [], labOrders: [], perioCharts: [], dentalExams: [], invoices: [] }),
     }),
     {
       name: "dp.extras.v1",
       storage: secureStorage,
       partialize: (s) => ({
         priceList: s.priceList,
+        packages: s.packages,
         waitlist: s.waitlist,
         sterilization: s.sterilization,
         orthoCases: s.orthoCases,

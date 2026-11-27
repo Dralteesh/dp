@@ -29,6 +29,7 @@ import { foreignLabel, priceInBase } from "@/lib/currency";
 import { fmtDateShort, fmtTime, toISO } from "@/lib/dates";
 import { fmtMoney, initial, parseAmount } from "@/lib/format";
 import { telLink, whatsappLink } from "@/lib/phone";
+import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
 import { useSettings } from "@/store/useSettings";
@@ -63,6 +64,7 @@ export default function PatientScreen() {
   const patient = patients.find((p) => p.id === id);
 
   const [section, setSection] = useState<Section>("overview");
+  const [editMoney, setEditMoney] = useState<MoneyTarget>(null);
   const [addFile, setAddFile] = useState(false);
   const orthoCases = useExtras((s) => s.orthoCases);
   const perioCharts = useExtras((s) => s.perioCharts);
@@ -581,16 +583,8 @@ export default function PatientScreen() {
                         {fmtMoney(s.cost, currency)}
                       </Text>
                       {s.foreign ? <Text className="text-xs text-muted">{foreignLabel(s.foreign)}</Text> : null}
-                      <Pressable
-                        hitSlop={8}
-                        onPress={() =>
-                          Alert.alert("حذف الجلسة", "هل تريد حذف هذه الجلسة؟", [
-                            { text: "إلغاء", style: "cancel" },
-                            { text: "حذف", style: "destructive", onPress: () => removeSession(s.id) },
-                          ])
-                        }
-                      >
-                        <Ionicons name="trash-outline" size={18} color="#94A3B8" />
+                      <Pressable hitSlop={8} onPress={() => setEditMoney({ kind: "session", id: s.id })} accessibilityLabel="تعديل">
+                        <Ionicons name="create-outline" size={19} color="#64748B" />
                       </Pressable>
                     </View>
                   </View>
@@ -683,16 +677,8 @@ export default function PatientScreen() {
                         {p.note ? ` • ${p.note}` : ""}
                       </Text>
                     </View>
-                    <Pressable
-                      hitSlop={8}
-                      onPress={() =>
-                        Alert.alert("حذف الدفعة", "هل تريد حذف هذه الدفعة؟", [
-                          { text: "إلغاء", style: "cancel" },
-                          { text: "حذف", style: "destructive", onPress: () => removePayment(p.id) },
-                        ])
-                      }
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#94A3B8" />
+                    <Pressable hitSlop={8} onPress={() => setEditMoney({ kind: "payment", id: p.id })} accessibilityLabel="تعديل">
+                      <Ionicons name="create-outline" size={19} color="#64748B" />
                     </Pressable>
                   </View>
                 </Card>
@@ -754,6 +740,7 @@ export default function PatientScreen() {
             </Pressable>
           ))}
       </Sheet>
+          <EditMoneySheet target={editMoney} onClose={() => setEditMoney(null)} />
     </Screen>
   );
 }

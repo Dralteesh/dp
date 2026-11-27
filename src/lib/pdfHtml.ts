@@ -2,6 +2,7 @@ import type { ClinicSession, Patient, Payment, Prescription } from "@/types";
 import { fmtDateFull } from "@/lib/dates";
 import { fmtMoney } from "@/lib/format";
 import { fmtUsd } from "@/lib/currency";
+import { PAY_LABEL, itemNet, type PlanFin } from "@/lib/planFinance";
 
 export type DocCtx = {
   clinicName: string;
@@ -80,6 +81,8 @@ export function statementHtml(
   patient: Patient,
   sessions: ClinicSession[],
   payments: Payment[],
+  /** مالية خطط العلاج (اختياري): تُطبع قبل الجلسات */
+  plans?: PlanFin[],
 ): string {
   const f = (n: number) => esc(fmtMoney(n, ctx.currency));
   const charged = sessions.reduce((a, s) => a + s.cost, 0);
@@ -103,13 +106,40 @@ export function statementHtml(
         }</td></tr>`,
     )
     .join("");
+  const planBlock = (plans ?? [])
+    .filter((x) => x.plan.items.length)
+    .map((x) => {
+      const rows = x.plan.items
+        .map((it) => {
+          const st = x.items.get(it.id);
+          return `<tr><td>${esc(it.procedure)}${it.teeth?.length ? ` (سن ${esc(it.teeth.join("،"))})` : it.tooth ? ` (سن ${esc(it.tooth)})` : ""}</td><td class="num">${f(it.cost)}${it.discount ? `<br/><small>خصم ${f(it.discount)}${it.discountNote ? ` — ${esc(it.discountNote)}` : ""}</small>` : ""}</td><td class="num">${f(itemNet(it))}</td><td>${it.done ? "منجز" : "قيد الخطة"}${st ? ` • ${PAY_LABEL[st.status]}` : ""}</td></tr>`;
+        })
+        .join("");
+      return `<b>${esc(x.plan.title)}</b><table><tr><th>البند</th><th>التكلفة</th><th>الصافي</th><th>الحالة</th></tr>${rows}</table><div class="tot">الصافي: ${f(x.net)} &nbsp;|&nbsp; المدفوع: ${f(x.paid)} &nbsp;|&nbsp; المتبقي: ${f(x.remaining)}${x.discount ? ` &nbsp;|&nbsp; إجمالي الخصم: ${f(x.discount)}` : ""}</div>`;
+    })
+    .join("");
   const body = `${patientBlock(patient)}
+${planBlock}
 <b>الجلسات</b><table><tr><th>التاريخ</th><th>الإجراء</th><th>التكلفة</th></tr>${sRows || `<tr><td colspan="3">—</td></tr>`}</table>
 <b>الدفعات</b><table><tr><th>التاريخ</th><th>ملاحظة</th><th>المبلغ</th></tr>${pRows || `<tr><td colspan="3">—</td></tr>`}</table>
 <div class="tot">المستحق: ${f(charged)} &nbsp;|&nbsp; المدفوع: ${f(paid)} &nbsp;|&nbsp; ${
     balance > 0 ? `المتبقي: ${f(balance)}` : "الحساب مسدّد"
   }</div>`;
   return page(ctx, "كشف حساب", body, { signature: false });
+}
+
+export type ReceiptDoc = { payment: Payment; /** عنوان خطة العلاج المدفوع لها */ planTitle?: string; /** رصيد المريض بعد هذه الدفعة (موجب = متبقٍ عليه) */ balance: number; /** المتبقي من الخطة بعد الدفعة */ planRemaining?: number };
+
+/** إيصال استلام دفعة */
+export function receiptHtml(ctx: DocCtx, patient: Patient, r: ReceiptDoc): string {
+  const f = (n: number) => esc(fmtMoney(n, ctx.currency));
+  const p = r.payment;
+  const body = `${patientBlock(patient)}
+<div class="meta">تاريخ الدفعة: <b>${esc(p.date)}</b>${r.planTitle ? ` &nbsp;•&nbsp; عن: <b>${esc(r.planTitle)}</b>` : ""}</div>
+<table><tr><th>البيان</th><th>المبلغ</th></tr>
+<tr><td>${esc(p.note || "دفعة من حساب العلاج")}</td><td class="num">${f(p.amount)}${p.foreign ? `<br/><small>${esc(fmtUsd(p.foreign.amount))}</small>` : ""}</td></tr></table>
+<div class="tot">المبلغ المستلَم: ${f(p.amount)}${r.planRemaining != null ? `<br/>المتبقي من الخطة: ${f(Math.max(0, r.planRemaining))}` : ""}<br/>${r.balance > 0 ? `المتبقي على حساب المريض: ${f(r.balance)}` : "الحساب مسدّد"}</div>`;
+  return page(ctx, "إيصال استلام", body);
 }
 
 /** تقرير طبي بنص حر */
