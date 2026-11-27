@@ -1,6 +1,6 @@
 import { useTheme } from "@/hooks/useTheme";
 import { TYPE_META } from "@/constants/shiftTypes";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,6 +34,7 @@ import { initial } from "@/lib/format";
 import { useClinic } from "@/store/useClinic";
 import { useExtras } from "@/store/useExtras";
 import { useSettings } from "@/store/useSettings";
+import { useApptDraft } from "@/store/useApptDraft";
 import type { ApptExtra, AppointmentStatus } from "@/types";
 import { useProcedures } from "@/hooks/useProcedures";
 
@@ -89,6 +90,48 @@ export default function AppointmentFormScreen() {
   const [costs, setCosts] = useState<Record<string, string>>({});
   /** دفعة مقدّمة اختيارية عند الحجز */
   const advance = useMoneyInput();
+
+  // مسودة الحجز: تُحفظ أثناء الكتابة (موعد جديد فقط) وتُعرض للاستعادة عند فتح نموذج فارغ
+  const draft = useApptDraft((s) => s.draft);
+  const setDraft = useApptDraft((s) => s.setDraft);
+  const clearDraft = useApptDraft((s) => s.clearDraft);
+  const draftReady = useRef(false);
+  useEffect(() => {
+    const plain = !existing && !params.patientId && !params.planItemIds && !params.teeth && !params.date && !params.procedure && !params.waitId;
+    const fresh = draft && Date.now() - draft.savedAt < 36 * 3600 * 1000;
+    if (!plain || !fresh || !draft) {
+      draftReady.current = true;
+      return;
+    }
+    Alert.alert("مسودة حجز غير محفوظة", "هل تريد استعادة آخر حجز لم تكمله؟", [
+      { text: "تجاهل", style: "destructive", onPress: () => { clearDraft(); draftReady.current = true; } },
+      {
+        text: "استعادة",
+        onPress: () => {
+          setPatientId(draft.patientId);
+          setDate(draft.date);
+          setStartTime(draft.startTime);
+          setDuration(draft.duration);
+          setProcedure(draft.procedure);
+          setNotes(draft.notes);
+          setStatus(draft.status);
+          setTeeth(draft.teeth);
+          setLinked(draft.linked);
+          setExtra(draft.extra);
+          setPlanChoice(draft.planChoice);
+          setCosts(draft.costs);
+          draftReady.current = true;
+        },
+      },
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (existing || !draftReady.current) return;
+    if (!patientId && !teeth.length && !notes.trim() && !linked.length) return;
+    const t = setTimeout(() => setDraft({ savedAt: Date.now(), patientId, date, startTime, duration, procedure, notes, status, teeth, linked, extra, planChoice, costs }), 600);
+    return () => clearTimeout(t);
+  }, [existing, patientId, date, startTime, duration, procedure, notes, status, teeth, linked, extra, planChoice, costs, setDraft]);
 
   const patient = patients.find((p) => p.id === patientId);
   const list = useMemo(
@@ -146,6 +189,7 @@ export default function AppointmentFormScreen() {
       apptId = existing.id;
     } else {
       apptId = addAppointment(payload);
+      clearDraft();
       // دفعة مقدّمة (إن كُتبت): تُربط بخطة العلاج التي ضُمّت إليها بنود الموعد
       const adv = advance.value > 0 ? advance.result() : null;
       if (adv) {

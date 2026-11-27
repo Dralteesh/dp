@@ -14,6 +14,8 @@ export const CLINIC_TOOLS: Tool[] = [
   { id: "sterilization", label: "سجل التعقيم", icon: "flask", path: "/clinic/sterilization" },
   { id: "installments", label: "الأقساط", icon: "calendar", path: "/clinic/installments" },
   { id: "invoices", label: "الفواتير", icon: "receipt", path: "/clinic/invoices" },
+  { id: "profit", label: "الربح الشهري", icon: "trending-up", path: "/clinic/profit" },
+  { id: "search", label: "بحث شامل", icon: "search", path: "/clinic/search" },
   { id: "dailyclose", label: "الإغلاق اليومي", icon: "checkmark-done", path: "/clinic/daily-close" },
   { id: "linkpay", label: "ربط الدفعات بالخطط", icon: "git-merge", path: "/clinic/link-payments" },
   { id: "insights", label: "إحصاءات", icon: "pie-chart", path: "/clinic/insights" },

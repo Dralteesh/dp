@@ -8,7 +8,7 @@ import { DateField } from "@/components/pickers";
 import { STATUS_META } from "@/constants/clinic";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
-import { toISO } from "@/lib/dates";
+import { addDays, toISO } from "@/lib/dates";
 import { fmtMoney } from "@/lib/format";
 import { whatsappLink } from "@/lib/phone";
 import { patientBalance, useClinic } from "@/store/useClinic";
@@ -21,6 +21,8 @@ export default function DailyCloseScreen() {
   const currency = useSettings((s) => s.currency);
   const clinicName = useSettings((s) => s.clinicName);
   const [date, setDate] = useState(toISO(new Date()));
+  const closedThrough = useSettings((s) => s.closedThrough);
+  const updateSettings = useSettings((s) => s.update);
   const patients = useClinic((s) => s.patients);
   const appointments = useClinic((s) => s.appointments);
   const sessions = useClinic((s) => s.sessions);
@@ -109,6 +111,22 @@ export default function DailyCloseScreen() {
           );
         })
       )}
+
+      <Card className="mt-3">
+        {closedThrough && date <= closedThrough ? (
+          <>
+            <Text w="semi" style={{ color: "#166534" }}>هذا اليوم مغلق ماليًا</Text>
+            <Text className="text-xs text-muted mt-1 mb-2">تعديل أو حذف دفعاته وذممه يطلب تأكيدًا. (الإغلاق شامل حتى {closedThrough})</Text>
+            <Button small label="إلغاء الإغلاق من هذا اليوم" icon="lock-open-outline" variant="soft" onPress={() => updateSettings({ closedThrough: addDays(date, -1) })} />
+          </>
+        ) : (
+          <>
+            <Text w="semi">إغلاق اليوم ماليًا</Text>
+            <Text className="text-xs text-muted mt-1 mb-2">يقفل هذا اليوم وما قبله: أي تعديل لاحق على دفعاته أو ذممه يطلب تأكيدًا صريحًا.</Text>
+            <Button small label="إغلاق وقفل" icon="lock-closed-outline" type="private" onPress={() => updateSettings({ closedThrough: date })} />
+          </>
+        )}
+      </Card>
 
       <View className="mt-3">
         <Button label="مشاركة ملخص اليوم" icon="share-social-outline" type="private" onPress={() => Share.share({ message: summary() })} />

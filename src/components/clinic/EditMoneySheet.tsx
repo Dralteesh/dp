@@ -7,6 +7,7 @@ import { Field, FieldRow } from "@/components/ui/Field";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { fmtMoney, parseAmount } from "@/lib/format";
+import { confirmIfClosed } from "@/lib/closedDays";
 import { shareReceipt } from "@/lib/receipt";
 import { OPENING_PROCEDURE } from "@/lib/finance";
 import { useClinic } from "@/store/useClinic";
@@ -38,7 +39,7 @@ export function EditMoneySheet({ target, onClose }: { target: MoneyTarget; onClo
   const row = payment ?? session;
   useEffect(() => {
     if (!row) return;
-    setAmount(String(Math.round(payment ? payment.amount : session!.cost)));
+    setAmount(String(Math.round(payment ? Math.abs(payment.amount) : session!.cost)));
     setDate(row.date);
     setNote(payment ? payment.note ?? "" : session!.notes ?? "");
     setProc(session?.procedure ?? "");
@@ -53,9 +54,15 @@ export function EditMoneySheet({ target, onClose }: { target: MoneyTarget; onClo
   const save = () => {
     const v = parseAmount(amount);
     if (v <= 0) return Alert.alert("أدخل المبلغ");
+    // تعديل أو نقل حركة ليوم مغلق يطلب تأكيدًا (التاريخ القديم والجديد)
+    confirmIfClosed([row!.date, date], "تعديل الحركة", () => apply(v));
+  };
+
+  const apply = (v: number) => {
     if (payment) {
-      const changed = Math.round(v) !== Math.round(payment.amount);
-      updatePayment(payment.id, { amount: v, date, note: note.trim() || undefined, planId, ...(changed ? { foreign: undefined } : {}) });
+      const signed = payment.refund ? -v : v;
+      const changed = Math.round(signed) !== Math.round(payment.amount);
+      updatePayment(payment.id, { amount: signed, date, note: note.trim() || undefined, planId, ...(changed ? { foreign: undefined } : {}) });
     } else if (session) {
       const changed = Math.round(v) !== Math.round(session.cost);
       updateSession(session.id, { cost: v, date, notes: note.trim() || undefined, procedure: isOpening ? session.procedure : proc.trim() || session.procedure, ...(changed ? { foreign: undefined } : {}) });
@@ -64,18 +71,20 @@ export function EditMoneySheet({ target, onClose }: { target: MoneyTarget; onClo
   };
 
   const del = () =>
-    Alert.alert(payment ? "حذف الدفعة" : "حذف الذمة", `${fmtMoney(parseAmount(amount), currency)} بتاريخ ${date}`, [
-      { text: "إلغاء", style: "cancel" },
-      {
-        text: "حذف",
-        style: "destructive",
-        onPress: () => {
-          if (payment) removePayment(payment.id);
-          else if (session) removeSession(session.id);
-          onClose();
+    confirmIfClosed(row!.date, "حذف الحركة", () =>
+      Alert.alert(payment ? "حذف الدفعة" : "حذف الذمة", `${fmtMoney(parseAmount(amount), currency)} بتاريخ ${date}`, [
+        { text: "إلغاء", style: "cancel" },
+        {
+          text: "حذف",
+          style: "destructive",
+          onPress: () => {
+            if (payment) removePayment(payment.id);
+            else if (session) removeSession(session.id);
+            onClose();
+          },
         },
-      },
-    ]);
+      ]),
+    );
 
   const receipt = async () => {
     if (!payment || busy) return;
@@ -86,13 +95,13 @@ export function EditMoneySheet({ target, onClose }: { target: MoneyTarget; onClo
   };
 
   return (
-    <Sheet visible onClose={onClose} title={payment ? "تعديل دفعة" : isOpening ? "تعديل رصيد سابق" : "تعديل ذمة"}>
+    <Sheet visible onClose={onClose} title={payment ? (payment.refund ? "تعديل استرداد" : "تعديل دفعة") : isOpening ? "تعديل رصيد سابق" : "تعديل ذمة"}>
       <Field label={`المبلغ (${currency})`} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
       {(payment?.foreign ?? session?.foreign) ? <Text className="text-xs text-muted -mt-2 mb-3">سُجّل أصلًا بالدولار؛ تغيير المبلغ يحوّله إلى {currency} فقط.</Text> : null}
       {session && !isOpening ? <Field label="البيان" value={proc} onChangeText={setProc} /> : null}
       <DateField label="التاريخ" value={date} onChange={(v) => v && setDate(v)} />
       <Field label="ملاحظة" value={note} onChangeText={setNote} />
-      {payment && myPlans.length ? (
+      {payment && !payment.refund && myPlans.length ? (
         <FieldRow label="خطة العلاج">
           <View className="flex-row flex-wrap gap-2">
             <Chip label="عامة (بلا خطة)" selected={!planId} color="#0E6FA5" onPress={() => setPlanId(undefined)} />
@@ -104,7 +113,7 @@ export function EditMoneySheet({ target, onClose }: { target: MoneyTarget; onClo
       ) : null}
       <Button label="حفظ التعديل" icon="checkmark" type="private" onPress={save} />
       <View className="flex-row gap-2 mt-2">
-        {payment ? (
+        {payment && !payment.refund ? (
           <View className="flex-1">
             <Button label="إيصال PDF" icon="share-outline" variant="soft" type="private" disabled={busy} onPress={receipt} />
           </View>

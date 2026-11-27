@@ -76,6 +76,8 @@ export const DEFAULT_SETTINGS: Settings = {
   usdRate: 0,
   payRates: {},
   monthlySalary: 0,
+  closedThrough: "",
+  collectionGoal: 0,
 };
 
 type SettingsState = Settings & {
@@ -134,6 +136,8 @@ export const useSettings = create<SettingsState>()(
         usdRate: s.usdRate,
         payRates: s.payRates,
         monthlySalary: s.monthlySalary,
+        closedThrough: s.closedThrough,
+        collectionGoal: s.collectionGoal,
       }),
       // دمج عميق للقيم الجديدة حتى لا تنكسر نسخ قديمة أو مزامنة ناقصة
       merge: (persisted, current) => {

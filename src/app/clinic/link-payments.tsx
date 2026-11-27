@@ -36,7 +36,7 @@ export default function LinkPaymentsScreen() {
 
   const planIds = useMemo(() => new Set(plans.map((p) => p.id)), [plans]);
   // دفعات بلا خطة (أو خطتها محذوفة) لمرضى لديهم خطط
-  const loose = useMemo(() => payments.filter((p) => (!p.planId || !planIds.has(p.planId)) && plans.some((x) => x.patientId === p.patientId)), [payments, plans, planIds]);
+  const loose = useMemo(() => payments.filter((p) => !p.refund && (!p.planId || !planIds.has(p.planId)) && plans.some((x) => x.patientId === p.patientId)), [payments, plans, planIds]);
   // اختيار المستخدم يتقدّم على المقترح
   const [choice, setChoice] = useState<Record<string, string | undefined>>({});
   const pick = (p: Payment) => (p.id in choice ? choice[p.id] : suggestPlan(p, plans));

@@ -45,7 +45,7 @@ export function patientPlanFinance(plans: TreatmentPlan[], payments: Payment[], 
   for (const pl of [...mine].sort((a, b) => a.createdAt - b.createdAt)) {
     const tagged = pays.filter((p) => p.planId === pl.id).reduce((a, p) => a + p.amount, 0);
     const need = Math.max(0, planNet(pl) - tagged);
-    const take = Math.min(need, pool);
+    const take = Math.min(need, Math.max(0, pool));
     pool -= take;
     paidBy.set(pl.id, tagged + take);
   }
@@ -75,7 +75,7 @@ export function patientPlanFinance(plans: TreatmentPlan[], payments: Payment[], 
       profit: paid - exp,
     };
   });
-  return { plans: out, credit: pool };
+  return { plans: out, credit: Math.max(0, pool) };
 }
 
 /** يوزّع خصمًا (نسبة أو مبلغًا) على البنود غير المنجزة بالتناسب مع تكلفتها */

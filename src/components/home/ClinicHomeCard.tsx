@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { GoalBar } from "@/components/clinic/GoalBar";
 import { ClinicToolsSheet, useClinicToolList } from "@/components/clinic/ClinicToolsSheet";
 import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
@@ -69,6 +70,7 @@ export function ClinicHomeCard() {
         <Ionicons name="chevron-back" size={20} color="#94A3B8" />
       </Pressable>
 
+      <GoalBar />
       <View className="flex-row gap-2.5">
         {stats.map((c) => (
           <Pressable key={c.label} onPress={() => open(c.tab)} className="flex-1 rounded-2xl p-3" style={{ backgroundColor: c.soft }}>

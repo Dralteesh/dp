@@ -273,6 +273,8 @@ export type Payment = {
   note?: string;
   /** خطة العلاج التي دُفعت لها (اختياري؛ الدفعات القديمة بلا خطة تُحسب على حساب المريض عمومًا) */
   planId?: string;
+  /** استرداد لمريض: المبلغ سالب ويُحسب خصمًا من المقبوض وزيادة في رصيد المريض */
+  refund?: boolean;
   createdAt: number;
 };
 
@@ -518,6 +520,10 @@ export type Settings = {
   payRates: Partial<Record<ShiftType, number>>;
   /** راتب شهري ثابت (المشفى) */
   monthlySalary: number;
+  /** آخر يوم أُغلق ماليًا (YYYY-MM-DD): تعديل دفعات/ذمم يوم مغلق يطلب تأكيدًا. فارغ = لا إغلاق */
+  closedThrough: string;
+  /** هدف التحصيل الشهري بعملة العيادة (0 = بلا هدف) */
+  collectionGoal: number;
 };
 
 /** أيقونة إجراء علاجي: مرسلة مع التطبيق، أو من Ionicons، أو صورة اختارها المستخدم (data:image) */

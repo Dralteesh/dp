@@ -9,11 +9,12 @@ import { Field } from "@/components/ui/Field";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { todayISO } from "@/lib/dates";
+import { confirmIfClosed } from "@/lib/closedDays";
 import { OPENING_PROCEDURE } from "@/lib/finance";
 import { shareReceipt } from "@/lib/receipt";
 import { useClinic } from "@/store/useClinic";
 
-export type MoneyMode = "payment" | "debt";
+export type MoneyMode = "payment" | "debt" | "refund";
 
 /**
  * زر + في المالية: يسأل أولًا «دفعة جديدة» أم «ذمة جديدة» ثم يعرض نموذجها.
@@ -49,7 +50,14 @@ export function MoneyAddSheet({ visible, onClose, mode, patientId: initialPatien
     if (!patientId) return Alert.alert("اختر المريض");
     const r = m.result();
     if (!r) return Alert.alert("أدخل المبلغ", "المبلغ مطلوب (وسعر الدولار إن كان بالدولار).");
-    if (step === "payment") {
+    if (step === "refund" && !note.trim()) return Alert.alert("سبب الاسترداد", "اكتب سبب الاسترداد (مطلوب).");
+    confirmIfClosed(date, step === "refund" ? "الاسترداد" : step === "payment" ? "الدفعة" : "الذمة", () => commit(patientId, r));
+  };
+
+  const commit = (patientId: string, r: { amount: number; foreign?: any }) => {
+    if (step === "refund") {
+      addPayment({ patientId, date, amount: -Math.abs(r.amount), note: `استرداد: ${note.trim()}`, refund: true });
+    } else if (step === "payment") {
       addPayment({ patientId, date, amount: r.amount, foreign: r.foreign, note: note.trim() || undefined });
       if (withReceipt) {
         const id = useClinic.getState().payments[0]?.id;
@@ -68,7 +76,7 @@ export function MoneyAddSheet({ visible, onClose, mode, patientId: initialPatien
     onClose();
   };
 
-  const title = step === "pick" ? "إضافة" : step === "payment" ? "دفعة جديدة" : "ذمة جديدة";
+  const title = step === "pick" ? "إضافة" : step === "payment" ? "دفعة جديدة" : step === "refund" ? "استرداد لمريض" : "ذمة جديدة";
 
   return (
     <Sheet visible={visible} onClose={onClose} title={title}>
@@ -76,14 +84,18 @@ export function MoneyAddSheet({ visible, onClose, mode, patientId: initialPatien
         <View className="gap-3">
           <Button label="دفعة جديدة" icon="cash-outline" type="private" onPress={() => setStep("payment")} />
           <Button label="ذمة جديدة" icon="receipt-outline" variant="soft" type="private" onPress={() => setStep("debt")} />
+          <Button label="استرداد لمريض" icon="return-up-back-outline" variant="outline" onPress={() => setStep("refund")} />
         </View>
       ) : (
         <>
           {step === "debt" ? (
             <Text className="text-xs text-muted mb-3">تُضاف إلى حساب المريض كمبلغ مستحق عليه دون خطة علاج.</Text>
           ) : null}
+          {step === "refund" ? (
+            <Text className="text-xs text-muted mb-3">يُنقص من المقبوض ويزيد رصيد المريض بالمبلغ نفسه، ويظهر في التقارير كاسترداد.</Text>
+          ) : null}
           <PatientPick value={patientId} onChange={setPatientId} />
-          <MoneyField label={step === "payment" ? "المبلغ المدفوع" : "مبلغ الذمة"} m={m} />
+          <MoneyField label={step === "payment" ? "المبلغ المدفوع" : step === "refund" ? "المبلغ المُسترَد" : "مبلغ الذمة"} m={m} />
           {step === "debt" ? (
             <>
               <Field label="البيان" value={desc} onChangeText={setDesc} placeholder="مثال: علاج سابق / مستلزمات" />
@@ -92,13 +104,13 @@ export function MoneyAddSheet({ visible, onClose, mode, patientId: initialPatien
               </View>
             </>
           ) : null}
-          <DateField label={step === "payment" ? "تاريخ الدفع" : "التاريخ"} value={date} onChange={(v) => v && setDate(v)} />
+          <DateField label={step === "payment" ? "تاريخ الدفع" : step === "refund" ? "تاريخ الاسترداد" : "التاريخ"} value={date} onChange={(v) => v && setDate(v)} />
           {step === "payment" ? (
             <View className="flex-row mb-3">
               <Chip label="إرسال إيصال PDF بعد الحفظ" icon={withReceipt ? "checkmark" : "share-outline"} selected={withReceipt} color="#0E6FA5" onPress={() => setWithReceipt((v) => !v)} />
             </View>
           ) : null}
-          <Field label="ملاحظة (اختياري)" value={note} onChangeText={setNote} placeholder={step === "payment" ? "مثال: دفعة أولى" : ""} />
+          <Field label={step === "refund" ? "سبب الاسترداد (مطلوب)" : "ملاحظة (اختياري)"} value={note} onChangeText={setNote} placeholder={step === "payment" ? "مثال: دفعة أولى" : step === "refund" ? "مثال: إلغاء العلاج" : ""} />
           <Button label="حفظ" icon="checkmark" type="private" onPress={save} />
         </>
       )}

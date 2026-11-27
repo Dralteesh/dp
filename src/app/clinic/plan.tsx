@@ -336,7 +336,7 @@ export default function PlanScreen() {
                       {x.note ? ` • ${x.note}` : ""}
                     </Text>
                     <Text w="semi" className="text-xs" style={{ color: "#16A34A" }}>
-                      +{fmtMoney(x.amount, currency)}
+                      {x.amount < 0 ? "−" : "+"}{fmtMoney(Math.abs(x.amount), currency)}
                     </Text>
                   </Pressable>
                 ))}

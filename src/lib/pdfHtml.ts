@@ -3,6 +3,7 @@ import { fmtDateFull } from "@/lib/dates";
 import { fmtMoney } from "@/lib/format";
 import { fmtUsd } from "@/lib/currency";
 import { PAY_LABEL, itemNet, type PlanFin } from "@/lib/planFinance";
+import { monthLabel, type ProfitReport } from "@/lib/profit";
 
 export type DocCtx = {
   clinicName: string;
@@ -140,6 +141,23 @@ export function receiptHtml(ctx: DocCtx, patient: Patient, r: ReceiptDoc): strin
 <tr><td>${esc(p.note || "دفعة من حساب العلاج")}</td><td class="num">${f(p.amount)}${p.foreign ? `<br/><small>${esc(fmtUsd(p.foreign.amount))}</small>` : ""}</td></tr></table>
 <div class="tot">المبلغ المستلَم: ${f(p.amount)}${r.planRemaining != null ? `<br/>المتبقي من الخطة: ${f(Math.max(0, r.planRemaining))}` : ""}<br/>${r.balance > 0 ? `المتبقي على حساب المريض: ${f(r.balance)}` : "الحساب مسدّد"}</div>`;
   return page(ctx, "إيصال استلام", body);
+}
+
+/** تقرير الربح الشهري */
+export function profitHtml(ctx: DocCtx, r: ProfitReport): string {
+  const f = (n: number) => esc(fmtMoney(n, ctx.currency));
+  const rows = (items: string[][], head: string[]) =>
+    items.length
+      ? `<table><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr>${items.map((x) => `<tr>${x.map((c, i) => `<td${i > 0 ? ' class="num"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</table>`
+      : `<div class="meta">لا بيانات</div>`;
+  const body = `<div class="meta">${esc(monthLabel(r.month))}</div>
+<table><tr><th>المقبوض (صافي)</th><th>المصاريف</th><th>صافي الربح</th></tr>
+<tr><td class="num">${f(r.collected)}${r.refunds ? `<br/><small>منها استرداد ${f(r.refunds)}</small>` : ""}</td><td class="num">${f(r.expenses)}</td><td class="num"><b>${f(r.net)}</b></td></tr></table>
+<div class="meta">المستحق الجديد (علاجات/ذمم) هذا الشهر: ${f(r.charged)}</div>
+<b>المصاريف حسب النوع</b>${rows(r.expenseByCat.map((x) => [esc(x.cat), f(x.total)]), ["النوع", "المبلغ"])}
+<b>الإيراد حسب الإجراء</b>${rows(r.byProcedure.map((x) => [esc(x.name), String(x.count), f(x.total)]), ["الإجراء", "العدد", "الإيراد"])}
+<b>ربح الخطط (المقبوض والمصاريف المربوطة بها)</b>${rows(r.byPlan.map((x) => [`${esc(x.patient)} — ${esc(x.title)}`, f(x.collected), f(x.expenses), f(x.profit)]), ["الخطة", "المقبوض", "المصاريف", "الربح"])}`;
+  return page(ctx, "تقرير الربح الشهري", body);
 }
 
 /** تقرير طبي بنص حر */

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PatientPick } from "@/components/clinic/PatientPick";
 import { MoneyField, useMoneyInput } from "@/components/MoneyField";
+import { GoalBar } from "@/components/clinic/GoalBar";
 import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
 import { MoneyAddSheet, type MoneyMode } from "@/components/clinic/MoneyAddSheet";
 import { PCard, PlannerShell, SectionTitle } from "@/components/planner/kit";
@@ -29,6 +30,8 @@ const LINKS: ToolItem[] = [
   { label: "المصاريف", icon: "wallet", path: "/clinic/expenses" },
   { label: "التقارير", icon: "stats-chart", path: "/clinic/reports" },
   { label: "الأسعار", icon: "pricetag", path: "/clinic/prices" },
+  { label: "الربح الشهري", icon: "trending-up", path: "/clinic/profit" },
+  { label: "بحث شامل", icon: "search", path: "/clinic/search" },
   { label: "الإغلاق اليومي", icon: "checkmark-done", path: "/clinic/daily-close" },
   { label: "ربط الدفعات", icon: "git-merge", path: "/clinic/link-payments" },
 ];
@@ -169,6 +172,8 @@ export default function PlannerMoney() {
         ))
       )}
 
+      <GoalBar showEmpty />
+
       <SectionTitle title="خطط العلاج (المتبقي)" />
       {planDebts.length === 0 ? (
         <PCard style={{ alignItems: "center", paddingVertical: 20 }}>
@@ -213,7 +218,7 @@ export default function PlannerMoney() {
                 {p.note ? ` • ${p.note}` : ""}
               </Text>
             </View>
-            <Text w="bold" style={{ color: PL.good }}>+{fmtMoney(p.amount, currency)}</Text>
+            <Text w="bold" style={{ color: PL.good }}>{p.amount < 0 ? "−" : "+"}{fmtMoney(Math.abs(p.amount), currency)}</Text>
           </PCard>
         ))
       )}

@@ -669,7 +669,7 @@ export default function PatientScreen() {
                   <View className="flex-row items-center justify-between">
                     <View>
                       <Text w="bold" className="text-private-ink">
-                        +{fmtMoney(p.amount, currency)}
+                        {p.amount < 0 ? "−" : "+"}{fmtMoney(Math.abs(p.amount), currency)}
                       </Text>
                       <Text className="text-xs text-muted">
                         {fmtDateShort(p.date)}

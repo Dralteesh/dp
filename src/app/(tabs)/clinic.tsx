@@ -32,6 +32,7 @@ import { patientBalance, useClinic } from "@/store/useClinic";
 import { useClinicTools } from "@/store/useClinicTools";
 import { usePlanDebts } from "@/hooks/usePlanDebts";
 import { MoneyAddSheet } from "@/components/clinic/MoneyAddSheet";
+import { GoalBar } from "@/components/clinic/GoalBar";
 import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
 import { useSettings } from "@/store/useSettings";
 import type { Appointment, AppointmentStatus, Patient, ShiftType } from "@/types";
@@ -424,6 +425,7 @@ export default function ClinicScreen() {
             ))
           )}
 
+          <GoalBar showEmpty />
           <SectionHeader title="خطط العلاج (المتبقي)" />
           {planDebts.length === 0 ? (
             <Card>
@@ -469,7 +471,7 @@ export default function ClinicScreen() {
                   <Text className="text-xs text-muted">{fmtDateShort(p.date)}</Text>
                 </View>
                 <Text w="bold" className="text-private-ink">
-                  +{fmtMoney(p.amount, currency)}
+                  {p.amount < 0 ? "−" : "+"}{fmtMoney(Math.abs(p.amount), currency)}
                 </Text>
               </PressableScale>
             ))
