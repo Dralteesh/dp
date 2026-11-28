@@ -6,7 +6,9 @@ import { storage } from "@/lib/storage";
 type DeviceState = {
   lockEnabled: boolean;
   lastBackupAt?: number;
-  set: (patch: Partial<Pick<DeviceState, "lockEnabled" | "lastBackupAt">>) => void;
+  /** وضع الخصوصية: إخفاء الأرقام المالية في الرئيسية والمالية والخطط (لهذا الجهاز فقط) */
+  hideMoney?: boolean;
+  set: (patch: Partial<Pick<DeviceState, "lockEnabled" | "lastBackupAt" | "hideMoney">>) => void;
 };
 
 export const useDevice = create<DeviceState>()(
@@ -18,7 +20,7 @@ export const useDevice = create<DeviceState>()(
     {
       name: "dp.device.v1",
       storage,
-      partialize: (s) => ({ lockEnabled: s.lockEnabled, lastBackupAt: s.lastBackupAt }),
+      partialize: (s) => ({ lockEnabled: s.lockEnabled, lastBackupAt: s.lastBackupAt, hideMoney: s.hideMoney }),
     },
   ),
 );

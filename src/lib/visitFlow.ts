@@ -96,6 +96,7 @@ export function completeVisit(apptId: string, opt: VisitOptions): VisitResult {
       foreign: opt.payment.foreign,
       note: opt.paymentNote?.trim() || "دفعة عند الزيارة",
       planId: opt.paymentPlanId,
+      apptId: appt.id,
     });
     res.payment = opt.payment.amount;
   }

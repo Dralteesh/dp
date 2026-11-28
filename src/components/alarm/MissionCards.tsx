@@ -303,3 +303,26 @@ export function SnoozeCountCards({ options, value, onSelect }: { options: number
     </View>
   );
 }
+
+/** مدة الغفوة بالدقائق: ساعة بعقرب يتغيّر طوله حسب المدة */
+export function SnoozeDurationCards({ options, value, onSelect }: { options: number[]; value: number; onSelect: (v: number) => void }) {
+  const { width } = useWindowDimensions();
+  const gap = 10;
+  const cw = Math.floor((width - 40 - gap * (options.length - 1)) / options.length);
+  return (
+    <View style={{ flexDirection: "row", gap }}>
+      {options.map((v) => {
+        const a = (Math.min(v, 60) / 60) * Math.PI * 2 - Math.PI / 2;
+        return (
+          <SmallCard key={v} w={cw} label={`${v} د`} on={value === v} onPress={() => onSelect(v)}>
+            <Svg width={44} height={44} viewBox="0 0 44 44">
+              <Circle cx={22} cy={22} r={16} stroke={CREAM} strokeWidth={4} fill="none" />
+              <Path d={`M22 22 L${22 + 11 * Math.cos(a)} ${22 + 11 * Math.sin(a)}`} stroke={ORANGE} strokeWidth={4} strokeLinecap="round" />
+              <Circle cx={22} cy={22} r={2.5} fill={YELLOW} />
+            </Svg>
+          </SmallCard>
+        );
+      })}
+    </View>
+  );
+}

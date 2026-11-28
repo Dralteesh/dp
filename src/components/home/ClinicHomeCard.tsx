@@ -3,12 +3,13 @@ import { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { PrivacyToggle } from "@/components/clinic/PrivacyToggle";
 import { GoalBar } from "@/components/clinic/GoalBar";
 import { ClinicToolsSheet, useClinicToolList } from "@/components/clinic/ClinicToolsSheet";
 import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { toISO } from "@/lib/dates";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoneyP, useHideMoney } from "@/lib/privacy";
 import { overdueLabOrders } from "@/lib/patientType";
 import { useExtras } from "@/store/useExtras";
 import { patientBalance, useClinic } from "@/store/useClinic";
@@ -19,6 +20,7 @@ const COL = TYPE_META.private;
 
 /** العيادة في الرئيسية: أرقام تفتح أقسام العيادة الثلاثة + صف أدوات قابل للتمرير */
 export function ClinicHomeCard() {
+  useHideMoney();
   const router = useRouter();
   const currency = useSettings((s) => s.currency);
   const clinicName = useSettings((s) => s.clinicName);
@@ -47,7 +49,7 @@ export function ClinicHomeCard() {
   const stats = [
     { label: "مواعيد اليوم", value: String(todayCount), hex: COL.inkHex, soft: COL.soft, tab: "day" as const },
     { label: "قيد المعالجة", value: String(activeCount), hex: "#2563EB", soft: "#DBEAFE", tab: "patients" as const },
-    { label: "ذمم المرضى", value: fmtMoney(totalDebt, currency), hex: "#DC2626", soft: "#FEE2E2", tab: "money" as const, small: true },
+    { label: "ذمم المرضى", value: fmtMoneyP(totalDebt, currency), hex: "#DC2626", soft: "#FEE2E2", tab: "money" as const, small: true },
   ];
 
   return (
@@ -67,6 +69,7 @@ export function ClinicHomeCard() {
         <Text w="bold" className="text-lg flex-1" numberOfLines={1}>
           {clinicName || "العيادة"}
         </Text>
+        <PrivacyToggle color="#94A3B8" />
         <Ionicons name="chevron-back" size={20} color="#94A3B8" />
       </Pressable>
 

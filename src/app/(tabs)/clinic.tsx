@@ -25,13 +25,15 @@ import { useAgendaInput } from "@/hooks/useAgenda";
 import { Text } from "@/components/ui/Text";
 import { STATUS_META } from "@/constants/clinic";
 import { addDays, fmtDateFull, fmtDateShort, fmtTime, minutesToTime, relativeDay, toISO, toMinutes } from "@/lib/dates";
-import { fmtMoney, initial } from "@/lib/format";
+import { initial } from "@/lib/format";
+import { fmtMoneyP, useHideMoney } from "@/lib/privacy";
 import { inputAlign } from "@/lib/rtl";
 import { whatsappLink } from "@/lib/phone";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useClinicTools } from "@/store/useClinicTools";
 import { usePlanDebts } from "@/hooks/usePlanDebts";
 import { MoneyAddSheet } from "@/components/clinic/MoneyAddSheet";
+import { PrivacyToggle } from "@/components/clinic/PrivacyToggle";
 import { GoalBar } from "@/components/clinic/GoalBar";
 import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
 import { useSettings } from "@/store/useSettings";
@@ -42,6 +44,7 @@ type PFilter = "active" | "finished" | "all";
 
 
 export default function ClinicScreen() {
+  useHideMoney();
   useTheme();
   const clinicName = useSettings((x) => x.clinicName);
   const clinicLogo = useSettings((x) => x.clinicLogo);
@@ -221,7 +224,7 @@ export default function ClinicScreen() {
         {[
           { label: "مواعيد اليوم", value: String(todayCount), hex: TYPE_META.private.inkHex, soft: TYPE_META.private.soft },
           { label: "قيد المعالجة", value: String(activeCount), hex: "#2563EB", soft: "#DBEAFE" },
-          { label: "ذمم المرضى", value: fmtMoney(totalDebt, currency), hex: "#DC2626", soft: "#FEE2E2", small: true },
+          { label: "ذمم المرضى", value: fmtMoneyP(totalDebt, currency), hex: "#DC2626", soft: "#FEE2E2", small: true },
         ].map((c) => (
           <View key={c.label} className="flex-1 rounded-2xl p-3" style={{ backgroundColor: c.soft }}>
             <Text className="text-xs" style={{ color: c.hex }}>
@@ -376,7 +379,7 @@ export default function ClinicScreen() {
                   {bal > 0 ? (
                     <View className="rounded-full bg-red-50 px-2.5 py-1">
                       <Text w="semi" className="text-xs text-danger">
-                        {fmtMoney(bal, currency)}
+                        {fmtMoneyP(bal, currency)}
                       </Text>
                     </View>
                   ) : null}
@@ -394,13 +397,13 @@ export default function ClinicScreen() {
             <View className="flex-1 rounded-2xl bg-private-soft p-3">
               <Text className="text-xs text-private-ink">المقبوض هذا الشهر</Text>
               <Text w="bold" className="text-private-ink text-lg">
-                {fmtMoney(monthCollected, currency)}
+                {fmtMoneyP(monthCollected, currency)}
               </Text>
             </View>
             <View className="flex-1 rounded-2xl bg-hospital-soft p-3">
               <Text className="text-xs text-hospital-ink">قيمة العلاج هذا الشهر</Text>
               <Text w="bold" className="text-hospital-ink text-lg">
-                {fmtMoney(monthCharged, currency)}
+                {fmtMoneyP(monthCharged, currency)}
               </Text>
             </View>
           </View>
@@ -419,12 +422,15 @@ export default function ClinicScreen() {
               >
                 <Text w="semi">{d.patient.name}</Text>
                 <Text w="bold" className="text-danger">
-                  {fmtMoney(d.balance, currency)}
+                  {fmtMoneyP(d.balance, currency)}
                 </Text>
               </PressableScale>
             ))
           )}
 
+          <View className="flex-row justify-end mb-1.5">
+            <PrivacyToggle />
+          </View>
           <GoalBar showEmpty />
           <SectionHeader title="خطط العلاج (المتبقي)" />
           {planDebts.length === 0 ? (
@@ -442,10 +448,10 @@ export default function ClinicScreen() {
                   <View className="flex-1 pe-2">
                     <Text w="semi" numberOfLines={1}>{patient.name}</Text>
                     <Text className="text-xs text-muted" numberOfLines={1}>
-                      {fin.plan.title} • مدفوع {fmtMoney(fin.paid, currency)} من {fmtMoney(fin.net, currency)}
+                      {fin.plan.title} • مدفوع {fmtMoneyP(fin.paid, currency)} من {fmtMoneyP(fin.net, currency)}
                     </Text>
                   </View>
-                  <Text w="bold" className="text-danger">{fmtMoney(fin.remaining, currency)}</Text>
+                  <Text w="bold" className="text-danger">{fmtMoneyP(fin.remaining, currency)}</Text>
                 </View>
                 <View className="h-1.5 rounded-full bg-slate-100 mt-2 overflow-hidden">
                   <View style={{ width: `${Math.min(100, Math.round((fin.paid / Math.max(1, fin.net)) * 100))}%`, height: 6, backgroundColor: "#16A34A" }} />
@@ -471,7 +477,7 @@ export default function ClinicScreen() {
                   <Text className="text-xs text-muted">{fmtDateShort(p.date)}</Text>
                 </View>
                 <Text w="bold" className="text-private-ink">
-                  {p.amount < 0 ? "−" : "+"}{fmtMoney(Math.abs(p.amount), currency)}
+                  {p.amount < 0 ? "−" : "+"}{fmtMoneyP(Math.abs(p.amount), currency)}
                 </Text>
               </PressableScale>
             ))

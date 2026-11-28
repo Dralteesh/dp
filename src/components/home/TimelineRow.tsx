@@ -7,7 +7,7 @@ import { ProcedureBadge } from "@/components/clinic/ProcedureIcon";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useDebts } from "@/hooks/useDebts";
 import { useTheme } from "@/hooks/useTheme";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoneyP, useHideMoney } from "@/lib/privacy";
 import { useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
 import type { AgendaItem } from "@/lib/agenda";
@@ -25,6 +25,7 @@ type Props = {
 
 /** بطاقة نشاط في خط اليوم الزمني: خلفية ناعمة بلون المكان + أيقونة كبيرة (من تصميم Timeline) */
 export function TimelineCard({ item, live, past, remainingMin, onPress }: Props) {
+  useHideMoney();
   useTheme();
   const m = TYPE_META[item.type];
   const status = item.status ? STATUS_META[item.status as AppointmentStatus] : null;
@@ -34,6 +35,8 @@ export function TimelineCard({ item, live, past, remainingMin, onPress }: Props)
   const debts = useDebts();
   const pid = useClinic((s) => (item.source === "appointment" ? s.appointments.find((a) => a.id === item.refId)?.patientId : undefined));
   const debt = pid ? debts.get(pid) ?? 0 : 0;
+  // مدفوع على هذا الموعد (زيارة أو عربون)
+  const paidHere = useClinic((s) => (item.source === "appointment" ? s.payments.reduce((a, p) => (p.apptId === item.refId ? a + p.amount : a), 0) : 0));
 
   return (
     <PressableScale
@@ -72,10 +75,17 @@ export function TimelineCard({ item, live, past, remainingMin, onPress }: Props)
             </Text>
           ) : null}
         </View>
+        {paidHere > 0 ? (
+          <View className="self-start rounded-full px-2 py-0.5 mt-1.5" style={{ backgroundColor: "#DCFCE7" }}>
+            <Text w="semi" className="text-[11px]" style={{ color: "#166534" }}>
+              دُفع {fmtMoneyP(paidHere, currency)}
+            </Text>
+          </View>
+        ) : null}
         {debt > 0 ? (
           <View className="self-start rounded-full px-2 py-0.5 mt-1.5" style={{ backgroundColor: "#FEE2E2" }}>
             <Text w="semi" className="text-[11px]" style={{ color: "#991B1B" }}>
-              عليه {fmtMoney(debt, currency)}
+              عليه {fmtMoneyP(debt, currency)}
             </Text>
           </View>
         ) : null}

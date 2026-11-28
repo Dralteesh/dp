@@ -54,6 +54,14 @@ jobs:
         run: |
           node -e "const t=require('./src/data/quran-text.json'); if(!t.ok||Object.keys(t.pages).length!==604){console.error('Quran data missing'); process.exit(1)} console.log('Quran OK')"
 
+      # اختبارات منطق المالية (توزيع الدفعات، الخصم، الاسترداد): أخطاؤها أرقام حقيقية
+      - name: Finance tests
+        run: npx --yes tsx scripts/test-finance.ts
+
+      # أخطاء قاتلة فقط (تعريف مكرّر/اسم غير معرّف): تظهر هنا بدل فشل Metro
+      - name: Check types (fatal only)
+        run: bash scripts/check-types.sh
+
       # يكشف أخطاء كود JavaScript خلال دقيقة، قبل بناء أندرويد الطويل
       - name: Check JS bundle
         run: npx expo export --platform android

@@ -119,7 +119,15 @@ export function statementHtml(
       return `<b>${esc(x.plan.title)}</b><table><tr><th>البند</th><th>التكلفة</th><th>الصافي</th><th>الحالة</th></tr>${rows}</table><div class="tot">الصافي: ${f(x.net)} &nbsp;|&nbsp; المدفوع: ${f(x.paid)} &nbsp;|&nbsp; المتبقي: ${f(x.remaining)}${x.discount ? ` &nbsp;|&nbsp; إجمالي الخصم: ${f(x.discount)}` : ""}</div>`;
     })
     .join("");
+  // ملخص الحساب: التكلفة والخصومات والمنجز والمدفوع والاسترداد والمتبقي
+  const paidIn = payments.filter((p) => p.amount > 0).reduce((a, p) => a + p.amount, 0);
+  const refunded = payments.filter((p) => p.amount < 0).reduce((a, p) => a - p.amount, 0);
+  const gross = (plans ?? []).reduce((a, x) => a + x.gross, 0);
+  const disc = (plans ?? []).reduce((a, x) => a + x.discount, 0);
+  const summary = `<table><tr>${plans?.length ? "<th>تكلفة الخطط</th><th>الخصومات</th>" : ""}<th>المنجز (مستحق)</th><th>المدفوع</th>${refunded ? "<th>المسترَد</th>" : ""}<th>المتبقي</th></tr>
+<tr>${plans?.length ? `<td class="num">${f(gross)}</td><td class="num">${f(disc)}</td>` : ""}<td class="num">${f(charged)}</td><td class="num">${f(paidIn)}</td>${refunded ? `<td class="num">${f(refunded)}</td>` : ""}<td class="num"><b>${f(Math.max(0, balance))}</b></td></tr></table>`;
   const body = `${patientBlock(patient)}
+${summary}
 ${planBlock}
 <b>الجلسات</b><table><tr><th>التاريخ</th><th>الإجراء</th><th>التكلفة</th></tr>${sRows || `<tr><td colspan="3">—</td></tr>`}</table>
 <b>الدفعات</b><table><tr><th>التاريخ</th><th>ملاحظة</th><th>المبلغ</th></tr>${pRows || `<tr><td colspan="3">—</td></tr>`}</table>

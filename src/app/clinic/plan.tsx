@@ -18,14 +18,17 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { TYPE_META } from "@/constants/shiftTypes";
 import { useTheme } from "@/hooks/useTheme";
-import { toISO } from "@/lib/dates";
-import { fmtMoney, parseAmount } from "@/lib/format";
+import { addDays, toISO } from "@/lib/dates";
+import { parseAmount } from "@/lib/format";
+import { fmtMoney } from "@/lib/format";
+import { fmtMoneyP, useHideMoney } from "@/lib/privacy";
 import { distributeDiscount, itemNet, patientPlanFinance, PAY_COLOR, PAY_LABEL } from "@/lib/planFinance";
 import { whatsappLink } from "@/lib/phone";
 import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
 import { sharePdf } from "@/lib/pdf";
 import { priceForProcedure } from "@/lib/clinicLink";
 import type { TreatmentPackage } from "@/types/extras";
+import { buildItems } from "@/app/clinic/installments";
 import { statementHtml, type DocCtx } from "@/lib/pdfHtml";
 import { EXPENSE_CATEGORIES } from "@/constants/clinic";
 import { patientBalance, useClinic } from "@/store/useClinic";
@@ -35,6 +38,7 @@ import { useProcedures } from "@/hooks/useProcedures";
 
 /** خطط علاج المريض: بنود مرتبة بتكلفة، وإنجاز البند يضيف جلسة لحساب المريض */
 export default function PlanScreen() {
+  useHideMoney();
   const procedures = useProcedures();
   useTheme();
   const router = useRouter();
@@ -65,6 +69,8 @@ export default function PlanScreen() {
   const packages = useExtras((s) => s.packages);
   const addPlanItems = useClinic((s) => s.addPlanItems);
   const [pkgFor, setPkgFor] = useState<string | null>(null);
+  const installPlans = useExtras((s) => s.installPlans);
+  const addInstallPlan = useExtras((s) => s.addInstallPlan);
   const [costEdit, setCostEdit] = useState<{ itemId: string; text: string; disc: string; note: string; done: boolean } | null>(null);
   const [discFor, setDiscFor] = useState<string | null>(null);
   const [discMode, setDiscMode] = useState<"percent" | "amount">("percent");
@@ -211,12 +217,12 @@ export default function PlanScreen() {
             <View key={x.label} style={{ width: "50%" }}>
               <Text className="text-xs text-muted">{x.label}</Text>
               <Text w="bold" style={{ color: x.color }}>
-                {fmtMoney(x.value, currency)}
+                {fmtMoneyP(x.value, currency)}
               </Text>
             </View>
           ))}
         </View>
-        {fin.credit > 0 ? <Text className="text-xs mt-2" style={{ color: "#166534" }}>رصيد دائن غير موزَّع على الخطط: {fmtMoney(fin.credit, currency)}</Text> : null}
+        {fin.credit > 0 ? <Text className="text-xs mt-2" style={{ color: "#166534" }}>رصيد دائن غير موزَّع على الخطط: {fmtMoneyP(fin.credit, currency)}</Text> : null}
         <View className="flex-row flex-wrap gap-2 mt-3">
           <Button small label="كشف حساب PDF" icon="document-text-outline" variant="soft" type="private" disabled={pdfBusy} onPress={shareStatement} />
           {bal.balance > 0 ? <Button small label="تذكير واتساب بالمتبقي" icon="logo-whatsapp" variant="soft" onPress={remindWhatsapp} /> : null}
@@ -257,7 +263,7 @@ export default function PlanScreen() {
                   </Pressable>
                 </View>
                 <Text className="text-xs text-muted mt-1">
-                  {done.length}/{plan.items.length} منجز • الصافي {fmtMoney(total, currency)}{f && f.discount > 0 ? ` (خصم ${fmtMoney(f.discount, currency)})` : ""} • المنجز {fmtMoney(doneCost, currency)}
+                  {done.length}/{plan.items.length} منجز • الصافي {fmtMoneyP(total, currency)}{f && f.discount > 0 ? ` (خصم ${fmtMoneyP(f.discount, currency)})` : ""} • المنجز {fmtMoneyP(doneCost, currency)}
                 </Text>
                 <View className="h-2 rounded-full bg-slate-100 mt-2 mb-3 overflow-hidden">
                   <View style={{ width: `${pct}%`, height: 8, backgroundColor: green }} />
@@ -265,8 +271,8 @@ export default function PlanScreen() {
                 <View className="flex-row items-center gap-3 mb-2">
                   <View className="flex-1">
                     <Text className="text-xs text-muted">
-                      المدفوع لهذه الخطة <Text w="bold" className="text-xs" style={{ color: "#16A34A" }}>{fmtMoney(planPaid, currency)}</Text> • المتبقي من قيمتها{" "}
-                      <Text w="bold" className="text-xs" style={{ color: total - planPaid > 0 ? "#DC2626" : "#16A34A" }}>{fmtMoney(Math.max(0, total - planPaid), currency)}</Text>
+                      المدفوع لهذه الخطة <Text w="bold" className="text-xs" style={{ color: "#16A34A" }}>{fmtMoneyP(planPaid, currency)}</Text> • المتبقي من قيمتها{" "}
+                      <Text w="bold" className="text-xs" style={{ color: total - planPaid > 0 ? "#DC2626" : "#16A34A" }}>{fmtMoneyP(Math.max(0, total - planPaid), currency)}</Text>
                     </Text>
                   </View>
                   <Button
@@ -285,7 +291,7 @@ export default function PlanScreen() {
                 </View>
                 {f && f.expenses > 0 ? (
                   <Text className="text-xs text-muted mb-1">
-                    مصاريف الخطة {fmtMoney(f.expenses, currency)} • الربح {fmtMoney(f.profit, currency)}
+                    مصاريف الخطة {fmtMoneyP(f.expenses, currency)} • الربح {fmtMoneyP(f.profit, currency)}
                   </Text>
                 ) : null}
                 <View className="flex-row flex-wrap gap-2 mb-2">
@@ -325,6 +331,28 @@ export default function PlanScreen() {
                   <Button small label="حزمة" icon="gift-outline" variant="outline" onPress={() => setPkgFor(plan.id)} />
                   <Button small label="فاتورة" icon="receipt-outline" variant="outline" onPress={() => router.push({ pathname: "/clinic/invoices", params: { patientId: patient.id, planId: plan.id } } as never)} />
                 </View>
+                {f && f.remaining > 0 && !installPlans.some((x) => x.treatmentPlanId === plan.id) ? (
+                  <View className="rounded-xl bg-slate-50 border border-line p-3 mb-2">
+                    <Text className="text-xs text-muted mb-2">اقتراح: قسّط المتبقي {fmtMoneyP(f.remaining, currency)} على 3 أقساط شهرية، وتُسجَّل دفعاتها على هذه الخطة.</Text>
+                    <View className="self-start">
+                      <Button
+                        small
+                        label="أنشئ 3 أقساط"
+                        icon="calendar-outline"
+                        variant="soft"
+                        type="private"
+                        onPress={() =>
+                          addInstallPlan({
+                            patientId: patient.id,
+                            title: `تقسيط: ${plan.title}`,
+                            items: buildItems(Math.round(f.remaining), 3, addDays(toISO(new Date()), 30)),
+                            treatmentPlanId: plan.id,
+                          })
+                        }
+                      />
+                    </View>
+                  </View>
+                ) : null}
                 {planPays.map((x) => (
                   <Pressable
                     key={x.id}
@@ -336,7 +364,7 @@ export default function PlanScreen() {
                       {x.note ? ` • ${x.note}` : ""}
                     </Text>
                     <Text w="semi" className="text-xs" style={{ color: "#16A34A" }}>
-                      {x.amount < 0 ? "−" : "+"}{fmtMoney(Math.abs(x.amount), currency)}
+                      {x.amount < 0 ? "−" : "+"}{fmtMoneyP(Math.abs(x.amount), currency)}
                     </Text>
                   </Pressable>
                 ))}
@@ -374,8 +402,8 @@ export default function PlanScreen() {
                         hitSlop={6}
                       >
                         <Text className="text-xs text-muted">
-                          {it.discount ? `${fmtMoney(it.cost, currency)} − ${fmtMoney(it.discount, currency)} = ` : ""}
-                          {fmtMoney(itemNet(it), currency)}
+                          {it.discount ? `${fmtMoneyP(it.cost, currency)} − ${fmtMoneyP(it.discount, currency)} = ` : ""}
+                          {fmtMoneyP(itemNet(it), currency)}
                           {!it.done ? " ✎" : ""}
                           {it.dueOn && !it.done ? ` • مستهدف ${it.dueOn}` : ""}
                           {it.discountNote ? ` • ${it.discountNote}` : ""}
@@ -388,7 +416,7 @@ export default function PlanScreen() {
                           <View className="self-start rounded-full px-2 py-0.5 mt-1" style={{ backgroundColor: PAY_COLOR[st.status].bg }}>
                             <Text w="semi" className="text-[11px]" style={{ color: PAY_COLOR[st.status].fg }}>
                               {PAY_LABEL[st.status]}
-                              {st.status === "partial" ? ` ${fmtMoney(st.paid, currency)}` : ""}
+                              {st.status === "partial" ? ` ${fmtMoneyP(st.paid, currency)}` : ""}
                             </Text>
                           </View>
                         );
@@ -495,7 +523,7 @@ export default function PlanScreen() {
                 <Text w="semi">{pk.name}</Text>
                 <Text className="text-xs text-muted">{pk.procedures.join(" + ")}</Text>
               </View>
-              <Text w="bold" style={{ color: green }}>{fmtMoney(pk.price, currency)}</Text>
+              <Text w="bold" style={{ color: green }}>{fmtMoneyP(pk.price, currency)}</Text>
             </Pressable>
           ))
         )}

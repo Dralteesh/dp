@@ -202,6 +202,7 @@ export default function AppointmentFormScreen() {
           foreign: adv.foreign,
           note: "دفعة عند الحجز",
           planId: planOfFirst ?? target,
+          apptId,
         });
       }
       // حُجز من قائمة الانتظار: يُعلَّم محجوزًا الآن فقط (بعد حفظ الموعد فعلًا)

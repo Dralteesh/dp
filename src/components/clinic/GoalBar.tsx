@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
-import { fmtMoney, parseAmount } from "@/lib/format";
+import { parseAmount } from "@/lib/format";
+import { fmtMoneyP, useHideMoney } from "@/lib/privacy";
 import { useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
 
@@ -17,6 +18,7 @@ export const collectedIn = (payments: { date: string; amount: number }[], month:
  * الضغط عليه يفتح تعديل الهدف. بلا هدف: يظهر رابط «حدّد هدفًا» فقط إن طُلب showEmpty.
  */
 export function GoalBar({ showEmpty = false }: { showEmpty?: boolean }) {
+  useHideMoney();
   const goal = useSettings((s) => s.collectionGoal);
   const currency = useSettings((s) => s.currency);
   const update = useSettings((s) => s.update);
@@ -88,8 +90,8 @@ export function GoalBar({ showEmpty = false }: { showEmpty?: boolean }) {
           <View style={{ width: `${pct}%`, height: 8, backgroundColor: color }} />
         </View>
         <Text className="text-xs text-muted">
-          {fmtMoney(d.collected, currency)} من {fmtMoney(goal, currency)}
-          {d.collected >= goal ? " • تحقّق الهدف" : ahead ? " • ضمن الوتيرة" : ` • أقل من الوتيرة بـ ${fmtMoney(expected - d.collected, currency)}`}
+          {fmtMoneyP(d.collected, currency)} من {fmtMoneyP(goal, currency)}
+          {d.collected >= goal ? " • تحقّق الهدف" : ahead ? " • ضمن الوتيرة" : ` • أقل من الوتيرة بـ ${fmtMoneyP(expected - d.collected, currency)}`}
         </Text>
       </Pressable>
       {sheet}

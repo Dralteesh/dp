@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PatientPick } from "@/components/clinic/PatientPick";
 import { MoneyField, useMoneyInput } from "@/components/MoneyField";
+import { PrivacyToggle } from "@/components/clinic/PrivacyToggle";
 import { GoalBar } from "@/components/clinic/GoalBar";
 import { EditMoneySheet, type MoneyTarget } from "@/components/clinic/EditMoneySheet";
 import { MoneyAddSheet, type MoneyMode } from "@/components/clinic/MoneyAddSheet";
@@ -20,7 +21,7 @@ import { useLayout } from "@/hooks/useLayout";
 import { usePlanDebts } from "@/hooks/usePlanDebts";
 import { addDays, fmtDateShort, toISO } from "@/lib/dates";
 import { OPENING_PROCEDURE, PERIOD_LABEL, periodStart, type FinPeriod } from "@/lib/finance";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoneyP, useHideMoney } from "@/lib/privacy";
 import { patientBalance, useClinic } from "@/store/useClinic";
 import { useSettings } from "@/store/useSettings";
 
@@ -39,6 +40,7 @@ const LINKS: ToolItem[] = [
 
 /** المالية: ملخّص الفترة (مقبوض/علاج/مصاريف/صافي)، الذمم، دفعة سريعة، رصيد سابق، وروابط الفواتير والأقساط والمصاريف والتقارير */
 export default function PlannerMoney() {
+  useHideMoney();
   const router = useRouter();
   const { isWide } = useLayout();
   const currency = useSettings((s) => s.currency);
@@ -91,7 +93,7 @@ export default function PlannerMoney() {
     <PCard style={{ flex: 1, backgroundColor: bg }}>
       <Text style={{ fontSize: 12, color }}>{label}</Text>
       <Text w="bold" style={{ fontSize: 17, color }}>
-        {fmtMoney(value, currency)}
+        {fmtMoneyP(value, currency)}
       </Text>
     </PCard>
   );
@@ -128,7 +130,7 @@ export default function PlannerMoney() {
         <View>
           <Text style={{ fontSize: 12, color: PL.bad }}>إجمالي الذمم المستحقة</Text>
           <Text w="bold" style={{ fontSize: 18, color: PL.bad }}>
-            {fmtMoney(totalDebt, currency)}
+            {fmtMoneyP(totalDebt, currency)}
           </Text>
         </View>
         <Text style={{ fontSize: 12, color: PL.bad }}>{debtorsAll.length} مريض</Text>
@@ -161,10 +163,10 @@ export default function PlannerMoney() {
             <View style={{ flex: 1 }}>
               <Text w="semi" numberOfLines={1} style={{ color: PL.navy }}>{d.patient.name}</Text>
               <Text style={{ fontSize: 11.5, color: PL.muted }}>
-                مدفوع {fmtMoney(d.paid, currency)} من {fmtMoney(d.charged, currency)}
+                مدفوع {fmtMoneyP(d.paid, currency)} من {fmtMoneyP(d.charged, currency)}
               </Text>
             </View>
-            <Text w="bold" style={{ color: PL.bad }}>{fmtMoney(d.balance, currency)}</Text>
+            <Text w="bold" style={{ color: PL.bad }}>{fmtMoneyP(d.balance, currency)}</Text>
             <Pressable onPress={() => openSheet("payment", d.patient.id)} hitSlop={8} accessibilityLabel="تسجيل دفعة">
               <Ionicons name="add-circle" size={28} color={PL.good} />
             </Pressable>
@@ -172,6 +174,9 @@ export default function PlannerMoney() {
         ))
       )}
 
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 6 }}>
+        <PrivacyToggle />
+      </View>
       <GoalBar showEmpty />
 
       <SectionTitle title="خطط العلاج (المتبقي)" />
@@ -190,10 +195,10 @@ export default function PlannerMoney() {
               <View style={{ flex: 1 }}>
                 <Text w="semi" numberOfLines={1} style={{ color: PL.navy }}>{patient.name}</Text>
                 <Text numberOfLines={1} style={{ fontSize: 11.5, color: PL.muted }}>
-                  {fin.plan.title} • مدفوع {fmtMoney(fin.paid, currency)} من {fmtMoney(fin.net, currency)}
+                  {fin.plan.title} • مدفوع {fmtMoneyP(fin.paid, currency)} من {fmtMoneyP(fin.net, currency)}
                 </Text>
               </View>
-              <Text w="bold" style={{ color: PL.bad }}>{fmtMoney(fin.remaining, currency)}</Text>
+              <Text w="bold" style={{ color: PL.bad }}>{fmtMoneyP(fin.remaining, currency)}</Text>
             </View>
             <View style={{ height: 6, borderRadius: 3, backgroundColor: PL.border, marginTop: 8, overflow: "hidden" }}>
               <View style={{ width: `${Math.min(100, Math.round((fin.paid / Math.max(1, fin.net)) * 100))}%`, height: 6, backgroundColor: PL.good }} />
@@ -218,7 +223,7 @@ export default function PlannerMoney() {
                 {p.note ? ` • ${p.note}` : ""}
               </Text>
             </View>
-            <Text w="bold" style={{ color: PL.good }}>{p.amount < 0 ? "−" : "+"}{fmtMoney(Math.abs(p.amount), currency)}</Text>
+            <Text w="bold" style={{ color: PL.good }}>{p.amount < 0 ? "−" : "+"}{fmtMoneyP(Math.abs(p.amount), currency)}</Text>
           </PCard>
         ))
       )}

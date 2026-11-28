@@ -8,6 +8,7 @@ import { useSettings } from "@/store/useSettings";
 import { usePrayerLog, type FardKey } from "@/store/usePrayerLog";
 import { useCountdowns } from "@/store/useCountdowns";
 import { useClinic } from "@/store/useClinic";
+import { useDevice } from "@/store/useDevice";
 import { fmtMoney } from "@/lib/format";
 import { buildCountdownItems } from "@/lib/countdown/notify";
 import type { PrayerKey, Settings, Task } from "@/types";
@@ -42,7 +43,7 @@ const SNOOZE_MIN = 10;
 /**
  * البادئات التي يديرها التزامن فقط. أي إشعار آخر (مثل الإشعارات التجريبية) لا يُلمس. تكرارات الصلاة تبدأ بـ prayer-rep- فتدخل ضمن prayer-.
  */
-const MANAGED_PREFIXES = ["prayer-", "event-", "appt-", "task-", "dhikr-", "cd-", "debt-"] as const;
+const MANAGED_PREFIXES = ["prayer-", "event-", "appt-", "task-", "dhikr-", "cd-", "debt-", "backup-"] as const;
 const PRAYER_PREFIXES = ["prayer-", "dhikr-"] as const;
 
 /** Android يحدّ الإشعارات المجدولة (~500). نبقى تحت 400 */
@@ -463,6 +464,68 @@ function quietize(items: Planned[], windows: Array<[number, number]>): Planned[]
   });
 }
 
+/**
+ * تنبيهان أسبوعيان للعيادة:
+ *  - السبت 9ص: مرضى عليهم رصيد ولم يدفعوا منذ أكثر من 30 يومًا (إن وُجدوا)
+ *  - الجمعة 10ص: تذكير بنسخة احتياطية إن مرّ أسبوع على آخر نسخة
+ * لا ملفات تُكتب تلقائيًا: النسخة تحوي بيانات مرضى، فيحفظها المستخدم بنفسه (مشفّرة إن شاء).
+ */
+export function buildClinicWeekly(now: Date, currency: string): Planned[] {
+  const out: Planned[] = [];
+  const cl = useClinic.getState();
+  if (!cl.patients.length) return out;
+  const iso = toISO(now);
+  const nextDow = (dow: number, hhmm: string): Date => {
+    let add = (dow - now.getDay() + 7) % 7;
+    if (add === 0 && now.getTime() >= combine(iso, hhmm).getTime()) add = 7;
+    return combine(addDays(iso, add), hhmm);
+  };
+
+  const lastPay = new Map<string, string>();
+  const firstSession = new Map<string, string>();
+  const bal = new Map<string, number>();
+  for (const p of cl.payments) {
+    bal.set(p.patientId, (bal.get(p.patientId) ?? 0) - p.amount);
+    if (p.amount > 0 && (lastPay.get(p.patientId) ?? "") < p.date) lastPay.set(p.patientId, p.date);
+  }
+  for (const s of cl.sessions) {
+    bal.set(s.patientId, (bal.get(s.patientId) ?? 0) + s.cost);
+    const f = firstSession.get(s.patientId);
+    if (!f || s.date < f) firstSession.set(s.patientId, s.date);
+  }
+  let count = 0;
+  let total = 0;
+  for (const [pid, b] of bal) {
+    if (b <= 0) continue;
+    const since = lastPay.get(pid) ?? firstSession.get(pid);
+    if (since && (Date.parse(iso) - Date.parse(since)) / 86400000 > 30) {
+      count++;
+      total += b;
+    }
+  }
+  if (count > 0) {
+    out.push({
+      id: "debt-weekly",
+      title: "ذمم متأخرة",
+      body: `${count} ${count === 1 ? "مريض لم يدفع" : "مرضى لم يدفعوا"} منذ أكثر من 30 يومًا • المجموع ${fmtMoney(total, currency)}`,
+      date: nextDow(6, "09:00"),
+      channel: CHANNEL.events,
+    });
+  }
+
+  const last = useDevice.getState().lastBackupAt;
+  if (!last || now.getTime() - last > 7 * 86400000) {
+    out.push({
+      id: "backup-weekly",
+      title: "نسخة احتياطية",
+      body: "مرّ أسبوع على آخر نسخة احتياطية. احفظ نسخة من بيانات العيادة الآن (الأمان ← نسخة احتياطية).",
+      date: nextDow(5, "10:00"),
+      channel: CHANNEL.events,
+    });
+  }
+  return out;
+}
+
 async function doSync({ agenda, tasks, settings }: SyncInput): Promise<void> {
   const granted = (await Notifications.getPermissionsAsync()).granted;
   if (!granted) return;
@@ -474,6 +537,9 @@ async function doSync({ agenda, tasks, settings }: SyncInput): Promise<void> {
   // --- الصلاة والأذكار ---
   const log = usePrayerLog.getState();
   items.push(...buildPrayerItems(settings, { done: log.done, snoozeUntil: log.snoozeUntil }));
+
+  // --- ذمم متأخرة + تذكير النسخ الاحتياطي (أسبوعيًا) ---
+  items.push(...buildClinicWeekly(new Date(), settings.currency));
 
   // --- الأحداث (دوام/مناوبات/أنشطة) ---
   for (let i = 0; i < EVENT_DAYS; i++) {
